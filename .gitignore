@@ -10,4 +10,6 @@ dotnet/publish/
 *.zip
 *.exe
 update-url.txt
+github-token.txt
+dotnet/github-token.txt
 .vscode/

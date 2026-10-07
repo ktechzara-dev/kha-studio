@@ -35,8 +35,11 @@ if ($LASTEXITCODE) { throw "vpk pack lỗi" }
 
 if ($Publish) {
   if (-not $isGh) { throw "-Publish hiện chỉ hỗ trợ GitHub. Với thư mục mạng: copy nội dung $rel lên đó." }
-  if (-not $env:GITHUB_TOKEN) { throw "Chưa đặt `$env:GITHUB_TOKEN" }
-  vpk upload github --repoUrl $RepoUrl --token $env:GITHUB_TOKEN --publish --releaseName "Kha Studio $Version" --tag "v$Version" --outputDir $rel
+  $token = $env:GITHUB_TOKEN
+  $tokenFile = Join-Path $root "github-token.txt"
+  if (-not $token -and (Test-Path $tokenFile)) { $token = (Get-Content $tokenFile -Raw).Trim() }
+  if (-not $token) { throw "Chưa đặt `$env:GITHUB_TOKEN hoặc file dotnet\github-token.txt" }
+  vpk upload github --repoUrl $RepoUrl --token $token --publish --merge --releaseName "Kha Studio $Version" --tag "v$Version" --outputDir $rel
   if ($LASTEXITCODE) { throw "vpk upload lỗi" }
 }
 Write-Host "Xong: $rel" -ForegroundColor Green
