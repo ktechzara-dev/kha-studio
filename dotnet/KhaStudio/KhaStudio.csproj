@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>KhaStudio</AssemblyName>
+    <Product>Kha Studio</Product>
+    <Company>Kha.nm</Company>
+    <Version>1.1.0</Version>
+    <StartupObject>KhaStudio.Program</StartupObject>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <!-- Nguồn cập nhật nhúng vào app, vd: https://github.com/<user>/kha-studio -->
+    <UpdateUrl>https://github.com/ktechzara-dev/kha-studio</UpdateUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="UpdateUrl" Value="$(UpdateUrl)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+  </ItemGroup>
+
+  <!-- Giao diện HTML/JS dùng chung với bản Electron: ../../src/renderer -> wwwroot cạnh exe -->
+  <ItemGroup>
+    <Content Include="..\..\src\renderer\**\*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

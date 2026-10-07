@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kha Studio</title>
+  <!-- CSS Design System -->
+  <link rel="stylesheet" href="shell/shell.css">
+  <!-- JavaScript Modules -->
+  <script src="shell/icons.js"></script>
+  <script src="shell/registry.js"></script>
+  <script src="shell/i18n.js"></script>
+  <script src="shell/shell.js" defer></script>
+</head>
+<body>
+  <div id="app">
+    <!-- ==================== Custom Title Bar ==================== -->
+    <header id="titlebar">
+      <!-- Left: Logo & Breadcrumbs -->
+      <div class="tb-left">
+        <button class="tb-btn" id="btn-toggle-sidebar" title="Ctrl+B" data-i18n-title="toggleSidebar">
+          <script>document.write(icon('sidebar', 16));</script>
+        </button>
+        <div class="brand">
+          <div class="logo">K</div>
+          <span>Kha <b>Studio</b></span>
+        </div>
+        <div id="crumb">
+          <span>Trang chủ</span>
+        </div>
+      </div>
+
+      <!-- Center: Omnibar / Command Palette trigger -->
+      <div class="no-drag" style="display:flex; justify-content:center;">
+        <button class="searchbar" id="title-searchbar">
+          <script>document.write(icon('search', 15));</script>
+          <span data-i18n="searchPh">Tìm công cụ hoặc chạy lệnh…</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+      </div>
+
+      <!-- Right: Action buttons & Window Controls -->
+      <div class="tb-right">
+        <button class="tb-btn" id="btn-theme-toggle" data-i18n-title="toggleTheme">
+          <script>document.write(icon('sun', 16));</script>
+        </button>
+        <button class="tb-btn" id="btn-notif" data-i18n-title="notifications" style="position:relative;">
+          <script>document.write(icon('bell', 16));</script>
+          <span class="badge" id="notif-badge" hidden>0</span>
+        </button>
+        <div id="winctl">
+          <button id="wc-min" title="Thu nhỏ">
+            <script>document.write(icon('minimize', 14));</script>
+          </button>
+          <button id="wc-max" title="Phóng to">
+            <script>document.write(icon('maximize', 13));</script>
+          </button>
+          <button id="wc-close" title="Đóng">
+            <script>document.write(icon('x', 14));</script>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== Main App Body ==================== -->
+    <div id="body">
+      <!-- Sidebar Navigation -->
+      <aside id="sidebar">
+        <div class="sb-scroll">
+          <div class="nav-item active" id="nav-home">
+            <script>document.write(icon('home', 18));</script>
+            <span class="label" data-i18n="home">Trang chủ</span>
+            <kbd>Ctrl+H</kbd>
+          </div>
+
+          <!-- Section: Open Tools -->
+          <div id="sb-open-section" hidden>
+            <div class="nav-label">
+              <span data-i18n="openNow">Đang mở</span>
+            </div>
+            <div id="sb-open-list"></div>
+          </div>
+
+          <!-- Section: Pinned Tools -->
+          <div id="sb-pin-section">
+            <div class="nav-label">
+              <span data-i18n="pinned">Đã ghim</span>
+            </div>
+            <div id="sb-pin-list"></div>
+          </div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="sb-foot">
+          <div class="nav-item" id="nav-settings">
+            <script>document.write(icon('settings', 18));</script>
+            <span class="label" data-i18n="settings">Cài đặt</span>
+          </div>
+          <div class="nav-item" id="nav-about">
+            <script>document.write(icon('info', 18));</script>
+            <span class="label" data-i18n="about">Giới thiệu</span>
+          </div>
+          <div class="sb-ver" id="sb-version">v1.0.0</div>
+        </div>
+      </aside>
+
+      <!-- Main Content / Views -->
+      <main id="main">
+
+        <!-- ===== VIEW 1: HOME ===== -->
+        <div class="view active" id="view-home">
+          <div class="page">
+            <!-- Hero Banner -->
+            <section class="hero">
+              <div>
+                <div class="date">
+                  <script>document.write(icon('sparkles', 14));</script>
+                  <span data-i18n="appTagline">Bộ công cụ cá nhân</span>
+                </div>
+                <h1 id="hero-greeting">Chào sếp Kha!</h1>
+                <p data-i18n="homeSub">Hôm nay sếp muốn làm gì?</p>
+                <div class="hero-search input-wrap">
+                  <script>document.write(icon('search', 18));</script>
+                  <input type="text" class="input" id="hero-search-input" data-i18n-ph="searchPh" placeholder="Tìm công cụ hoặc chạy lệnh…">
+                  <kbd>Ctrl K</kbd>
+                </div>
+              </div>
+              <div class="hero-stats">
+                <div class="stat">
+                  <b id="stat-tools">0</b>
+                  <span data-i18n="allTools">Tất cả công cụ</span>
+                </div>
+                <div class="stat">
+                  <b id="stat-open">0</b>
+                  <span data-i18n="openNow">Đang mở</span>
+                </div>
+              </div>
+            </section>
+
+            <div class="home-grid">
+              <!-- Left: Tools & Recents -->
+              <div class="home-main">
+                <!-- Jump back in (Recents) -->
+                <section id="recent-section" hidden>
+                  <div class="h-section">
+                    <h2>
+                      <script>document.write(icon('clock', 18));</script>
+                      <span data-i18n="recent">Tiếp tục làm việc</span>
+                    </h2>
+                  </div>
+                  <div class="recent-row" id="recent-tools"></div>
+                </section>
+
+                <!-- All Tools -->
+                <section>
+                  <div class="h-section">
+                    <h2>
+                      <script>document.write(icon('grid', 18));</script>
+                      <span data-i18n="allTools">Tất cả công cụ</span>
+                    </h2>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <div class="input-wrap" style="width:200px;">
+                        <script>document.write(icon('search', 14));</script>
+                        <input type="text" class="input" id="search-tools" data-i18n-ph="filterPh" placeholder="Lọc công cụ…" style="height:32px; font-size:12.5px;">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="chips" id="cat-chips" style="margin-bottom:16px;"></div>
+                  <div class="tools-grid" id="tools-grid"></div>
+                </section>
+              </div>
+
+              <!-- Right: Sidebar Widgets -->
+              <aside class="home-side">
+                <!-- Quick Actions Widget -->
+                <div class="widget">
+                  <h4>
+                    <script>document.write(icon('rocket', 16));</script>
+                    <span data-i18n="quickActions">Thao tác nhanh</span>
+                  </h4>
+                  <div class="qa-list">
+                    <button class="qa" id="qa-palette">
+                      <script>document.write(icon('command', 18));</script>
+                      <span>Bảng lệnh</span>
+                    </button>
+                    <button class="qa" id="qa-theme">
+                      <script>document.write(icon('palette', 18));</script>
+                      <span>Đổi màu</span>
+                    </button>
+                    <button class="qa" id="qa-settings">
+                      <script>document.write(icon('settings', 18));</script>
+                      <span data-i18n="settings">Cài đặt</span>
+                    </button>
+                    <button class="qa" id="qa-update">
+                      <script>document.write(icon('refresh', 18));</script>
+                      <span data-i18n="checkUpdate">Cập nhật</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Update Widget -->
+                <div class="widget">
+                  <h4>
+                    <script>document.write(icon('refresh', 16));</script>
+                    <span data-i18n="sUpdate">Cập nhật</span>
+                  </h4>
+                  <div class="upd">
+                    <div class="upd-row">
+                      <span class="upd-ver" id="uw-version">—</span>
+                      <button class="btn sm" id="uw-btn" data-i18n="checkUpdate">Kiểm tra cập nhật</button>
+                    </div>
+                    <div class="upd-status" id="uw-status">
+                      <span>Đang sẵn sàng</span>
+                    </div>
+                    <div class="progress" id="uw-bar" hidden>
+                      <div style="width:0%;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tips Widget -->
+                <div class="widget">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h4 style="margin:0;">
+                      <script>document.write(icon('lightbulb', 16));</script>
+                      <span data-i18n="tipTitle">Mẹo nhỏ</span>
+                    </h4>
+                    <button class="btn sm ghost" id="btn-next-tip" data-i18n="nextTip">Mẹo khác</button>
+                  </div>
+                  <div class="tip-text" id="tip-content">Nhấn Ctrl+K ở bất cứ đâu để mở bảng lệnh.</div>
+                  <div class="tip-foot">
+                    <div class="tip-dots" id="tip-dots"></div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== VIEW 2: SETTINGS ===== -->
+        <div class="view" id="view-settings">
+          <div class="page">
+            <header class="page-head">
+              <div>
+                <h1 data-i18n="settings">Cài đặt</h1>
+                <p data-i18n="sAppearanceD">Tùy biến giao diện, ngôn ngữ và phím tắt của Kha Studio</p>
+              </div>
+            </header>
+
+            <div class="settings-layout">
+              <!-- Settings Nav -->
+              <div class="settings-nav">
+                <button class="active" onclick="document.getElementById('sec-appearance').scrollIntoView({behavior:'smooth'})">
+                  <script>document.write(icon('palette', 16));</script>
+                  <span data-i18n="sAppearance">Giao diện</span>
+                </button>
+                <button onclick="document.getElementById('sec-general').scrollIntoView({behavior:'smooth'})">
+                  <script>document.write(icon('settings', 16));</script>
+                  <span data-i18n="sGeneral">Chung</span>
+                </button>
+                <button onclick="document.getElementById('sec-shortcuts').scrollIntoView({behavior:'smooth'})">
+                  <script>document.write(icon('keyboard', 16));</script>
+                  <span data-i18n="sShortcuts">Phím tắt</span>
+                </button>
+                <button onclick="document.getElementById('sec-data').scrollIntoView({behavior:'smooth'})">
+                  <script>document.write(icon('database', 16));</script>
+                  <span data-i18n="sData">Dữ liệu</span>
+                </button>
+              </div>
+
+              <!-- Settings Content -->
+              <div class="settings-main">
+                <!-- Group 1: Appearance -->
+                <div class="s-group" id="sec-appearance">
+                  <header>
+                    <div class="gi"><script>document.write(icon('palette', 18));</script></div>
+                    <div>
+                      <h2 data-i18n="sAppearance">Giao diện</h2>
+                      <p data-i18n="sAppearanceD">Chủ đề, màu sắc và kích thước hiển thị</p>
+                    </div>
+                  </header>
+                  <div class="s-card">
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sTheme">Chủ đề</b>
+                        <span data-i18n="sThemeD">Chọn giao diện sáng, tối hoặc theo Windows</span>
+                      </div>
+                      <div class="seg" id="set-theme">
+                        <button data-val="dark"><script>document.write(icon('moon', 14));</script> <span data-i18n="themeDark">Tối</span></button>
+                        <button data-val="light"><script>document.write(icon('sun', 14));</script> <span data-i18n="themeLight">Sáng</span></button>
+                        <button data-val="system"><script>document.write(icon('monitor', 14));</script> <span data-i18n="themeSystem">Hệ thống</span></button>
+                      </div>
+                    </div>
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sAccent">Màu nhấn</b>
+                        <span data-i18n="sAccentD">Màu chủ đạo cho nút, liên kết và điểm nhấn</span>
+                      </div>
+                      <div class="swatches" id="set-accent"></div>
+                    </div>
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sDensity">Mật độ hiển thị</b>
+                        <span data-i18n="sDensityD">Gọn giúp hiển thị nhiều nội dung hơn</span>
+                      </div>
+                      <div class="seg" id="set-density">
+                        <button data-val="comfort" data-i18n="densComfort">Thoải mái</button>
+                        <button data-val="compact" data-i18n="densCompact">Gọn</button>
+                      </div>
+                    </div>
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sZoom">Cỡ giao diện</b>
+                        <span data-i18n="sZoomD">Phóng to/thu nhỏ toàn bộ ứng dụng</span>
+                      </div>
+                      <div class="range">
+                        <input type="range" id="set-zoom" min="80" max="130" step="5" value="100">
+                        <output id="set-zoom-val">100%</output>
+                      </div>
+                    </div>
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sMotion">Hiệu ứng chuyển động</b>
+                        <span data-i18n="sMotionD">Tắt để giao diện phản hồi tức thì</span>
+                      </div>
+                      <label class="switch">
+                        <input type="checkbox" id="set-motion" checked>
+                        <span></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Group 2: General -->
+                <div class="s-group" id="sec-general">
+                  <header>
+                    <div class="gi"><script>document.write(icon('settings', 18));</script></div>
+                    <div>
+                      <h2 data-i18n="sGeneral">Chung</h2>
+                      <p data-i18n="sGeneralD">Ngôn ngữ và hành vi khi khởi động</p>
+                    </div>
+                  </header>
+                  <div class="s-card">
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sLang">Ngôn ngữ</b>
+                        <span data-i18n="sLangD">Ngôn ngữ hiển thị của khung ứng dụng</span>
+                      </div>
+                      <select class="input" id="set-lang" style="width:160px; height:34px; padding-left:12px;">
+                        <option value="vi">Tiếng Việt</option>
+                        <option value="en">English</option>
+                      </select>
+                    </div>
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sStartup">Khi khởi động</b>
+                        <span data-i18n="sStartupD">Mở trang chủ hoặc khôi phục các công cụ trước</span>
+                      </div>
+                      <div class="seg" id="set-startup">
+                        <button data-val="home" data-i18n="startHome">Trang chủ</button>
+                        <button data-val="restore" data-i18n="startRestore">Khôi phục phiên trước</button>
+                      </div>
+                    </div>
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sNotifToast">Hiện thông báo nổi</b>
+                        <span data-i18n="sNotifToastD">Thông báo vẫn được lưu trong trung tâm thông báo</span>
+                      </div>
+                      <label class="switch">
+                        <input type="checkbox" id="set-toast" checked>
+                        <span></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Group 3: Keyboard Shortcuts -->
+                <div class="s-group" id="sec-shortcuts">
+                  <header>
+                    <div class="gi"><script>document.write(icon('keyboard', 18));</script></div>
+                    <div>
+                      <h2 data-i18n="sShortcuts">Phím tắt</h2>
+                      <p data-i18n="sShortcutsD">Thao tác siêu tốc bằng bàn phím</p>
+                    </div>
+                  </header>
+                  <div class="s-card">
+                    <table class="kbd-table">
+                      <tbody>
+                        <tr><td><b data-i18n="kPalette">Mở bảng lệnh</b></td><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td></tr>
+                        <tr><td><b data-i18n="kHome">Về trang chủ</b></td><td><kbd>Ctrl</kbd> + <kbd>H</kbd></td></tr>
+                        <tr><td><b data-i18n="kSidebar">Thu gọn / mở thanh bên</b></td><td><kbd>Ctrl</kbd> + <kbd>B</kbd></td></tr>
+                        <tr><td><b data-i18n="kCloseTool">Đóng công cụ hiện tại</b></td><td><kbd>Ctrl</kbd> + <kbd>W</kbd></td></tr>
+                        <tr><td><b data-i18n="kNextTool">Chuyển qua lại các công cụ</b></td><td><kbd>Ctrl</kbd> + <kbd>Tab</kbd></td></tr>
+                        <tr><td><b data-i18n="kNthTool">Mở công cụ theo thứ tự 1-9</b></td><td><kbd>Ctrl</kbd> + <kbd>1…9</kbd></td></tr>
+                        <tr><td><b data-i18n="kZoom">Phóng to / thu nhỏ / mặc định</b></td><td><kbd>Ctrl</kbd> + <kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd></td></tr>
+                        <tr><td><b data-i18n="kReload">Tải lại</b></td><td><kbd>F5</kbd></td></tr>
+                        <tr><td><b data-i18n="kFullscreen">Toàn màn hình</b></td><td><kbd>F11</kbd></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Group 4: Data Management -->
+                <div class="s-group" id="sec-data">
+                  <header>
+                    <div class="gi"><script>document.write(icon('database', 18));</script></div>
+                    <div>
+                      <h2 data-i18n="sData">Dữ liệu & Sao lưu</h2>
+                      <p data-i18n="sDataD">Sao lưu, khôi phục cài đặt và lịch sử</p>
+                    </div>
+                  </header>
+                  <div class="s-card">
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sExport">Xuất cài đặt</b>
+                        <span data-i18n="sExportD">Lưu cài đặt, ghim và lịch sử ra file .json</span>
+                      </div>
+                      <button class="btn sm" id="btn-export-settings" data-i18n="export">Xuất</button>
+                    </div>
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sImport">Nhập cài đặt</b>
+                        <span data-i18n="sImportD">Khôi phục từ file .json đã lưu</span>
+                      </div>
+                      <input type="file" id="file-import-settings" accept=".json" hidden>
+                      <button class="btn sm" id="btn-import-settings" data-i18n="import">Nhập</button>
+                    </div>
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sClearRecent">Xoá lịch sử</b>
+                        <span data-i18n="sClearRecentD">Xoá danh sách công cụ dùng gần đây</span>
+                      </div>
+                      <button class="btn sm" id="btn-clear-recent" data-i18n="clear">Xoá</button>
+                    </div>
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b data-i18n="sReset">Đặt lại mặc định</b>
+                        <span data-i18n="sResetD">Đưa toàn bộ cài đặt về ban đầu</span>
+                      </div>
+                      <button class="btn sm danger" id="btn-reset-settings" data-i18n="reset">Đặt lại</button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== VIEW 3: ABOUT ===== -->
+        <div class="view" id="view-about">
+          <div class="page">
+            <section class="about-hero">
+              <div class="about-logo">K</div>
+              <div>
+                <h1>Kha Studio</h1>
+                <p data-i18n="aboutDesc">Bộ công cụ đa năng cho công việc hằng ngày: thiết kế pallet, xử lý ảnh và nhiều hơn nữa.</p>
+                <div class="actions">
+                  <button class="btn sm" id="btn-copy-sysinfo">
+                    <script>document.write(icon('code', 14));</script>
+                    <span data-i18n="copyInfo">Sao chép thông tin</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <div class="about-grid">
+              <!-- Changelog -->
+              <div class="card">
+                <div class="card-head">
+                  <h3>
+                    <script>document.write(icon('layers', 16));</script>
+                    <span data-i18n="changelog">Nhật ký thay đổi</span>
+                  </h3>
+                </div>
+                <div class="timeline" id="about-changelog"></div>
+              </div>
+
+              <!-- System Information -->
+              <div class="card">
+                <div class="card-head">
+                  <h3>
+                    <script>document.write(icon('monitor', 16));</script>
+                    <span data-i18n="sysInfo">Thông tin hệ thống</span>
+                  </h3>
+                </div>
+                <div class="info-list" id="about-sysinfo"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== VIEW 4: TOOL CONTAINER (IFRAMES) ===== -->
+        <div class="view" id="view-tool">
+          <div id="frames"></div>
+          <div id="frame-loader" hidden>
+            <div class="loader-box">
+              <div class="loader-tile" style="background:linear-gradient(135deg, var(--accent), #8B5CF6);">
+                <script>document.write(icon('package', 32));</script>
+              </div>
+              <div data-i18n="loading">Đang tải công cụ…</div>
+              <div class="loader-bar"></div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- ==================== Notification Panel ==================== -->
+    <div id="notif-scrim" hidden></div>
+    <aside id="notif-panel">
+      <div class="np-head">
+        <h3 data-i18n="notifications">Thông báo</h3>
+        <button class="btn sm ghost" onclick="document.getElementById('notif-panel').classList.remove('open'); document.getElementById('notif-scrim').hidden=true;">
+          <script>document.write(icon('x', 16));</script>
+        </button>
+      </div>
+      <div class="np-actions">
+        <button class="btn sm ghost" id="btn-mark-read" data-i18n="markRead">Đánh dấu đã đọc</button>
+        <button class="btn sm ghost" id="btn-clear-notif" data-i18n="clearAll">Xoá tất cả</button>
+      </div>
+      <div class="np-list" id="notif-list"></div>
+    </aside>
+
+    <!-- ==================== Command Palette Modal ==================== -->
+    <div class="overlay" id="palette-overlay" hidden>
+      <div id="palette">
+        <div class="pal">
+          <div class="pal-input">
+            <script>document.write(icon('search', 20));</script>
+            <input type="text" id="pal-input" data-i18n-ph="searchPh" placeholder="Tìm công cụ hoặc chạy lệnh…" autocomplete="off">
+            <kbd>ESC</kbd>
+          </div>
+          <div class="pal-list" id="pal-list"></div>
+          <div class="pal-foot">
+            <span><kbd>↑</kbd> <kbd>↓</kbd> <span data-i18n="palNavigate">di chuyển</span></span>
+            <span><kbd>↵</kbd> <span data-i18n="palHint">để chọn</span></span>
+            <span><kbd>ESC</kbd> <span data-i18n="palClose">đóng</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Toast Notifications ==================== -->
+    <div id="toasts"></div>
+  </div>
+</body>
+</html>

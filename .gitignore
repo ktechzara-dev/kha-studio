@@ -1,0 +1,13 @@
+node_modules
+dist
+src/renderer/lib
+bin/
+obj/
+dotnet/**/bin/
+dotnet/**/obj/
+dotnet/publish/
+*.nupkg
+*.zip
+*.exe
+update-url.txt
+.vscode/

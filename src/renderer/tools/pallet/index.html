@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Pallet Pattern Studio Pro - Kha.nm</title>
+  <script src="../../lib/three.min.js"></script>
+  <script src="../../lib/OrbitControls.js"></script>
+  <script src="../../lib/Projector.js"></script>
+  <script src="../../lib/SVGRenderer.js"></script>
+  <script src="../../lib/exceljs.min.js"></script>
+  <script src="../../lib/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #0B1120;
+      --panel: #1E293B;
+      --border: #334155;
+      --text: #F1F5F9;
+      --primary: #38BDF8;
+      --accent: #F59E0B;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
+    
+    #sidebar { width: 390px; min-width: 390px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px; gap: 9px; overflow-y: auto; }
+    h2 { font-size: 12px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-top: 3px; }
+    .group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 11px; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
+    input, select, button { background: #0F172A; border: 1px solid var(--border); color: #fff; padding: 5px 8px; border-radius: 5px; font-size: 12px; outline: none; }
+    input:focus, select:focus { border-color: var(--primary); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    button { background: #2563EB; border: none; font-weight: bold; cursor: pointer; transition: 0.15s; }
+    button:hover { background: #1D4ED8; }
+    button.btn-sec { background: #334155; } button.btn-sec:hover { background: #475569; }
+    button.btn-danger { background: #DC2626; } button.btn-danger:hover { background: #B91C1C; }
+    button.btn-success { background: #059669; } button.btn-success:hover { background: #047857; }
+    button.btn-purple { background: #7C3AED; } button.btn-purple:hover { background: #6D28D9; }
+    button.btn-excel { background: #107C41; } button.btn-excel:hover { background: #0B5B2F; }
+    button.btn-amber { background: #D97706; } button.btn-amber:hover { background: #B45309; }
+    button.btn-zip { background: #C2410C; } button.btn-zip:hover { background: #9A3412; }
+    button.btn-cyan { background: #0284C7; } button.btn-cyan:hover { background: #0369A1; }
+
+    .report-card { background: #0F172A; border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 11px; color: #CBD5E1; line-height: 1.5; }
+    .report-val { color: var(--primary); font-weight: bold; }
+
+    #workspace-container { flex: 1; display: flex; position: relative; overflow: hidden; }
+    #workspace-2d { flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: radial-gradient(circle, #1E293B 10%, #0F172A 90%); border-right: 1px solid var(--border); overflow: auto; }
+    #canvas-container { padding: 25px; display: inline-block; }
+    svg { user-select: none; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); }
+    .box { cursor: move; transition: stroke 0.15s; }
+    .box:hover { stroke: #38BDF8 !important; stroke-width: 3px !important; }
+    .box.selected { stroke: #EF4444 !important; stroke-width: 3.5px !important; }
+    .box-text { pointer-events: none; user-select: none; font-weight: bold; font-family: Segoe UI, Arial; }
+    
+    .divider-line { stroke: #38BDF8; stroke-width: 2.5; stroke-dasharray: 4 3; cursor: ew-resize; }
+    .divider-line.horizontal { cursor: ns-resize; }
+    .divider-handle { fill: #38BDF8; stroke: #0F172A; stroke-width: 2; cursor: pointer; }
+    
+    .text-element { cursor: move; user-select: none; font-family: Segoe UI, Arial; transition: outline 0.1s; }
+    .text-element.selected { outline: 1px dashed #38BDF8; }
+
+    #workspace-3d { flex: 0.9; position: relative; background: #020617; }
+    #viewport-3d { width: 100%; height: 100%; display: block; }
+    
+    #hud-3d-panel {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      z-index: 10;
+      min-width: 260px;
+    }
+    .hud-header { font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid #334155; padding-bottom: 4px; }
+    .hud-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; }
+    .hud-row select, .hud-row input { padding: 4px 6px; font-size: 11px; width: 145px; }
+
+    #badge-owner {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid #38BDF8;
+      border-radius: 6px;
+      padding: 6px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+    }
+    .badge-ver { font-size: 11px; font-weight: 700; color: #38BDF8; letter-spacing: 0.5px; }
+    .badge-user { font-size: 11px; font-weight: 500; color: #F8FAFC; margin-top: 1px; }
+
+    #hud-ctrl { position: absolute; bottom: 12px; right: 14px; font-size: 11px; color: #64748B; background: rgba(15,23,42,0.85); padding: 5px 10px; border-radius: 4px; pointer-events: none; }
+    #info-bar { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.9); padding: 6px 14px; border-radius: 20px; font-size: 12px; color: #94A3B8; border: 1px solid var(--border); pointer-events: none; white-space: nowrap; }
+
+    .zone-config-box { background: #0F172A; border: 1px solid #334155; border-radius: 5px; padding: 7px; margin-bottom: 5px; }
+    .panel-box { background: #0F172A; border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <h2>1. THÔNG TIN MODEL & QUY CÁCH (MM)</h2>
+    <div class="group">
+      <label>Mã / Tên Model Sản Phẩm</label>
+      <input type="text" id="modelCode" value="MODEL_TEST_HMI_001">
+      <div class="row">
+        <div><label>Ngang Pallet W</label><input type="number" id="palletW" value="1200" step="50"></div>
+        <div><label>Dọc Pallet L</label><input type="number" id="palletH" value="1000" step="50"></div>
+      </div>
+      <div class="row-3">
+        <div><label>Dài Thùng X</label><input type="number" id="boxDimX" value="365" step="5"></div>
+        <div><label>Rộng Thùng Y</label><input type="number" id="boxDimY" value="275" step="5"></div>
+        <div><label style="color:#38BDF8; font-weight:bold;">Cao Thùng Z *</label><input type="number" id="boxDimZ" value="300" step="5"></div>
+      </div>
+      <div class="row">
+        <div><label>Dày Gỗ Pallet</label><input type="number" id="palletThickness" value="140" step="10"></div>
+        <div><label style="color:#38BDF8; font-weight:bold;">Số Lớp (Layers)</label><input type="number" id="numLayers" value="4" min="1" max="15"></div>
+      </div>
+      <div style="font-size:11px; color:#38BDF8;" id="totalHeightDisplay">Chiều cao tổng cả kiện: 1340 mm</div>
+    </div>
+
+    <!-- MỤC 2: IMPORT ẢNH CÁC MẶT THÙNG (TEXTURE) -->
+    <h2>2. IMPORT ẢNH CÁC MẶT THÙNG</h2>
+    <div class="group">
+      <div class="row">
+        <div>
+          <label>Mặt Trên (Top)</label>
+          <input type="file" id="texTop" accept="image/*" onchange="loadBoxTexture('top', this)">
+        </div>
+        <div>
+          <label>Mặt Trước/Sau (Front)</label>
+          <input type="file" id="texFront" accept="image/*" onchange="loadBoxTexture('front', this)">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Mặt Hông (Side)</label>
+          <input type="file" id="texSide" accept="image/*" onchange="loadBoxTexture('side', this)">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="btn-sec" style="width:100%;" onclick="clearBoxTextures()">Xóa ảnh (Dùng màu)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MỤC 3: HƯỚNG & CẤU HÌNH ĐIỂM THẢ (CÓ ĐỦ: SỐ THÙNG, HƯỚNG XOAY, VÀ CHỌN MÀU) -->
+    <h2>3. HƯỚNG & TỰ ĐỘNG XẾP THÙNG</h2>
+    <div class="group">
+      <label>Hướng Điểm Thả (Drop Direction)</label>
+      <select id="dropZoneMode" onchange="switchZoneMode()">
+        <option value="Row_TtoB">Theo HÀNG: Trên → Dưới</option>
+        <option value="Row_BtoT">Theo HÀNG: Dưới → Trên</option>
+        <option value="Col_RtoL">Theo CỘT: Phải → Trái</option>
+        <option value="Col_LtoR">Theo CỘT: Trái → Phải</option>
+      </select>
+      <div class="row">
+        <div>
+          <label>Chế độ xếp</label>
+          <select id="packingMode">
+            <option value="compact">Xếp khít căn đều các Điểm</option>
+            <option value="distribute">Full đều mặt Pallet</option>
+          </select>
+        </div>
+        <div>
+          <label>Số Điểm Thả</label>
+          <input type="number" id="zoneCount" value="3" min="1" max="6" onchange="renderZoneInputs()">
+        </div>
+      </div>
+
+      <!-- Danh sách cấu hình từng Điểm Thả -->
+      <div id="zoneListContainer"></div>
+
+      <button class="btn-success" onclick="executeAutoPack()">⚡ TỰ ĐỘNG XẾP & ĐỒNG BỘ 3D</button>
+    </div>
+
+    <h2>4. BÁO CÁO KHOẢNG CÁCH (GAPS)</h2>
+    <div class="report-card" id="gapReportBox">Chưa chạy tính toán tự động.</div>
+
+    <h2>5. CÔNG CỤ TEXT / TIÊU ĐỀ LỚP</h2>
+    <div class="group">
+      <label>Tiêu đề Lớp HMI</label>
+      <input type="text" id="layerTitle" value="LỚP LẺ (LAYER 1, 3)">
+      <label>Chữ Hướng Cấp Thùng (Infeed)</label>
+      <input type="text" id="infeedText" value="▲ HƯỚNG BĂNG TẢI CẤP THÙNG (INFEED)">
+      <div class="row">
+        <button class="btn-sec" onclick="addCustomText()">➕ Thêm Text</button>
+        <button class="btn-danger" onclick="deleteSelectedText()">🗑 Xóa Text</button>
+      </div>
+      <div id="textControlPanel" class="panel-box" style="display:none;">
+        <label>Nội dung</label><input type="text" id="propTextVal" oninput="updateTextFromPanel()">
+        <div class="row">
+          <div><label>Cỡ</label><input type="number" id="propTextSize" value="16" min="8" onchange="updateTextFromPanel()"></div>
+          <div><label>Màu</label><input type="color" id="propTextColor" value="#0F172A" onchange="updateTextFromPanel()" style="padding:2px; height:28px;"></div>
+        </div>
+        <div class="row">
+          <button class="btn-sec" onclick="rotateSelectedText(90)">🔄 Xoay</button>
+          <button class="btn-sec" onclick="flipSelectedText('H')">↔ Lật</button>
+        </div>
+      </div>
+    </div>
+
+    <h2>6. XOAY & ĐẢO PALLET 2D</h2>
+    <div class="group">
+      <div class="row">
+        <button class="btn-sec" onclick="rotatePallet(-90)">↺ 90°</button>
+        <button class="btn-sec" onclick="rotatePallet(90)">↻ 90°</button>
+        <button class="btn-sec" onclick="flipPallet('H')">↔</button>
+        <button class="btn-sec" onclick="flipPallet('V')">↕</button>
+      </div>
+    </div>
+
+    <h2>7. XUẤT ẢNH HMI & BÁO CÁO</h2>
+    <div class="group">
+      <label>Nền xuất file</label>
+      <select id="bgType"><option value="transparent">Trong suốt</option><option value="#0F172A">Tối HMI</option><option value="#FFFFFF">Trắng</option></select>
+      
+      <div style="font-weight:bold; color:#FF9F43; font-size:11px; margin-top:3px;">XUẤT CHUỖI ẢNH THEO DÕI HMI:</div>
+      <div class="row">
+        <div>
+          <label>Định dạng</label>
+          <select id="seqFormatChoice">
+            <option value="png">3D PNG (Chuẩn HMI, không lẹm)</option>
+            <option value="svg3d">3D SVG Vector</option>
+            <option value="svg2d">2D SVG Vector</option>
+          </select>
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="btn-zip" style="width:100%;" onclick="exportHMISyncZIP()">📷 TẢI CHUỖI ẢNH (ZIP)</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:4px;">
+        <button class="btn-sec" onclick="exportOddLayer('png')">🖼 Lớp Lẻ PNG</button>
+        <button class="btn-amber" onclick="exportEvenLayer('png')">🖼 Lớp Chẵn PNG</button>
+      </div>
+      <div class="row">
+        <button class="btn-sec" onclick="exportOddLayer('svg')">📥 Lớp Lẻ SVG</button>
+        <button class="btn-amber" onclick="exportEvenLayer('svg')">📥 Lớp Chẵn SVG</button>
+      </div>
+      <div class="row" style="margin-top:4px;">
+        <button class="btn-cyan" onclick="export3DSVG()">📐 Xuất 3D SVG Vector</button>
+        <button class="btn-purple" onclick="export3DPNG(true)">📷 Xuất 3D PNG</button>
+      </div>
+      <button class="btn-excel" style="margin-top:2px;" onclick="exportFullExcelReport()">📊 Báo Cáo Excel Đầy Đủ</button>
+    </div>
+  </div>
+
+  <div id="workspace-container">
+    <div id="workspace-2d">
+      <div id="canvas-container"><svg id="svgArea" width="560" height="520" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div id="info-bar">💡 Đầy đủ tính năng xoay/không xoay, chọn màu điểm, texture • Điểm 1 lớp chẵn nằm cùng phía gần</div>
+    </div>
+    <div id="workspace-3d">
+      <div id="hud-3d-panel">
+        <div class="hud-header">BỘ LỌC TIẾN TRÌNH 3D (LŨY TIẾN)</div>
+        <div class="hud-row">
+          <label>Hiển thị đến Lớp:</label>
+          <select id="filter3DLayer" onchange="update3D()">
+            <option value="all">Tất cả các lớp (Đầy đủ)</option>
+          </select>
+        </div>
+        <div class="hud-row">
+          <label>Hiển thị đến Điểm:</label>
+          <select id="filter3DZone" onchange="update3D()">
+            <option value="all">Đầy đủ các điểm của lớp</option>
+          </select>
+        </div>
+        <div class="hud-row">
+          <label>Số lớp Pallet:</label>
+          <input type="number" id="quickLayers3D" value="4" min="1" max="15" onchange="syncLayersFrom3D(this.value)">
+        </div>
+      </div>
+      <div id="badge-owner">
+        <span class="badge-ver">ETEK Pallet Pattern Studio</span>
+        <span class="badge-user">Owner: Kha.nm</span>
+      </div>
+      <canvas id="viewport-3d"></canvas>
+      <div id="hud-ctrl">Chuột trái: Xoay | Chuột phải: Pan | Con lăn: Zoom</div>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_ZONE_COLORS = ["#EA580C", "#F59E0B", "#EAB308", "#0284C7", "#16A34A", "#7C3AED"];
+
+    let state = {
+      palletW_mm: 1200,
+      palletH_mm: 1000,
+      palletThickness_mm: 140,
+      numLayers: 4,
+      defaultBox: { x: 365, y: 275, z: 300 },
+      scale2D: 0.3,
+      title: "LỚP LẺ (LAYER 1, 3)",
+      infeedText: "▲ HƯỚNG BĂNG TẢI CẤP THÙNG (INFEED)",
+      boxes: [],
+      dividers: [],
+      texts: [],
+      selectedBoxId: null,
+      selectedTextId: null,
+      gapSummary: {},
+      zoneColors: [...DEFAULT_ZONE_COLORS], // Màu sắc riêng của từng Điểm Thả
+      boxTextures: { top: null, front: null, side: null } // Textures ảnh thực tế
+    };
+
+    let activeDrag = null;
+
+    // 1. THREE.JS ENGINE
+    let scene, camera, renderer, controls, palletGroup, gridHelper;
+    let svgRenderer, orthoCamera;
+
+    function init3D() {
+      const container = document.getElementById("workspace-3d");
+      const canvas = document.getElementById("viewport-3d");
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 30000);
+      camera.position.set(1600, 1600, 2000);
+
+      orthoCamera = new THREE.OrthographicCamera(-1000, 1000, 1000, -1000, 1, 30000);
+
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.shadowMap.enabled = true;
+
+      svgRenderer = new THREE.SVGRenderer();
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 450, 0);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+      dirLight.position.set(1500, 2500, 1500);
+      scene.add(dirLight);
+
+      const dirLight2 = new THREE.DirectionalLight(0x90caf9, 0.35);
+      dirLight2.position.set(-1500, 1200, -1500);
+      scene.add(dirLight2);
+
+      gridHelper = new THREE.GridHelper(3000, 30, 0x334155, 0x1e293b);
+      gridHelper.position.y = -1;
+      scene.add(gridHelper);
+
+      palletGroup = new THREE.Group();
+      scene.add(palletGroup);
+
+      window.addEventListener("resize", () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+      animate();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // TẢI TEXTURE ẢNH CHO MẶT THÙNG
+    function loadBoxTexture(face, input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.src = e.target.result;
+          img.onload = function() {
+            const texture = new THREE.Texture(img);
+            texture.needsUpdate = true;
+            state.boxTextures[face] = texture;
+            update3D();
+          };
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function clearBoxTextures() {
+      state.boxTextures = { top: null, front: null, side: null };
+      document.getElementById("texTop").value = "";
+      document.getElementById("texFront").value = "";
+      document.getElementById("texSide").value = "";
+      update3D();
+    }
+
+    // CỐ ĐỊNH CAMERA CHUẨN ORTHOGRAPHIC KHI RENDER HMI (KHÔNG LẸM MÉP, KHÔNG NHẢY KÍCH THƯỚC)
+    function setupOrthoCameraForHMI(renderWidth, renderHeight) {
+      const pW = state.palletW_mm;
+      const pL = state.palletH_mm;
+      const pH = state.palletThickness_mm;
+      const totalH = pH + state.numLayers * state.defaultBox.z;
+
+      const center = new THREE.Vector3(0, totalH / 2, 0);
+      const maxDim = Math.max(pW, pL, totalH) * 1.45;
+
+      const aspect = renderWidth / renderHeight;
+      orthoCamera.left = -maxDim * aspect;
+      orthoCamera.right = maxDim * aspect;
+      orthoCamera.top = maxDim;
+      orthoCamera.bottom = -maxDim;
+      orthoCamera.near = 10;
+      orthoCamera.far = 30000;
+
+      const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+      if (dir.lengthSq() === 0) dir.set(1.2, 1.0, 1.2).normalize();
+
+      orthoCamera.position.copy(center).add(dir.multiplyScalar(6000));
+      orthoCamera.lookAt(center);
+      orthoCamera.updateProjectionMatrix();
+    }
+
+    function syncHUD3DControls() {
+      const layerSel = document.getElementById("filter3DLayer");
+      const zoneSel = document.getElementById("filter3DZone");
+      const curLayerVal = layerSel.value;
+      const curZoneVal = zoneSel.value;
+
+      layerSel.innerHTML = '<option value="all">Tất cả các lớp (Đầy đủ)</option>';
+      for (let i = 1; i <= state.numLayers; i++) {
+        layerSel.innerHTML += `<option value="${i}">Đến hết Lớp ${i}</option>`;
+      }
+      if ([...layerSel.options].some(o => o.value === curLayerVal)) layerSel.value = curLayerVal;
+
+      const numZones = parseInt(document.getElementById("zoneCount").value) || 3;
+      zoneSel.innerHTML = '<option value="all">Đầy đủ các điểm của lớp</option>';
+      for (let i = 1; i <= numZones; i++) {
+        zoneSel.innerHTML += `<option value="${i}">Đến Điểm Thả ${i}</option>`;
+      }
+      if ([...zoneSel.options].some(o => o.value === curZoneVal)) zoneSel.value = curZoneVal;
+
+      document.getElementById("quickLayers3D").value = state.numLayers;
+    }
+
+    function syncLayersFrom3D(val) {
+      const n = parseInt(val) || 1;
+      state.numLayers = n;
+      document.getElementById("numLayers").value = n;
+      syncHUD3DControls();
+      update3D();
+    }
+
+    // CẬP NHẬT 3D: ĐIỂM 1 LỚP CHẴN XUẤT HIỆN Ở PHÍA GẦN (KHÔNG BỊ LỘN SANG GÓC XA)
+    function update3D() {
+      if (!palletGroup) return;
+      while (palletGroup.children.length > 0) palletGroup.remove(palletGroup.children[0]);
+
+      const pW = state.palletW_mm, pL = state.palletH_mm, pH = state.palletThickness_mm;
+      const boxZ = state.defaultBox.z;
+      const numZones = parseInt(document.getElementById("zoneCount").value) || 3;
+
+      const layerFilterStr = document.getElementById("filter3DLayer") ? document.getElementById("filter3DLayer").value : "all";
+      const zoneFilterStr = document.getElementById("filter3DZone") ? document.getElementById("filter3DZone").value : "all";
+      const maxLayerLimit = (layerFilterStr === "all") ? state.numLayers : parseInt(layerFilterStr);
+      const maxZoneLimit = (zoneFilterStr === "all") ? 999 : parseInt(zoneFilterStr);
+
+      const woodMat = new THREE.MeshLambertMaterial({ color: 0xA27B5C });
+      const woodBlockMat = new THREE.MeshLambertMaterial({ color: 0x8A6543 });
+
+      const topBoard = new THREE.Mesh(new THREE.BoxGeometry(pW, 25, pL), woodMat);
+      topBoard.position.set(0, pH - 12.5, 0);
+      palletGroup.add(topBoard);
+
+      const bx = pW / 2 - 70, bz = pL / 2 - 70;
+      [-bx, 0, bx].forEach(woodX => {
+        [-bz, 0, bz].forEach(woodZ => {
+          const block = new THREE.Mesh(new THREE.BoxGeometry(120, pH - 50, 120), woodBlockMat);
+          block.position.set(woodX, (pH - 50) / 2 + 25, woodZ);
+          palletGroup.add(block);
+        });
+      });
+
+      const bottomBoard = new THREE.Mesh(new THREE.BoxGeometry(pW, 25, pL), woodMat);
+      bottomBoard.position.set(0, 12.5, 0);
+      palletGroup.add(bottomBoard);
+
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      state.boxes.forEach(b => {
+        minX = Math.min(minX, b.x); maxX = Math.max(maxX, b.x + b.w);
+        minY = Math.min(minY, b.y); maxY = Math.max(maxY, b.y + b.h);
+      });
+      const centerBoxX = (minX + maxX) / 2;
+      const centerBoxY = (minY + maxY) / 2;
+
+      const hasCustomTexture = state.boxTextures.top || state.boxTextures.front || state.boxTextures.side;
+
+      for (let layer = 0; layer < state.numLayers; layer++) {
+        const layerNumber = layer + 1;
+        if (layerNumber > maxLayerLimit) break;
+
+        const isOdd = (layer % 2 === 0);
+        const layerElev = pH + layer * boxZ;
+
+        state.boxes.forEach(b => {
+          const rawZoneId = b.zoneId || 1;
+          
+          // Ở lớp chẵn: Cụm thùng nằm ở mép gần (thuận tay robot) chính là Điểm 1 của lớp chẵn
+          const effectiveZoneId = isOdd ? rawZoneId : (numZones - rawZoneId + 1);
+
+          if (layerNumber === maxLayerLimit && maxZoneLimit !== 999 && effectiveZoneId > maxZoneLimit) {
+            return;
+          }
+
+          const bW = b.w, bL = b.h, bH = b.z || boxZ;
+          let posX, posZ;
+
+          if (isOdd) {
+            posX = (b.x + bW / 2) - pW / 2;
+            posZ = (b.y + bL / 2) - pL / 2;
+          } else {
+            const rotX = 2 * centerBoxX - (b.x + bW / 2);
+            const rotY = 2 * centerBoxY - (b.y + bL / 2);
+            posX = rotX - pW / 2;
+            posZ = rotY - pL / 2;
+          }
+
+          // Lấy màu riêng của từng điểm đã được chọn
+          const userZoneHex = state.zoneColors[(effectiveZoneId - 1) % state.zoneColors.length] || "#EA580C";
+          const baseColor = new THREE.Color(userZoneHex);
+          if (!isOdd) baseColor.multiplyScalar(0.9);
+
+          const geom = new THREE.BoxGeometry(bW - 2, bH - 2, bL - 2);
+          let boxMesh;
+
+          if (hasCustomTexture) {
+            const defMat = new THREE.MeshLambertMaterial({ color: baseColor });
+            const topMat = state.boxTextures.top ? new THREE.MeshLambertMaterial({ map: state.boxTextures.top }) : defMat;
+            const frontMat = state.boxTextures.front ? new THREE.MeshLambertMaterial({ map: state.boxTextures.front }) : defMat;
+            const sideMat = state.boxTextures.side ? new THREE.MeshLambertMaterial({ map: state.boxTextures.side }) : defMat;
+
+            const materials = [sideMat, sideMat, topMat, defMat, frontMat, frontMat];
+            boxMesh = new THREE.Mesh(geom, materials);
+          } else {
+            const mat = new THREE.MeshLambertMaterial({ color: baseColor });
+            boxMesh = new THREE.Mesh(geom, mat);
+          }
+
+          boxMesh.position.set(posX, layerElev + bH / 2, posZ);
+
+          const edges = new THREE.EdgesGeometry(geom);
+          boxMesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x1E293B })));
+          palletGroup.add(boxMesh);
+        });
+      }
+
+      const totalH = pH + state.numLayers * boxZ;
+      document.getElementById("totalHeightDisplay").innerText = `Chiều cao tổng cả kiện: ${totalH} mm (${state.numLayers} Lớp)`;
+    }
+
+    // 2. GIAO DIỆN CẤU HÌNH ĐIỂM THẢ: ĐẦY ĐỦ Ô SỐ LƯỢNG, HƯỚNG XOAY, VÀ CHỌN MÀU
+    function renderZoneInputs() {
+      const count = parseInt(document.getElementById("zoneCount").value) || 3;
+      const c = document.getElementById("zoneListContainer");
+      c.innerHTML = "";
+
+      for (let i = 1; i <= count; i++) {
+        const isRotDefault = (i > 1);
+        const boxCountDefault = (i === 1) ? 3 : 4;
+        const curColor = state.zoneColors[i - 1] || DEFAULT_ZONE_COLORS[(i - 1) % DEFAULT_ZONE_COLORS.length];
+
+        c.innerHTML += `
+          <div class="zone-config-box" style="border-left: 4px solid ${curColor};">
+            <div style="font-weight:bold; color:${curColor}; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+              <span>ĐIỂM THẢ ${i}</span>
+              <div style="display:flex; align-items:center; gap:5px;">
+                <label style="font-size:10px; margin:0; color:#94A3B8;">Màu thùng:</label>
+                <input type="color" value="${curColor}" onchange="updateZoneColor(${i - 1}, this.value)" style="padding:1px; width:26px; height:22px; cursor:pointer;">
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label>Số thùng</label>
+                <input type="number" id="zCount_${i}" value="${boxCountDefault}" min="1" max="15">
+              </div>
+              <div>
+                <label>Hướng</label>
+                <select id="zRot_${i}">
+                  <option value="no" ${!isRotDefault ? 'selected' : ''}>Không xoay</option>
+                  <option value="rot" ${isRotDefault ? 'selected' : ''}>Xoay 90°</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      initDividers();
+      syncHUD3DControls();
+    }
+
+    function updateZoneColor(index, newHex) {
+      state.zoneColors[index] = newHex;
+      renderZoneInputs();
+      render2D();
+    }
+
+    function initDividers() {
+      const mode = document.getElementById("dropZoneMode").value;
+      const numZones = parseInt(document.getElementById("zoneCount").value) || 3;
+      const totalLen = mode.startsWith("Col") ? state.palletW_mm : state.palletH_mm;
+      const step = totalLen / numZones;
+      state.dividers = [];
+      for (let i = 1; i < numZones; i++) {
+        state.dividers.push(Math.round(i * step));
+      }
+      render2D();
+    }
+
+    function switchZoneMode() {
+      initDividers();
+      executeAutoPack();
+    }
+
+    // 3. TỰ ĐỘNG XẾP THÙNG
+    function executeAutoPack() {
+      const pW = state.palletW_mm, pL = state.palletH_mm;
+      const bDimX = parseInt(document.getElementById("boxDimX").value) || 365;
+      const bDimY = parseInt(document.getElementById("boxDimY").value) || 275;
+      const bDimZ = parseInt(document.getElementById("boxDimZ").value) || 300;
+      state.defaultBox = { x: bDimX, y: bDimY, z: bDimZ };
+
+      state.numLayers = parseInt(document.getElementById("numLayers").value) || 4;
+
+      const packMode = document.getElementById("packingMode").value;
+      const dropMode = document.getElementById("dropZoneMode").value;
+      const isCol = dropMode.startsWith("Col");
+      const numZones = parseInt(document.getElementById("zoneCount").value) || 3;
+
+      let zoneConfigs = [];
+      for (let i = 1; i <= numZones; i++) {
+        const cnt = parseInt(document.getElementById(`zCount_${i}`).value) || 1;
+        const isRot = document.getElementById(`zRot_${i}`).value === "rot";
+        zoneConfigs.push({ zoneId: i, count: cnt, isRot: isRot });
+      }
+
+      state.boxes = [];
+      let boxCounter = 1;
+      let dividerPositions = [];
+      let gapReportHtml = "";
+
+      state.gapSummary = { innerGaps: [], spanGap: 0, targetSpan: 0 };
+
+      if (!isCol) {
+        // HÀNG (ROW)
+        let zoneRowH = [];
+        let maxRowTotalBoxWidth = 0;
+
+        zoneConfigs.forEach(zc => {
+          const bW = zc.isRot ? bDimX : bDimY;
+          const bH = zc.isRot ? bDimY : bDimX;
+          const totalBoxW = zc.count * bW;
+          maxRowTotalBoxWidth = Math.max(maxRowTotalBoxWidth, totalBoxW);
+          zoneRowH.push({ bW, bH, count: zc.count, zoneId: zc.zoneId, isRot: zc.isRot });
+        });
+
+        let targetBlockWidth = (packMode === "distribute") ? (pW - 40) : maxRowTotalBoxWidth;
+        targetBlockWidth = Math.min(targetBlockWidth, pW - 20);
+        state.gapSummary.targetSpan = targetBlockWidth;
+
+        const startX_global = Math.max(10, Math.round((pW - targetBlockWidth) / 2));
+        const totalRowsHeight = zoneRowH.reduce((sum, z) => sum + z.bH, 0);
+
+        let rowGap = (packMode === "distribute" && numZones > 1) 
+          ? Math.max(0, (pL - totalRowsHeight - 20) / (numZones - 1)) 
+          : 0;
+        state.gapSummary.spanGap = rowGap;
+
+        let startY_global = Math.max(10, Math.round((pL - (totalRowsHeight + (numZones - 1) * rowGap)) / 2));
+        let curY = startY_global;
+
+        const zoneIndices = (dropMode === "Row_BtoT") 
+          ? [...Array(numZones).keys()].reverse() 
+          : [...Array(numZones).keys()];
+
+        zoneIndices.forEach((zIdx, loopOrder) => {
+          const zc = zoneRowH[zIdx];
+          const bW = zc.bW, bH = zc.bH, count = zc.count;
+          const zoneColor = state.zoneColors[(zc.zoneId - 1) % state.zoneColors.length];
+
+          let innerGapX = 0;
+          if (count > 1) innerGapX = (targetBlockWidth - count * bW) / (count - 1);
+          state.gapSummary.innerGaps.push({ zoneId: zc.zoneId, gap: innerGapX });
+
+          for (let b = 0; b < count; b++) {
+            const posX = startX_global + b * (bW + innerGapX);
+            state.boxes.push({
+              id: Date.now() + boxCounter,
+              num: boxCounter,
+              zoneId: zc.zoneId,
+              x: Math.round(posX),
+              y: Math.round(curY),
+              w: Math.round(bW),
+              h: Math.round(bH),
+              z: bDimZ,
+              fill: zoneColor,
+              stroke: "#0F172A",
+              textFill: "#FFFFFF"
+            });
+            boxCounter++;
+          }
+
+          curY += bH;
+          if (loopOrder < numZones - 1) {
+            dividerPositions.push(Math.round(curY + rowGap / 2));
+            curY += rowGap;
+          }
+
+          gapReportHtml += `<div>• <b>Điểm Thả ${zc.zoneId}</b>: ${count} thùng. Khe giữa thùng: <span class="report-val">${innerGapX.toFixed(1)} mm</span></div>`;
+        });
+
+        gapReportHtml += `<div style="margin-top:4px; border-top:1px dashed #334155; padding-top:4px;">• Mép phẳng 2 bên: <span class="report-val">${targetBlockWidth.toFixed(0)} mm</span> | Khe hở hàng: <span class="report-val">${rowGap.toFixed(1)} mm</span></div>`;
+
+      } else {
+        // CỘT (COLUMN)
+        let zoneColW = [];
+        let maxColTotalBoxHeight = 0;
+
+        zoneConfigs.forEach(zc => {
+          const bW = zc.isRot ? bDimY : bDimX;
+          const bH = zc.isRot ? bDimX : bDimY;
+          const totalBoxH = zc.count * bH;
+          maxColTotalBoxHeight = Math.max(maxColTotalBoxHeight, totalBoxH);
+          zoneColW.push({ bW, bH, count: zc.count, zoneId: zc.zoneId, isRot: zc.isRot });
+        });
+
+        let targetBlockHeight = (packMode === "distribute") ? (pL - 40) : maxColTotalBoxHeight;
+        targetBlockHeight = Math.min(targetBlockHeight, pL - 20);
+        state.gapSummary.targetSpan = targetBlockHeight;
+
+        const startY_global = Math.max(10, Math.round((pL - targetBlockHeight) / 2));
+        const totalColsWidth = zoneColW.reduce((sum, z) => sum + z.bW, 0);
+
+        let colGap = (packMode === "distribute" && numZones > 1) 
+          ? Math.max(0, (pW - totalColsWidth - 20) / (numZones - 1)) 
+          : 0;
+        state.gapSummary.spanGap = colGap;
+
+        let startX_global = Math.max(10, Math.round((pW - (totalColsWidth + (numZones - 1) * colGap)) / 2));
+        let curX = startX_global;
+
+        const zoneIndices = (dropMode === "Col_RtoL") 
+          ? [...Array(numZones).keys()].reverse() 
+          : [...Array(numZones).keys()];
+
+        zoneIndices.forEach((zIdx, loopOrder) => {
+          const zc = zoneColW[zIdx];
+          const bW = zc.bW, bH = zc.bH, count = zc.count;
+          const zoneColor = state.zoneColors[(zc.zoneId - 1) % state.zoneColors.length];
+
+          let innerGapY = 0;
+          if (count > 1) innerGapY = (targetBlockHeight - count * bH) / (count - 1);
+          state.gapSummary.innerGaps.push({ zoneId: zc.zoneId, gap: innerGapY });
+
+          for (let b = 0; b < count; b++) {
+            const posY = startY_global + b * (bH + innerGapY);
+            state.boxes.push({
+              id: Date.now() + boxCounter,
+              num: boxCounter,
+              zoneId: zc.zoneId,
+              x: Math.round(curX),
+              y: Math.round(posY),
+              w: Math.round(bW),
+              h: Math.round(bH),
+              z: bDimZ,
+              fill: zoneColor,
+              stroke: "#0F172A",
+              textFill: "#FFFFFF"
+            });
+            boxCounter++;
+          }
+
+          curX += bW;
+          if (loopOrder < numZones - 1) {
+            dividerPositions.push(Math.round(curX + colGap / 2));
+            curX += colGap;
+          }
+
+          gapReportHtml += `<div>• <b>Điểm Thả ${zc.zoneId}</b>: ${count} thùng. Khe giữa thùng: <span class="report-val">${innerGapY.toFixed(1)} mm</span></div>`;
+        });
+
+        gapReportHtml += `<div style="margin-top:4px; border-top:1px dashed #334155; padding-top:4px;">• Mép phẳng 2 đầu: <span class="report-val">${targetBlockHeight.toFixed(0)} mm</span> | Khe hở cột: <span class="report-val">${colGap.toFixed(1)} mm</span></div>`;
+      }
+
+      gapReportHtml += `<div>• Chế độ: <span class="report-val">${packMode === 'compact' ? 'Compact Căn Phẳng Đều' : 'Distribute Dàn Toàn Pallet'}</span></div>`;
+      document.getElementById("gapReportBox").innerHTML = gapReportHtml;
+
+      state.dividers = dividerPositions;
+      syncHUD3DControls();
+      render2D();
+    }
+
+    // 4. RENDER 2D
+    function render2D() {
+      const s = state.scale2D;
+      const pW_px = state.palletW_mm * s, pH_px = state.palletH_mm * s;
+      const offsetX = 60, offsetY = 85;
+      const totalW = pW_px + 140, totalH = pH_px + 200;
+
+      const svg = document.getElementById("svgArea");
+      svg.setAttribute("width", totalW);
+      svg.setAttribute("height", totalH);
+      svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
+
+      let html = '';
+      html += `<text x="${totalW/2}" y="26" fill="#0F172A" font-size="17" font-weight="bold" text-anchor="middle">${state.title}</text>`;
+      html += `<text x="${totalW/2}" y="46" fill="#475569" font-size="12" text-anchor="middle">${state.boxes.length} Thùng/Lớp — Pallet: ${state.palletW_mm}x${state.palletH_mm} mm — Cao thùng Z: ${state.defaultBox.z} mm</text>`;
+
+      html += `<g transform="translate(${offsetX}, 0)">
+        <text x="${pW_px/2}" y="68" fill="#0284C7" font-size="13" font-weight="bold" text-anchor="middle">${state.palletW_mm} mm</text>
+        <line x1="0" y1="74" x2="${pW_px}" y2="74" stroke="#64748B" stroke-width="1.5"/>
+        <line x1="0" y1="70" x2="0" y2="78" stroke="#64748B" stroke-width="1.5"/><line x1="${pW_px}" y1="70" x2="${pW_px}" y2="78" stroke="#64748B" stroke-width="1.5"/>
+      </g>`;
+
+      html += `<g transform="translate(${offsetX}, ${offsetY})">`;
+      html += `<rect x="-4" y="-4" width="${pW_px + 8}" height="${pH_px + 8}" rx="4" fill="none" stroke="#94A3B8" stroke-width="2" stroke-dasharray="4 2"/>`;
+
+      state.boxes.forEach(b => {
+        const isSel = b.id === state.selectedBoxId;
+        const curFill = state.zoneColors[(b.zoneId - 1) % state.zoneColors.length] || b.fill;
+        html += `<g class="box-group" data-id="${b.id}">
+          <rect class="box ${isSel ? 'selected' : ''}" x="${b.x * s}" y="${b.y * s}" width="${b.w * s}" height="${b.h * s}" rx="3" fill="${curFill}" stroke="#0F172A" stroke-width="1.8"/>
+          <text class="box-text" x="${(b.x + b.w/2)*s}" y="${(b.y + b.h/2)*s}" fill="#FFFFFF" font-size="16" text-anchor="middle" dominant-baseline="central">${b.num}</text>
+        </g>`;
+      });
+
+      html += `<line x1="${pW_px + 12}" y1="0" x2="${pW_px + 12}" y2="${pH_px}" stroke="#64748B" stroke-width="1.5"/>
+               <line x1="${pW_px + 8}" y1="0" x2="${pW_px + 16}" y2="0" stroke="#64748B" stroke-width="1.5"/><line x1="${pW_px + 8}" y1="${pH_px}" x2="${pW_px + 16}" y2="${pH_px}" stroke="#64748B" stroke-width="1.5"/>
+               <text x="${pW_px + 30}" y="${pH_px/2}" fill="#0284C7" font-size="13" font-weight="bold" transform="rotate(90 ${pW_px+30} ${pH_px/2})" text-anchor="middle">${state.palletH_mm} mm</text>`;
+
+      const dropMode = document.getElementById("dropZoneMode").value;
+      const isCol = dropMode.startsWith("Col");
+      const limits = [0, ...state.dividers, (isCol ? state.palletW_mm : state.palletH_mm)].sort((a,b) => a-b);
+      const numZones = limits.length - 1;
+
+      for (let i = 0; i < numZones; i++) {
+        const start = limits[i] * s, end = limits[i+1] * s, mid = (start + end) / 2;
+        let zoneIdx = 1;
+        if (dropMode === "Col_RtoL" || dropMode === "Row_BtoT") zoneIdx = numZones - i;
+        else zoneIdx = i + 1;
+
+        const color = state.zoneColors[(zoneIdx - 1) % state.zoneColors.length] || "#0284C7";
+
+        if (isCol) {
+          html += `<rect x="${start}" y="${pH_px + 10}" width="${end - start}" height="24" rx="4" fill="${color}" opacity="0.18"/>`;
+          html += `<text x="${mid}" y="${pH_px + 23}" fill="${color}" font-size="12" font-weight="bold" text-anchor="middle" dominant-baseline="central">ĐIỂM THẢ ${zoneIdx}</text>`;
+        } else {
+          html += `<rect x="-70" y="${start}" width="60" height="${end - start}" rx="4" fill="${color}" opacity="0.18"/>`;
+          html += `<text x="-40" y="${mid}" fill="${color}" font-size="11" font-weight="bold" text-anchor="middle" dominant-baseline="central">ĐIỂM ${zoneIdx}</text>`;
+        }
+      }
+
+      state.dividers.forEach((dVal, dIdx) => {
+        const dPos = dVal * s;
+        if (isCol) {
+          html += `<line class="divider-line" x1="${dPos}" y1="-5" x2="${dPos}" y2="${pH_px + 5}" data-idx="${dIdx}"/>`;
+          html += `<circle class="divider-handle" cx="${dPos}" cy="${pH_px/2}" r="6" data-idx="${dIdx}"/>`;
+        } else {
+          html += `<line class="divider-line horizontal" x1="-5" y1="${dPos}" x2="${pW_px + 5}" y2="${dPos}" data-idx="${dIdx}"/>`;
+          html += `<circle class="divider-handle" cx="${pW_px/2}" cy="${dPos}" r="6" data-idx="${dIdx}"/>`;
+        }
+      });
+
+      state.texts.forEach(t => {
+        const isSel = t.id === state.selectedTextId;
+        const tx = t.x * s, ty = t.y * s;
+        const scaleX = t.flipH ? -1 : 1, scaleY = t.flipV ? -1 : 1;
+        const transformStr = `translate(${tx}, ${ty}) rotate(${t.rot || 0}) scale(${scaleX}, ${scaleY})`;
+
+        html += `<g transform="${transformStr}" class="text-group" data-id="${t.id}">
+          <text class="text-element ${isSel ? 'selected' : ''}" x="0" y="0" fill="${t.color}" 
+                font-size="${t.size}" font-weight="bold" dominant-baseline="central" text-anchor="middle">${t.val}</text>
+        </g>`;
+      });
+
+      html += `</g>`;
+      html += `<text x="${totalW/2}" y="${offsetY + pH_px + 55}" fill="#059669" font-size="13" font-weight="bold" text-anchor="middle">${state.infeedText}</text>`;
+
+      svg.innerHTML = html;
+      attach2DEvents();
+      update3D();
+    }
+
+    function attach2DEvents() {
+      const svg = document.getElementById("svgArea");
+
+      document.querySelectorAll(".box-group").forEach(g => {
+        g.addEventListener("mousedown", (e) => {
+          e.stopPropagation();
+          const id = parseInt(g.getAttribute("data-id"));
+          state.selectedBoxId = id;
+          state.selectedTextId = null;
+          document.getElementById("textControlPanel").style.display = "none";
+          const b = state.boxes.find(x => x.id === id);
+          const pt = getSvgPoint(e);
+          activeDrag = { type: 'box', target: b, offset: { x: pt.x - b.x, y: pt.y - b.y } };
+          render2D();
+        });
+      });
+
+      document.querySelectorAll(".divider-line, .divider-handle").forEach(el => {
+        el.addEventListener("mousedown", (e) => {
+          e.stopPropagation();
+          const idx = parseInt(el.getAttribute("data-idx"));
+          activeDrag = { type: 'divider', idx: idx };
+        });
+      });
+
+      document.querySelectorAll(".text-group").forEach(g => {
+        g.addEventListener("mousedown", (e) => {
+          e.stopPropagation();
+          const id = parseInt(g.getAttribute("data-id"));
+          state.selectedTextId = id;
+          state.selectedBoxId = null;
+          const t = state.texts.find(x => x.id === id);
+          const pt = getSvgPoint(e);
+          activeDrag = { type: 'text', target: t, offset: { x: pt.x - t.x, y: pt.y - t.y } };
+          showTextControlPanel(t);
+          render2D();
+        });
+      });
+    }
+
+    function getSvgPoint(e) {
+      const svg = document.getElementById("svgArea");
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+      return { x: (loc.x - 60) / state.scale2D, y: (loc.y - 85) / state.scale2D };
+    }
+
+    window.addEventListener("mousemove", (e) => {
+      if (!activeDrag) return;
+      const pt = getSvgPoint(e);
+
+      if (activeDrag.type === 'box') {
+        const b = activeDrag.target;
+        b.x = Math.max(0, Math.min(state.palletW_mm - b.w, Math.round((pt.x - activeDrag.offset.x) / 5) * 5));
+        b.y = Math.max(0, Math.min(state.palletH_mm - b.h, Math.round((pt.y - activeDrag.offset.y) / 5) * 5));
+        render2D();
+      } else if (activeDrag.type === 'divider') {
+        const dropMode = document.getElementById("dropZoneMode").value;
+        const isCol = dropMode.startsWith("Col");
+        const val = isCol ? pt.x : pt.y;
+        const maxLimit = isCol ? state.palletW_mm : state.palletH_mm;
+        state.dividers[activeDrag.idx] = Math.max(50, Math.min(maxLimit - 50, Math.round(val / 5) * 5));
+        render2D();
+      } else if (activeDrag.type === 'text') {
+        activeDrag.target.x = Math.round(pt.x - activeDrag.offset.x);
+        activeDrag.target.y = Math.round(pt.y - activeDrag.offset.y);
+        render2D();
+      }
+    });
+
+    window.addEventListener("mouseup", () => { activeDrag = null; });
+    document.getElementById("workspace-2d").addEventListener("mousedown", (e) => {
+      if (e.target.tagName === 'svg' || e.target.id === 'workspace-2d') {
+        state.selectedBoxId = null;
+        state.selectedTextId = null;
+        document.getElementById("textControlPanel").style.display = "none";
+        render2D();
+      }
+    });
+
+    function addCustomText() {
+      const id = Date.now();
+      const txt = { id: id, val: "Ghi chú", x: Math.round(state.palletW_mm / 2), y: Math.round(state.palletH_mm / 2), size: 16, color: "#0F172A", rot: 0, flipH: false, flipV: false };
+      state.texts.push(txt);
+      state.selectedTextId = id;
+      showTextControlPanel(txt);
+      render2D();
+    }
+
+    function showTextControlPanel(t) {
+      const panel = document.getElementById("textControlPanel");
+      panel.style.display = "block";
+      document.getElementById("propTextVal").value = t.val;
+      document.getElementById("propTextSize").value = t.size;
+      document.getElementById("propTextColor").value = t.color;
+    }
+
+    function updateTextFromPanel() {
+      if (!state.selectedTextId) return;
+      const t = state.texts.find(x => x.id === state.selectedTextId);
+      t.val = document.getElementById("propTextVal").value;
+      t.size = parseInt(document.getElementById("propTextSize").value) || 16;
+      t.color = document.getElementById("propTextColor").value;
+      render2D();
+    }
+
+    function rotateSelectedText(deg) {
+      if (!state.selectedTextId) return;
+      const t = state.texts.find(x => x.id === state.selectedTextId);
+      t.rot = ((t.rot || 0) + deg) % 360;
+      render2D();
+    }
+
+    function flipSelectedText(dir) {
+      if (!state.selectedTextId) return;
+      const t = state.texts.find(x => x.id === state.selectedTextId);
+      if (dir === 'H') t.flipH = !t.flipH;
+      else t.flipV = !t.flipV;
+      render2D();
+    }
+
+    function deleteSelectedText() {
+      if (!state.selectedTextId) return;
+      state.texts = state.texts.filter(x => x.id !== state.selectedTextId);
+      state.selectedTextId = null;
+      document.getElementById("textControlPanel").style.display = "none";
+      render2D();
+    }
+
+    function rotatePallet(angle) {
+      const pW = state.palletW_mm, pH = state.palletH_mm;
+      if (Math.abs(angle) === 90) {
+        state.palletW_mm = pH; state.palletH_mm = pW;
+        document.getElementById("palletW").value = state.palletW_mm;
+        document.getElementById("palletH").value = state.palletH_mm;
+
+        state.boxes.forEach(b => {
+          const ox = b.x, oy = b.y, ow = b.w, oh = b.h;
+          b.w = oh; b.h = ow;
+          if (angle === 90) { b.x = pH - (oy + oh); b.y = ox; }
+          else { b.x = oy; b.y = pW - (ox + ow); }
+        });
+      }
+      render2D();
+    }
+
+    function flipPallet(dir) {
+      const pW = state.palletW_mm, pH = state.palletH_mm;
+      state.boxes.forEach(b => {
+        if (dir === 'H') b.x = pW - (b.x + b.w);
+        else b.y = pH - (b.y + b.h);
+      });
+      render2D();
+    }
+
+    document.getElementById("layerTitle").addEventListener("input", (e) => { state.title = e.target.value; render2D(); });
+    document.getElementById("infeedText").addEventListener("input", (e) => { state.infeedText = e.target.value; render2D(); });
+    document.getElementById("palletThickness").addEventListener("change", (e) => { state.palletThickness_mm = parseInt(e.target.value); update3D(); });
+    document.getElementById("numLayers").addEventListener("change", (e) => { 
+      state.numLayers = parseInt(e.target.value); 
+      syncHUD3DControls();
+      update3D(); 
+    });
+
+    // 5. TẠO SVG 2D: LỚP CHẴN & LẺ ĐỀU ĐẾM ĐIỂM TUẦN TỰ
+    function generateOddLayerSvg(limitZone) {
+      const svgClone = document.getElementById("svgArea").cloneNode(true);
+      const titleNode = svgClone.querySelector("text");
+      if (titleNode) titleNode.textContent = "LỚP LẺ (LAYER 1, 3, 5...)";
+
+      if (limitZone !== undefined) {
+        svgClone.querySelectorAll(".box-group").forEach(g => {
+          const id = parseInt(g.getAttribute("data-id"));
+          const b = state.boxes.find(x => x.id === id);
+          if (b && (b.zoneId || 1) > limitZone) g.remove();
+        });
+      }
+      return svgClone;
+    }
+
+    function generateEvenLayerSvg(limitZone) {
+      const svgClone = document.getElementById("svgArea").cloneNode(true);
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      state.boxes.forEach(b => {
+        minX = Math.min(minX, b.x); maxX = Math.max(maxX, b.x + b.w);
+        minY = Math.min(minY, b.y); maxY = Math.max(maxY, b.y + b.h);
+      });
+      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      const s = state.scale2D;
+      const numZones = parseInt(document.getElementById("zoneCount").value) || 3;
+
+      const titleNode = svgClone.querySelector("text");
+      if (titleNode) titleNode.textContent = "LỚP CHẴN (LAYER 2, 4, 6...)";
+
+      svgClone.querySelectorAll(".box-group").forEach(g => {
+        const id = parseInt(g.getAttribute("data-id"));
+        const b = state.boxes.find(x => x.id === id);
+        if (b) {
+          const rawZoneId = b.zoneId || 1;
+          const effectiveZoneId = (numZones - rawZoneId + 1);
+
+          if (limitZone !== undefined && effectiveZoneId > limitZone) {
+            g.remove();
+            return;
+          }
+          const rotX = 2 * cx - (b.x + b.w / 2);
+          const rotY = 2 * cy - (b.y + b.h / 2);
+          const newX = (rotX - b.w / 2) * s;
+          const newY = (rotY - b.h / 2) * s;
+          const rect = g.querySelector("rect");
+          const text = g.querySelector("text");
+          if (rect) { rect.setAttribute("x", newX); rect.setAttribute("y", newY); }
+          if (text) { text.setAttribute("x", newX + (b.w * s) / 2); text.setAttribute("y", newY + (b.h * s) / 2); }
+        }
+      });
+      return svgClone;
+    }
+
+    function svgToPngBlob(svgEl, bgChoice) {
+      return new Promise((resolve) => {
+        const serializer = new XMLSerializer();
+        const clone = svgEl.cloneNode(true);
+        if (bgChoice !== 'transparent') {
+          const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          bgRect.setAttribute("width", "100%"); bgRect.setAttribute("height", "100%");
+          bgRect.setAttribute("fill", bgChoice);
+          clone.insertBefore(bgRect, clone.firstChild);
+        }
+        const svgStr = serializer.serializeToString(clone);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+
+        canvas.width = svgEl.getAttribute("width") * 2;
+        canvas.height = svgEl.getAttribute("height") * 2;
+        const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+
+        img.onload = () => {
+          if (bgChoice !== 'transparent') {
+            ctx.fillStyle = bgChoice;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+          ctx.scale(2, 2);
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((b) => resolve(b), "image/png");
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      });
+    }
+
+    // XUẤT 3D THÀNH CHUỖI SVG VECTOR (DÙNG ORTHO CAMERA)
+    function capture3DSVGString() {
+      gridHelper.visible = false;
+      const width = 1000, height = 1000;
+      setupOrthoCameraForHMI(width, height);
+
+      const origMaterials = new Map();
+      palletGroup.traverse((child) => {
+        if (child.isMesh) {
+          origMaterials.set(child, child.material);
+          let targetColor = 0xA27B5C;
+          if (Array.isArray(child.material)) {
+            targetColor = child.material[0].color ? child.material[0].color.getHex() : 0xEA580C;
+          } else if (child.material && child.material.color) {
+            targetColor = child.material.color.getHex();
+          }
+          child.material = new THREE.MeshBasicMaterial({ color: targetColor, wireframe: false });
+        }
+      });
+
+      svgRenderer.setSize(width, height);
+      svgRenderer.render(scene, orthoCamera);
+
+      origMaterials.forEach((mat, mesh) => {
+        mesh.material = mat;
+      });
+
+      gridHelper.visible = true;
+
+      const svgNode = svgRenderer.domElement;
+      svgNode.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svgNode.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+      const serializer = new XMLSerializer();
+      return serializer.serializeToString(svgNode);
+    }
+
+    // CHỤP 3D PNG DÙNG ORTHO CAMERA ĐỂ ĐỒNG NHẤT TỈ LỆ 100%
+    function captureProgressive3DPNG() {
+      return new Promise((resolve) => {
+        gridHelper.visible = false;
+        const width = 1000, height = 1000;
+        setupOrthoCameraForHMI(width, height);
+
+        const offCanvas = document.createElement("canvas");
+        offCanvas.width = width;
+        offCanvas.height = height;
+        const offRenderer = new THREE.WebGLRenderer({ canvas: offCanvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+        offRenderer.setSize(width, height);
+        offRenderer.render(scene, orthoCamera);
+
+        gridHelper.visible = true;
+        offCanvas.toBlob(resolve, "image/png");
+      });
+    }
+
+    function downloadBlob(blob, fileName) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // XUẤT CHUỖI ẢNH THEO DÕI HMI
+    async function exportHMISyncZIP() {
+      const model = (document.getElementById("modelCode").value || "PALLET").replace(/\s+/g, '_');
+      const numLayers = state.numLayers;
+      const numZones = parseInt(document.getElementById("zoneCount").value) || 3;
+      const formatChoice = document.getElementById("seqFormatChoice") ? document.getElementById("seqFormatChoice").value : "png";
+
+      if (state.boxes.length === 0) {
+        alert("Vui lòng xếp pallet trước.");
+        return;
+      }
+
+      const origLayerFilter = document.getElementById("filter3DLayer").value;
+      const origZoneFilter = document.getElementById("filter3DZone").value;
+      const infoBar = document.getElementById("info-bar");
+
+      const zip = new JSZip();
+      let folderName = "3D_PNG_Sequence";
+      if (formatChoice === "svg3d") folderName = "3D_SVG_Sequence";
+      if (formatChoice === "svg2d") folderName = "2D_SVG_Sequence";
+      const folder = zip.folder(folderName);
+
+      const totalSteps = numLayers * numZones;
+      let currentStep = 0;
+
+      infoBar.innerText = `⏳ Đang chụp chuỗi ảnh HMI... (0/${totalSteps})`;
+      infoBar.style.color = "#FF9F43";
+
+      for (let layer = 1; layer <= numLayers; layer++) {
+        document.getElementById("filter3DLayer").value = layer;
+
+        for (let zone = 1; zone <= numZones; zone++) {
+          currentStep++;
+          document.getElementById("filter3DZone").value = zone;
+          infoBar.innerText = `⏳ Đang xuất: Lớp ${layer}, Điểm ${zone} (${currentStep}/${totalSteps})`;
+
+          update3D();
+
+          if (formatChoice === "svg3d") {
+            const svgContent = capture3DSVGString();
+            folder.file(`P_L${layer}_D${zone}.svg`, svgContent);
+          } else if (formatChoice === "svg2d") {
+            const isOdd = (layer % 2 !== 0);
+            const currentSvg = isOdd ? generateOddLayerSvg(zone) : generateEvenLayerSvg(zone);
+            const serializer = new XMLSerializer();
+            folder.file(`P_L${layer}_D${zone}.svg`, serializer.serializeToString(currentSvg));
+          } else {
+            const pngBlob = await captureProgressive3DPNG();
+            folder.file(`P_L${layer}_D${zone}.png`, pngBlob);
+          }
+        }
+      }
+
+      document.getElementById("filter3DLayer").value = origLayerFilter;
+      document.getElementById("filter3DZone").value = origZoneFilter;
+      update3D();
+
+      infoBar.innerText = `⏳ Đang nén file ZIP...`;
+
+      const zipContent = await zip.generateAsync({ type: "blob" });
+      downloadBlob(zipContent, `${model}_HMI_${formatChoice.toUpperCase()}_Sequence.zip`);
+
+      infoBar.innerText = `✅ Đã tải xong chuỗi ${totalSteps} ảnh chuẩn cự ly HMI!`;
+      infoBar.style.color = "#059669";
+      setTimeout(() => { 
+        infoBar.innerText = "💡 Đã cố định vị trí Điểm 1 lớp chẵn nằm cùng phía tiếp cận • Khung hình không lẹm"; 
+        infoBar.style.color = "#94A3B8";
+      }, 5000);
+    }
+
+    function export3DSVG() {
+      const model = (document.getElementById("modelCode").value || "MODEL").replace(/\s+/g, '_');
+      const svgString = capture3DSVGString();
+      const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      downloadBlob(blob, `${model}_3D_Vector.svg`);
+    }
+
+    async function exportOddLayer(format) {
+      const model = (document.getElementById("modelCode").value || "MODEL").replace(/\s+/g, '_');
+      const svg = generateOddLayerSvg();
+      const bg = document.getElementById("bgType").value;
+
+      if (format === 'svg') {
+        const serializer = new XMLSerializer();
+        downloadBlob(new Blob([serializer.serializeToString(svg)], { type: "image/svg+xml" }), `${model}_Odd_Layer.svg`);
+      } else {
+        downloadBlob(await svgToPngBlob(svg, bg), `${model}_Odd_Layer.png`);
+      }
+    }
+
+    async function exportEvenLayer(format) {
+      const model = (document.getElementById("modelCode").value || "MODEL").replace(/\s+/g, '_');
+      const svg = generateEvenLayerSvg();
+      const bg = document.getElementById("bgType").value;
+
+      if (format === 'svg') {
+        const serializer = new XMLSerializer();
+        downloadBlob(new Blob([serializer.serializeToString(svg)], { type: "image/svg+xml" }), `${model}_Even_Layer.svg`);
+      } else {
+        downloadBlob(await svgToPngBlob(svg, bg), `${model}_Even_Layer.png`);
+      }
+    }
+
+    function export3DPNG(isTransparent) {
+      const model = (document.getElementById("modelCode").value || "MODEL").replace(/\s+/g, '_');
+      captureProgressive3DPNG().then(blob => downloadBlob(blob, `${model}_3D.png`));
+    }
+
+    function svgToPngBase64(svgEl) {
+      return new Promise((resolve) => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+
+        canvas.width = svgEl.getAttribute("width") * 1.5;
+        canvas.height = svgEl.getAttribute("height") * 1.5;
+        const serializer = new XMLSerializer();
+        const blob = new Blob([serializer.serializeToString(svgEl)], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(blob);
+
+        img.onload = () => {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.scale(1.5, 1.5);
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      });
+    }
+
+    async function exportFullExcelReport() {
+      const model = document.getElementById("modelCode").value || "MODEL_PALLET";
+      gridHelper.visible = false;
+      const pngBlob = await captureProgressive3DPNG();
+      gridHelper.visible = true;
+
+      const reader = new FileReader();
+      reader.readAsDataURL(pngBlob);
+      reader.onloadend = async function() {
+        const img3d = reader.result;
+        const imgOdd = await svgToPngBase64(generateOddLayerSvg());
+        const imgEven = await svgToPngBase64(generateEvenLayerSvg());
+
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet(model.substring(0, 31));
+
+        ws.columns = [
+          { width: 4 }, { width: 28 }, { width: 20 }, { width: 22 },
+          { width: 30 }, { width: 30 }, { width: 30 }
+        ];
+
+        ws.mergeCells("B2:G2");
+        const titleCell = ws.getCell("B2");
+        titleCell.value = "TIÊU CHUẨN XẾP PALLET - " + model;
+        titleCell.font = { name: "Arial", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+        titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0A4B78" } };
+        titleCell.alignment = { vertical: "middle", horizontal: "center" };
+        ws.getRow(2).height = 32;
+
+        const specs = [
+          ["MODEL", model],
+          ["PALLET (WxL)", `${state.palletW_mm}x${state.palletH_mm}`],
+          ["THÙNG (XxYxZ)", `${state.defaultBox.x}x${state.defaultBox.y}x${state.defaultBox.z}`],
+          ["SỐ LỚP", state.numLayers],
+          ["THÙNG/LỚP", state.boxes.length],
+          ["TỔNG THÙNG", state.boxes.length * state.numLayers],
+          ["TỔNG CAO", state.palletThickness_mm + state.numLayers * state.defaultBox.z],
+          ["KHE GIỮA ĐIỂM", `${(state.gapSummary.spanGap || 0).toFixed(1)}mm`],
+          ["NGƯỜI LẬP", "Kha.nm"]
+        ];
+
+        specs.forEach((item, idx) => {
+          const r = idx + 4;
+          ws.getCell(`B${r}`).value = item[0];
+          ws.getCell(`B${r}`).font = { bold: true };
+          ws.mergeCells(`C${r}:D${r}`);
+          ws.getCell(`C${r}`).value = item[1];
+          ws.getRow(r).height = 20;
+        });
+
+        ws.addImage(wb.addImage({ base64: imgOdd, extension: 'png' }), { tl: { col: 4, row: 4 }, ext: { width: 200, height: 200 } });
+        ws.addImage(wb.addImage({ base64: imgEven, extension: 'png' }), { tl: { col: 5, row: 4 }, ext: { width: 200, height: 200 } });
+        ws.addImage(wb.addImage({ base64: img3d, extension: 'png' }), { tl: { col: 6, row: 4 }, ext: { width: 200, height: 200 } });
+
+        const buffer = await wb.xlsx.writeBuffer();
+        downloadBlob(new Blob([buffer]), `Pallet_Spec_${model.replace(/\s+/g, '_')}.xlsx`);
+      };
+    }
+
+    init3D();
+    renderZoneInputs();
+    executeAutoPack();
+  </script>
+</body>
+</html>

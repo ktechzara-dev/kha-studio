@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Cắt ảnh hàng loạt - Kha.nm</title>
+  <meta name="description" content="Cắt nhiều ảnh cùng lúc, xuất ZIP - Kha Studio">
+  <script src="../../lib/jszip.min.js"></script>
+  <style>
+    :root { --bg:#0B1120; --panel:#1E293B; --border:#334155; --text:#F1F5F9; --primary:#38BDF8; --accent:#F59E0B; }
+    * { box-sizing:border-box; margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+    body { display:flex; height:100vh; background:var(--bg); color:var(--text); overflow:hidden; }
+    #sidebar { width:360px; min-width:360px; background:var(--panel); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:14px; gap:9px; overflow-y:auto; }
+    h1 { font-size:15px; color:var(--text); display:flex; justify-content:space-between; align-items:center; }
+    h2 { font-size:12px; color:var(--primary); text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--border); padding-bottom:4px; margin-top:3px; }
+    .group { display:flex; flex-direction:column; gap:6px; }
+    label { font-size:11px; color:#94A3B8; display:flex; justify-content:space-between; align-items:center; gap:6px; font-weight:500; }
+    input, select, button { background:#0F172A; border:1px solid var(--border); color:#fff; padding:5px 8px; border-radius:5px; font-size:12px; outline:none; }
+    input:focus, select:focus { border-color:var(--primary); }
+    input[type=number] { width:100%; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .row-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .row label, .row-4 label { flex-direction:column; align-items:stretch; }
+    button { background:#2563EB; border:none; font-weight:bold; cursor:pointer; transition:.15s; }
+    button:hover { background:#1D4ED8; }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    button.btn-sec { background:#334155; } button.btn-sec:hover { background:#475569; }
+    button.btn-danger { background:#DC2626; } button.btn-danger:hover { background:#B91C1C; }
+    button.btn-zip { background:#C2410C; } button.btn-zip:hover { background:#9A3412; }
+    button.btn-success { background:#059669; } button.btn-success:hover { background:#047857; }
+    .report-card { background:#0F172A; border:1px solid var(--border); border-radius:6px; padding:8px; font-size:11px; color:#CBD5E1; line-height:1.5; }
+    .report-val { color:var(--primary); font-weight:bold; }
+    .hidden { display:none !important; }
+    .anchor-grid { display:grid; grid-template-columns:repeat(3,26px); gap:3px; }
+    .anchor-grid button { padding:0; height:22px; background:#0F172A; border:1px solid var(--border); }
+    .anchor-grid button.on { background:var(--primary); }
+    #progress { height:6px; background:#0F172A; border-radius:3px; overflow:hidden; }
+    #progress div { height:100%; width:0; background:linear-gradient(90deg,#38BDF8,#F59E0B); transition:width .15s; }
+
+    #main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    #stage { flex:1; position:relative; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle,#1E293B 10%,#0F172A 90%); overflow:hidden; }
+    #drop-hint { text-align:center; color:#64748B; font-size:14px; border:2px dashed var(--border); border-radius:12px; padding:50px 70px; transition:.15s; }
+    #stage.drag #drop-hint, #stage.drag { border-color:var(--primary); color:var(--primary); }
+    #view { position:relative; display:inline-block; box-shadow:0 10px 25px -5px rgba(0,0,0,.5); }
+    #view img { display:block; max-width:calc(100vw - 420px); max-height:calc(100vh - 200px); user-select:none; -webkit-user-drag:none; }
+    #crop { position:absolute; border:2px solid var(--primary); box-shadow:0 0 0 9999px rgba(2,6,23,.6); cursor:move; }
+    #crop.locked { cursor:default; border-style:dashed; }
+    #crop .h { position:absolute; width:10px; height:10px; background:var(--primary); border:2px solid #0F172A; border-radius:2px; }
+    #crop.locked .h { display:none; }
+    .h.nw{left:-6px;top:-6px;cursor:nwse-resize}.h.ne{right:-6px;top:-6px;cursor:nesw-resize}
+    .h.sw{left:-6px;bottom:-6px;cursor:nesw-resize}.h.se{right:-6px;bottom:-6px;cursor:nwse-resize}
+    #crop-info { position:absolute; top:-22px; left:0; font-size:11px; background:var(--primary); color:#0F172A; padding:1px 6px; border-radius:3px; font-weight:bold; white-space:nowrap; }
+    #nav { position:absolute; top:10px; left:50%; transform:translateX(-50%); display:flex; gap:8px; align-items:center; font-size:12px; color:#94A3B8; }
+
+    #strip { height:120px; min-height:120px; background:var(--panel); border-top:1px solid var(--border); display:flex; gap:8px; padding:10px; overflow-x:auto; }
+    .thumb { position:relative; width:96px; min-width:96px; height:96px; border:2px solid var(--border); border-radius:6px; overflow:hidden; cursor:pointer; background:#0F172A; }
+    .thumb.active { border-color:var(--accent); }
+    .thumb img { width:100%; height:100%; object-fit:contain; }
+    .thumb .x { position:absolute; top:2px; right:2px; width:18px; height:18px; padding:0; font-size:11px; line-height:18px; background:rgba(220,38,38,.85); border-radius:50%; }
+    .thumb .nm { position:absolute; bottom:0; left:0; right:0; font-size:9px; background:rgba(2,6,23,.75); padding:1px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  </style>
+</head>
+<body>
+  <aside id="sidebar">
+    <h1>✂️ Cắt ảnh hàng loạt <button class="btn-sec" id="btn-home" onclick="if(window.parent &amp;&amp; window.parent.KhaStudio){ window.parent.KhaStudio.switchView('home'); } else { location.href='../../index.html'; }">⌂ Trang chủ</button></h1>
+
+    <h2>1. Ảnh nguồn</h2>
+    <div class="group">
+      <input type="file" id="file-input" accept="image/*" multiple class="hidden">
+      <div class="row">
+        <button id="btn-add" onclick="document.getElementById('file-input').click()">+ Thêm ảnh</button>
+        <button class="btn-danger" id="btn-clear">Xoá tất cả</button>
+      </div>
+      <div class="report-card">Số ảnh: <span class="report-val" id="r-count">0</span> · Kéo thả ảnh vào vùng giữa</div>
+    </div>
+
+    <h2>2. Chế độ cắt</h2>
+    <div class="group">
+      <select id="mode">
+        <option value="percent">Vùng chọn theo % (kéo trên ảnh)</option>
+        <option value="pixel">Kích thước cố định (px) + neo</option>
+        <option value="ratio">Theo tỷ lệ khung (lớn nhất) + neo</option>
+        <option value="trim">Tự động cắt viền đồng màu</option>
+      </select>
+
+      <div id="opt-percent" class="group">
+        <div class="row-4">
+          <label>X %<input type="number" id="p-x" step="0.1" min="0" max="100" value="10"></label>
+          <label>Y %<input type="number" id="p-y" step="0.1" min="0" max="100" value="10"></label>
+          <label>R %<input type="number" id="p-w" step="0.1" min="1" max="100" value="80"></label>
+          <label>C %<input type="number" id="p-h" step="0.1" min="1" max="100" value="80"></label>
+        </div>
+        <label>Khoá tỷ lệ khi kéo
+          <select id="p-lock" style="width:120px">
+            <option value="0">Tự do</option><option value="1">1:1</option><option value="1.3333">4:3</option>
+            <option value="1.5">3:2</option><option value="1.7778">16:9</option><option value="0.75">3:4</option><option value="0.5625">9:16</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="opt-pixel" class="group hidden">
+        <div class="row">
+          <label>Rộng (px)<input type="number" id="px-w" min="1" value="800"></label>
+          <label>Cao (px)<input type="number" id="px-h" min="1" value="600"></label>
+        </div>
+        <div class="row">
+          <label>Lệch X (px)<input type="number" id="px-ox" value="0"></label>
+          <label>Lệch Y (px)<input type="number" id="px-oy" value="0"></label>
+        </div>
+      </div>
+
+      <div id="opt-ratio" class="group hidden">
+        <div class="row">
+          <label>Tỷ lệ W<input type="number" id="r-w" min="0.01" step="0.01" value="1"></label>
+          <label>Tỷ lệ H<input type="number" id="r-h" min="0.01" step="0.01" value="1"></label>
+        </div>
+      </div>
+
+      <div id="opt-anchor" class="group hidden">
+        <label>Điểm neo <div class="anchor-grid" id="anchor"></div></label>
+      </div>
+
+      <div id="opt-trim" class="group hidden">
+        <label>Dung sai màu (0-255)<input type="number" id="t-tol" min="0" max="255" value="20" style="width:90px"></label>
+        <label>Chừa lề (px)<input type="number" id="t-pad" min="0" value="0" style="width:90px"></label>
+      </div>
+    </div>
+
+    <h2>3. Đầu ra</h2>
+    <div class="group">
+      <div class="row">
+        <label>Định dạng
+          <select id="fmt"><option value="keep">Giữ nguyên</option><option value="image/png">PNG</option><option value="image/jpeg">JPG</option><option value="image/webp">WEBP</option></select>
+        </label>
+        <label>Chất lượng (JPG/WEBP)<input type="number" id="q" min="0.1" max="1" step="0.05" value="0.92"></label>
+      </div>
+      <div class="row">
+        <label>Resize rộng (px, 0 = giữ)<input type="number" id="out-w" min="0" value="0"></label>
+        <label>Resize cao (px, 0 = giữ)<input type="number" id="out-h" min="0" value="0"></label>
+      </div>
+      <label>Nền khi vượt biên / JPG<input type="color" id="bg" value="#ffffff" style="width:60px;padding:1px"></label>
+      <label>Hậu tố tên file<input type="text" id="suffix" value="_crop" style="width:120px"></label>
+    </div>
+
+    <h2>4. Xuất</h2>
+    <div class="group">
+      <div class="report-card" id="r-info">Vùng cắt ảnh hiện tại: <span class="report-val">—</span></div>
+      <button class="btn-success" id="btn-one" disabled>⬇ Tải ảnh đang xem</button>
+      <button class="btn-zip" id="btn-zip" disabled>📦 Cắt tất cả &amp; xuất ZIP</button>
+      <div id="progress"><div></div></div>
+      <div class="report-card" id="r-status">Sẵn sàng.</div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <section id="stage">
+      <div id="drop-hint">🖼️<br><br>Kéo thả ảnh vào đây<br><small>hoặc bấm “+ Thêm ảnh”</small></div>
+      <div id="nav" class="hidden">
+        <button class="btn-sec" id="btn-prev">◀</button><span id="nav-label"></span><button class="btn-sec" id="btn-next">▶</button>
+      </div>
+      <div id="view" class="hidden">
+        <img id="img" alt="Ảnh xem trước">
+        <div id="crop"><span id="crop-info"></span><i class="h nw"></i><i class="h ne"></i><i class="h sw"></i><i class="h se"></i></div>
+      </div>
+    </section>
+    <section id="strip"></section>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const items = []; // { file, url, img, w, h, trim? }
+    let cur = -1, anchor = 'cc';
+
+    // ---------- Neo ----------
+    const ANCH = ['tl','tc','tr','cl','cc','cr','bl','bc','br'];
+    ANCH.forEach(a => {
+      const b = document.createElement('button');
+      b.dataset.a = a; b.title = a; b.id = 'anchor-' + a;
+      b.onclick = () => { anchor = a; renderAnchor(); refresh(); };
+      $('anchor').appendChild(b);
+    });
+    function renderAnchor() { [...$('anchor').children].forEach(b => b.classList.toggle('on', b.dataset.a === anchor)); }
+    renderAnchor();
+
+    // ---------- Nạp ảnh ----------
+    function loadImg(url) { return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; }); }
+    async function addFiles(files) {
+      for (const f of files) {
+        if (!f.type.startsWith('image/')) continue;
+        const url = URL.createObjectURL(f);
+        try { const img = await loadImg(url); items.push({ file: f, url, img, w: img.naturalWidth, h: img.naturalHeight }); }
+        catch { URL.revokeObjectURL(url); }
+      }
+      if (cur < 0 && items.length) cur = 0;
+      renderStrip(); show();
+    }
+    $('file-input').onchange = e => { addFiles([...e.target.files]); e.target.value = ''; };
+    const stage = $('stage');
+    stage.ondragover = e => { e.preventDefault(); stage.classList.add('drag'); };
+    stage.ondragleave = () => stage.classList.remove('drag');
+    stage.ondrop = e => { e.preventDefault(); stage.classList.remove('drag'); addFiles([...e.dataTransfer.files]); };
+    document.addEventListener('paste', e => { const fs = [...e.clipboardData.files]; if (fs.length) addFiles(fs); });
+
+    $('btn-clear').onclick = () => { items.forEach(i => URL.revokeObjectURL(i.url)); items.length = 0; cur = -1; renderStrip(); show(); };
+
+    function renderStrip() {
+      const s = $('strip'); s.innerHTML = '';
+      items.forEach((it, i) => {
+        const d = document.createElement('div');
+        d.className = 'thumb' + (i === cur ? ' active' : '');
+        d.innerHTML = `<img src="${it.url}"><span class="nm">${it.file.name}</span><button class="x" title="Bỏ">✕</button>`;
+        d.onclick = () => { cur = i; renderStrip(); show(); };
+        d.querySelector('.x').onclick = ev => {
+          ev.stopPropagation(); URL.revokeObjectURL(it.url); items.splice(i, 1);
+          if (cur >= items.length) cur = items.length - 1; renderStrip(); show();
+        };
+        s.appendChild(d);
+      });
+      $('r-count').textContent = items.length;
+      $('btn-zip').disabled = $('btn-one').disabled = !items.length;
+    }
+    $('btn-prev').onclick = () => { if (items.length) { cur = (cur - 1 + items.length) % items.length; renderStrip(); show(); } };
+    $('btn-next').onclick = () => { if (items.length) { cur = (cur + 1) % items.length; renderStrip(); show(); } };
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === 'ArrowLeft') $('btn-prev').click();
+      if (e.key === 'ArrowRight') $('btn-next').click();
+    });
+
+    function show() {
+      const has = cur >= 0 && items[cur];
+      $('drop-hint').classList.toggle('hidden', !!has);
+      $('view').classList.toggle('hidden', !has);
+      $('nav').classList.toggle('hidden', !has);
+      if (!has) { $('r-info').innerHTML = 'Vùng cắt ảnh hiện tại: <span class="report-val">—</span>'; return; }
+      $('nav-label').textContent = `${cur + 1}/${items.length} · ${items[cur].file.name} (${items[cur].w}×${items[cur].h})`;
+      const img = $('img');
+      if (img.src !== items[cur].url) { img.onload = refresh; img.src = items[cur].url; } else refresh();
+    }
+
+    // ---------- Tính vùng cắt (toạ độ pixel ảnh gốc) ----------
+    const num = id => parseFloat($(id).value) || 0;
+    function anchorPos(W, H, w, h) {
+      const fx = { l: 0, c: .5, r: 1 }[anchor[1]], fy = { t: 0, c: .5, b: 1 }[anchor[0]];
+      return [Math.round((W - w) * fx), Math.round((H - h) * fy)];
+    }
+    function computeRect(it) {
+      const W = it.w, H = it.h, mode = $('mode').value;
+      if (mode === 'percent') {
+        const x = num('p-x') / 100 * W, y = num('p-y') / 100 * H;
+        return clampRect({ x, y, w: num('p-w') / 100 * W, h: num('p-h') / 100 * H }, W, H);
+      }
+      if (mode === 'pixel') {
+        const w = Math.max(1, Math.round(num('px-w'))), h = Math.max(1, Math.round(num('px-h')));
+        const [x, y] = anchorPos(W, H, w, h);
+        return { x: x + num('px-ox'), y: y + num('px-oy'), w, h }; // có thể vượt biên -> tô nền
+      }
+      if (mode === 'ratio') {
+        const r = Math.max(.01, num('r-w')) / Math.max(.01, num('r-h'));
+        let w = W, h = W / r; if (h > H) { h = H; w = H * r; }
+        w = Math.round(w); h = Math.round(h);
+        const [x, y] = anchorPos(W, H, w, h); return { x, y, w, h };
+      }
+      if (!it.trim || it.trimKey !== trimKey()) { it.trim = trimRect(it); it.trimKey = trimKey(); }
+      return it.trim;
+    }
+    function clampRect(r, W, H) {
+      const x = Math.max(0, Math.min(W - 1, Math.round(r.x))), y = Math.max(0, Math.min(H - 1, Math.round(r.y)));
+      return { x, y, w: Math.max(1, Math.min(W - x, Math.round(r.w))), h: Math.max(1, Math.min(H - y, Math.round(r.h))) };
+    }
+    const trimKey = () => $('t-tol').value + '|' + $('t-pad').value;
+    function trimRect(it) {
+      const c = document.createElement('canvas'); c.width = it.w; c.height = it.h;
+      const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(it.img, 0, 0);
+      const d = ctx.getImageData(0, 0, it.w, it.h).data, tol = num('t-tol'), pad = Math.round(num('t-pad'));
+      const ref = [d[0], d[1], d[2], d[3]];
+      const diff = i => Math.max(Math.abs(d[i] - ref[0]), Math.abs(d[i + 1] - ref[1]), Math.abs(d[i + 2] - ref[2]), Math.abs(d[i + 3] - ref[3])) > tol;
+      let t = 0, b = it.h - 1, l = 0, r = it.w - 1;
+      const rowHas = y => { for (let x = 0; x < it.w; x++) if (diff((y * it.w + x) * 4)) return true; return false; };
+      const colHas = x => { for (let y = t; y <= b; y++) if (diff((y * it.w + x) * 4)) return true; return false; };
+      while (t < b && !rowHas(t)) t++;
+      while (b > t && !rowHas(b)) b--;
+      while (l < r && !colHas(l)) l++;
+      while (r > l && !colHas(r)) r--;
+      return clampRect({ x: l - pad, y: t - pad, w: r - l + 1 + pad * 2, h: b - t + 1 + pad * 2 }, it.w, it.h);
+    }
+
+    // ---------- Hiển thị khung ----------
+    function refresh() {
+      if (cur < 0) return;
+      const it = items[cur], img = $('img'), s = img.clientWidth / it.w, r = computeRect(it), box = $('crop');
+      Object.assign(box.style, { left: r.x * s + 'px', top: r.y * s + 'px', width: r.w * s + 'px', height: r.h * s + 'px' });
+      box.classList.toggle('locked', $('mode').value !== 'percent');
+      const ow = num('out-w'), oh = num('out-h');
+      const out = outSize(r);
+      $('crop-info').textContent = `${r.w}×${r.h}` + ((ow || oh) ? ` → ${out[0]}×${out[1]}` : '');
+      $('r-info').innerHTML = `Vùng cắt: <span class="report-val">x=${r.x}, y=${r.y}, ${r.w}×${r.h}px</span>`;
+    }
+    window.addEventListener('resize', refresh);
+
+    function onModeChange() {
+      const m = $('mode').value;
+      $('opt-percent').classList.toggle('hidden', m !== 'percent');
+      $('opt-pixel').classList.toggle('hidden', m !== 'pixel');
+      $('opt-ratio').classList.toggle('hidden', m !== 'ratio');
+      $('opt-trim').classList.toggle('hidden', m !== 'trim');
+      $('opt-anchor').classList.toggle('hidden', !(m === 'pixel' || m === 'ratio'));
+      refresh();
+    }
+    $('mode').onchange = onModeChange;
+    $('sidebar').addEventListener('input', e => { if (e.target.id !== 'file-input') refresh(); });
+
+    // ---------- Kéo / resize vùng % ----------
+    let drag = null;
+    $('crop').addEventListener('pointerdown', e => {
+      if ($('mode').value !== 'percent') return;
+      e.preventDefault();
+      drag = { kind: e.target.classList.contains('h') ? [...e.target.classList].find(c => c !== 'h') : 'move',
+               sx: e.clientX, sy: e.clientY, x: num('p-x'), y: num('p-y'), w: num('p-w'), h: num('p-h') };
+      $('crop').setPointerCapture(e.pointerId);
+    });
+    $('crop').addEventListener('pointermove', e => {
+      if (!drag) return;
+      const img = $('img'), it = items[cur];
+      const dx = (e.clientX - drag.sx) / img.clientWidth * 100, dy = (e.clientY - drag.sy) / img.clientHeight * 100;
+      let { x, y, w, h } = drag;
+      if (drag.kind === 'move') { x = Math.min(100 - w, Math.max(0, x + dx)); y = Math.min(100 - h, Math.max(0, y + dy)); }
+      else {
+        if (drag.kind.includes('w')) { x = Math.max(0, Math.min(x + w - 1, x + dx)); w = drag.x + drag.w - x; }
+        if (drag.kind.includes('e')) { w = Math.max(1, Math.min(100 - x, w + dx)); }
+        if (drag.kind.includes('n')) { y = Math.max(0, Math.min(y + h - 1, y + dy)); h = drag.y + drag.h - y; }
+        if (drag.kind.includes('s')) { h = Math.max(1, Math.min(100 - y, h + dy)); }
+        const lock = parseFloat($('p-lock').value);
+        if (lock) { // tỷ lệ pixel thật: (w*W)/(h*H) = lock
+          h = w * it.w / (lock * it.h);
+          if (drag.kind.includes('n')) y = drag.y + drag.h - h;
+          if (y < 0 || y + h > 100) { h = drag.kind.includes('n') ? drag.y + drag.h : 100 - y; if (drag.kind.includes('n')) y = 0; w = h * lock * it.h / it.w; if (drag.kind.includes('w')) x = drag.x + drag.w - w; }
+        }
+      }
+      const f = v => (Math.round(v * 10) / 10).toString();
+      $('p-x').value = f(x); $('p-y').value = f(y); $('p-w').value = f(w); $('p-h').value = f(h);
+      refresh();
+    });
+    $('crop').addEventListener('pointerup', () => drag = null);
+
+    // ---------- Xuất ----------
+    function outSize(r) {
+      const ow = Math.round(num('out-w')), oh = Math.round(num('out-h'));
+      if (ow && oh) return [ow, oh];
+      if (ow) return [ow, Math.max(1, Math.round(r.h * ow / r.w))];
+      if (oh) return [Math.max(1, Math.round(r.w * oh / r.h)), oh];
+      return [r.w, r.h];
+    }
+    function outType(it) {
+      const f = $('fmt').value;
+      if (f !== 'keep') return f;
+      return ['image/png', 'image/jpeg', 'image/webp'].includes(it.file.type) ? it.file.type : 'image/png';
+    }
+    const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
+    function cropOne(it) {
+      const r = computeRect(it), [w, h] = outSize(r), type = outType(it);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      const outOfBounds = r.x < 0 || r.y < 0 || r.x + r.w > it.w || r.y + r.h > it.h;
+      if (type === 'image/jpeg' || outOfBounds && type === 'image/jpeg') { ctx.fillStyle = $('bg').value; ctx.fillRect(0, 0, w, h); }
+      else if (outOfBounds && $('fmt').value !== 'image/png') { ctx.fillStyle = $('bg').value; ctx.fillRect(0, 0, w, h); }
+      ctx.drawImage(it.img, r.x, r.y, r.w, r.h, 0, 0, w, h);
+      const base = it.file.name.replace(/\.[^.]+$/, '');
+      return new Promise(ok => c.toBlob(b => ok({ blob: b, name: `${base}${$('suffix').value}.${EXT[type]}` }), type, num('q') || .92));
+    }
+    function download(blob, name) {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+    $('btn-one').onclick = async () => { if (cur < 0) return; const { blob, name } = await cropOne(items[cur]); download(blob, name); };
+    $('btn-zip').onclick = async () => {
+      if (!items.length) return;
+      $('btn-zip').disabled = true;
+      const zip = new JSZip(), used = new Set(), bar = $('progress').firstElementChild;
+      try {
+        for (let i = 0; i < items.length; i++) {
+          $('r-status').textContent = `Đang cắt ${i + 1}/${items.length}: ${items[i].file.name}`;
+          let { blob, name } = await cropOne(items[i]);
+          let n = name, k = 1; while (used.has(n)) n = name.replace(/(\.\w+)$/, `_${k++}$1`); used.add(n);
+          zip.file(n, blob);
+          bar.style.width = ((i + 1) / items.length * 90) + '%';
+          await new Promise(r => setTimeout(r));
+        }
+        $('r-status').textContent = 'Đang nén ZIP...';
+        const out = await zip.generateAsync({ type: 'blob' }, m => bar.style.width = (90 + m.percent / 10) + '%');
+        const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        download(out, `crop_${ts}.zip`);
+        $('r-status').innerHTML = `✅ Đã xuất <span class="report-val">${items.length}</span> ảnh.`;
+      } catch (err) { $('r-status').textContent = '❌ Lỗi: ' + err.message; }
+      finally { $('btn-zip').disabled = false; setTimeout(() => bar.style.width = '0', 1500); }
+    };
+
+    onModeChange();
+  </script>
+</body>
+</html>
