@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Diaphragm Valve (Van màng vi sinh P&ID) -->
+  <polygon points="40,110 95,130 40,150" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <polygon points="160,110 105,130 160,150" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <!-- Thân bầu màng vòm cong phía trên -->
+  <path d="M70 115 C 70 80, 130 80, 130 115 Z" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <!-- Tay vặn tròn hoặc actuator khí nén -->
+  <rect x="94" y="55" width="12" height="35" fill="#334155" stroke="#1E293B" stroke-width="3"/>
+  <ellipse cx="100" cy="50" rx="35" ry="12" fill="#70757A" stroke="#1E293B" stroke-width="4"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- VFD Inverter / Biến tần điều khiển động cơ -->
+  <rect x="50" y="30" width="100" height="140" rx="6" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <rect x="60" y="42" width="80" height="40" rx="3" fill="#0F172A" stroke="#334155" stroke-width="2"/>
+  <!-- Màn hình LED 7 thanh tần số Hz -->
+  <text x="100" y="68" fill="#10B981" font-family="monospace" font-size="18" font-weight="bold" text-anchor="middle">50.0</text>
+  <!-- Núm xoay Potentiometer & Nút nhấn Run/Stop -->
+  <circle cx="80" cy="110" r="14" fill="#334155" stroke="#1E293B" stroke-width="3"/>
+  <circle cx="120" cy="100" r="8" fill="#10B981"/>
+  <circle cx="120" cy="120" r="8" fill="#EF4444"/>
+  <!-- Cánh tản nhiệt dưới -->
+  <rect x="55" y="140" width="90" height="20" fill="#1E293B"/>
+</svg>

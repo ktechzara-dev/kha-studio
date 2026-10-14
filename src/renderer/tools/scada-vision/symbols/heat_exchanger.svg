@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Plate Heat Exchanger (Bộ trao đổi nhiệt dạng tấm) -->
+  <rect x="50" y="30" width="100" height="140" rx="6" fill="#70757A" stroke="#1E293B" stroke-width="6"/>
+  <!-- Thanh siết bu lông hai bên -->
+  <line x1="42" y1="50" x2="158" y2="50" stroke="#1E293B" stroke-width="4"/>
+  <line x1="42" y1="150" x2="158" y2="150" stroke="#1E293B" stroke-width="4"/>
+  <!-- Các rãnh tấm xếp lớp -->
+  <line x1="75" y1="40" x2="75" y2="160" stroke="#334155" stroke-width="3"/>
+  <line x1="88" y1="40" x2="88" y2="160" stroke="#334155" stroke-width="3"/>
+  <line x1="100" y1="40" x2="100" y2="160" stroke="#334155" stroke-width="3"/>
+  <line x1="112" y1="40" x2="112" y2="160" stroke="#334155" stroke-width="3"/>
+  <line x1="125" y1="40" x2="125" y2="160" stroke="#334155" stroke-width="3"/>
+  <!-- 4 Cổng cấp/hồi môi chất (Nóng & Lạnh) -->
+  <circle cx="65" cy="55" r="12" fill="#EF4444" stroke="#1E293B" stroke-width="3"/>
+  <circle cx="135" cy="55" r="12" fill="#0284C7" stroke="#1E293B" stroke-width="3"/>
+  <circle cx="65" cy="145" r="12" fill="#F59E0B" stroke="#1E293B" stroke-width="3"/>
+  <circle cx="135" cy="145" r="12" fill="#38BDF8" stroke="#1E293B" stroke-width="3"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Hydraulic Gear Pump (Bơm dầu thủy lực bánh răng chuẩn ISO 1219) -->
+  <circle cx="100" cy="100" r="66" fill="#70757A" stroke="#1E293B" stroke-width="6"/>
+  <!-- Ký hiệu ISO bơm thủy lực: tam giác đặc đỉnh chỉ hướng dòng chảy -->
+  <polygon points="100,45 76,85 124,85" fill="#1E293B"/>
+  <!-- Trục dẫn động (Shaft) -->
+  <line x1="166" y1="100" x2="192" y2="100" stroke="#1E293B" stroke-width="8"/>
+  <!-- Cổng P (Pressure Port) và T (Tank Port) -->
+  <line x1="100" y1="34" x2="100" y2="12" stroke="#1E293B" stroke-width="6"/>
+  <line x1="100" y1="166" x2="100" y2="188" stroke="#1E293B" stroke-width="6"/>
+  <text x="100" y="132" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#FFFFFF" text-anchor="middle">HYD</text>
+  <text x="75" y="28" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1E293B">P</text>
+  <text x="75" y="185" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1E293B">T</text>
+</svg>

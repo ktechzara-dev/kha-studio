@@ -44,11 +44,19 @@ public sealed class Updater
         return _mgr;
     }
 
-    /// <returns>Phiên bản mới, hoặc null nếu đang mới nhất.</returns>
+    public bool IsInstalled
+    {
+        get
+        {
+            try { return Manager().IsInstalled; } catch { return false; }
+        }
+    }
+
+    /// <returns>Phiên bản mới, hoặc null nếu đang mới nhất hoặc chạy bản dev.</returns>
     public async Task<string?> CheckAsync()
     {
         var mgr = Manager();
-        if (!mgr.IsInstalled) throw new InvalidOperationException("Bản đang chạy không phải bản cài từ Setup.exe nên không cập nhật được.");
+        if (!mgr.IsInstalled) return null;
         _pending = await mgr.CheckForUpdatesAsync();
         return _pending?.TargetFullRelease.Version.ToString();
     }

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>vs-cli</AssemblyName>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VisionStudio.Core\VisionStudio.Core.csproj" />
+    <ProjectReference Include="..\VisionStudio.Imaging\VisionStudio.Imaging.csproj" />
+    <ProjectReference Include="..\VisionStudio.Matching\VisionStudio.Matching.csproj" />
+    <ProjectReference Include="..\VisionStudio.DeepLearning\VisionStudio.DeepLearning.csproj" />
+    <ProjectReference Include="..\VisionStudio.Scripting\VisionStudio.Scripting.csproj" />
+    <ProjectReference Include="..\VisionStudio.Training\VisionStudio.Training.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+  </ItemGroup>
+
+</Project>

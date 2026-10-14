@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Industrial HMI Touch Panel Weintek/Siemens -->
+  <!-- Khung viền vát nhôm bezel -->
+  <rect x="25" y="35" width="150" height="130" rx="8" fill="#70757A" stroke="#1E293B" stroke-width="6"/>
+  <!-- Màn hình cảm ứng LCD hiển thị giao diện đồ họa -->
+  <rect x="40" y="48" width="120" height="92" rx="4" fill="#091122" stroke="#334155" stroke-width="3"/>
+  <!-- Thanh header đồ họa trên HMI -->
+  <rect x="43" y="51" width="114" height="15" fill="#0284C7"/>
+  <!-- Đồ thị mini & Gauge trên màn hình -->
+  <path d="M48 95 L65 80 L80 90 L105 70 L130 85 L150 72" fill="none" stroke="#10B981" stroke-width="3"/>
+  <circle cx="65" cy="115" r="10" fill="#38BDF8"/>
+  <circle cx="100" cy="115" r="10" fill="#F59E0B"/>
+  <circle cx="135" cy="115" r="10" fill="#EF4444"/>
+  <!-- Đèn LED nguồn phía dưới viền -->
+  <circle cx="100" cy="152" r="3" fill="#10B981"/>
+</svg>

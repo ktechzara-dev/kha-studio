@@ -1,0 +1,350 @@
+<Window x:Class="VisionStudio.App.Controls.IndustrialConnectivityWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Industrial Connectivity &amp; IIoT Hub - Cổng Kết Nối Công Nghiệp &amp; Thiết Bị Ngoại Vi"
+        Height="800" Width="1240"
+        MinHeight="580" MinWidth="900"
+        Background="{StaticResource KsBgBase}" Foreground="{StaticResource KsText}"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Header Bar -->
+            <RowDefinition Height="50"/>
+            <!-- Main Content Area -->
+            <RowDefinition Height="*"/>
+            <!-- Status Bar -->
+            <RowDefinition Height="32"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP BAR -->
+        <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,0,0,1" Padding="16,0">
+            <Grid VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🌐 " FontSize="20" VerticalAlignment="Center"/>
+                    <TextBlock Text="CỔNG KẾT NỐI CÔNG NGHIỆP (INDUSTRIAL CONNECTIVITY &amp; IIoT)" FontWeight="Bold" FontSize="14" Foreground="{StaticResource KsAccentGlow}" VerticalAlignment="Center"/>
+                    <TextBlock Text=" | OPC UA, MQTT Sparkplug B, SQL Logging, REST Webhooks &amp; Lighting" Foreground="{StaticResource KsTextDim}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnSaveConfig" Content="💾 Lưu Cấu Hình" Click="BtnSaveConfig_Click"
+                            Style="{StaticResource KsPrimaryButton}" Padding="14,5"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- MAIN TAB CONTROL -->
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="10,6,10,6">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Background" Value="{StaticResource KsBgCard}"/>
+                    <Setter Property="Foreground" Value="{StaticResource KsText}"/>
+                    <Setter Property="Padding" Value="14,8"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="BorderThickness" Value="1,1,1,0"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource KsBorder}"/>
+                </Style>
+            </TabControl.Resources>
+
+            <!-- TAB 1: MQTT BROKER & SPARKPLUG B -->
+            <TabItem Header="📡 MQTT Broker &amp; Sparkplug B">
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="400" MinWidth="320"/>
+                        <ColumnDefinition Width="6"/>
+                        <ColumnDefinition Width="*" MinWidth="480"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: MQTT Options -->
+                    <Border Grid.Column="0" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="CẤU HÌNH MQTT BROKER" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,12"/>
+
+                                <TextBlock Text="Máy chủ (Broker Host):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtMqttHost" Text="127.0.0.1" Background="{StaticResource KsBgSurface}" Padding="6,4" Margin="0,2,0,10"/>
+
+                                <TextBlock Text="Cổng kết nối (Port):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtMqttPort" Text="1883" Background="{StaticResource KsBgSurface}" Padding="6,4" Margin="0,2,0,10"/>
+
+                                <TextBlock Text="Client ID:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtMqttClientId" Text="VisionStudio_Station_01" Background="{StaticResource KsBgSurface}" Padding="6,4" Margin="0,2,0,10"/>
+
+                                <TextBlock Text="Chủ đề gốc (Topic Prefix):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtMqttTopic" Text="visionstudio/station_01" Background="{StaticResource KsBgSurface}" Padding="6,4" Margin="0,2,0,10"/>
+
+                                <CheckBox x:Name="ChkSparkplugB" Content="Kích hoạt định dạng chuẩn Sparkplug B (Eclipse Tahu)" Foreground="{StaticResource KsText}" Margin="0,4,0,14"/>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" x:Name="BtnMqttConnect" Content="🔌 Kết Nối" Click="BtnMqttConnect_Click"
+                                            Style="{StaticResource KsSuccessButton}" Padding="10,6"/>
+                                    <Button Grid.Column="2" x:Name="BtnMqttDisconnect" Content="⏹️ Ngắt Kết Nối" Click="BtnMqttDisconnect_Click"
+                                            IsEnabled="False" Style="{StaticResource KsSecondaryButton}" Padding="10,6"/>
+                                </Grid>
+
+                                <Button x:Name="BtnMqttTestPublish" Content="📤 Gửi Bản Tin Thử Nghiệm" Click="BtnMqttTestPublish_Click"
+                                        Style="{StaticResource KsSecondaryButton}" Padding="10,6"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" Background="Transparent"/>
+
+                    <!-- Right: MQTT Status & Telemetry Feed -->
+                    <Border Grid.Column="2" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="NHẬT KÝ BẢN TIN MQTT (TELEMETRY FEED)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}"/>
+                                <Border Grid.Column="1" x:Name="BrdMqttStatus" Background="#4A1515" BorderBrush="#FF5050" BorderThickness="1" CornerRadius="4" Padding="6,2">
+                                    <TextBlock x:Name="TxtMqttStatusBadge" Text="🔴 NGẮT KẾT NỐI" FontSize="10" FontWeight="Bold" Foreground="#FFA0A0"/>
+                                </Border>
+                            </Grid>
+
+                            <Border Grid.Row="1" Background="{StaticResource KsBgBase}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="8">
+                                <TextBox x:Name="TxtMqttLog" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                         Background="Transparent" Foreground="#A0FFA0" FontFamily="Consolas" FontSize="11" BorderThickness="0"
+                                         Text="[MQTT Telemetry Client Initialized. Sẵn sàng phát dữ liệu kiểm định.]&#x0a;"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: OPC UA SERVER & ADDRESS SPACE -->
+            <TabItem Header="🏭 Máy Chủ OPC UA (Server &amp; Nodes)">
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="340" MinWidth="280"/>
+                        <ColumnDefinition Width="6"/>
+                        <ColumnDefinition Width="*" MinWidth="520"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Server Control -->
+                    <Border Grid.Column="0" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="MÁY CHỦ OPC UA NỘI BỘ" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,12"/>
+
+                            <TextBlock Text="Cổng lắng nghe (TCP Port):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <TextBox x:Name="TxtOpcPort" Text="4840" Background="{StaticResource KsBgSurface}" Padding="6,4" Margin="0,2,0,10"/>
+
+                            <TextBlock Text="Đường dẫn Endpoint:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <TextBox x:Name="TxtOpcEndpoint" Text="opc.tcp://localhost:4840/VisionStudio" IsReadOnly="True" Background="{StaticResource KsBgSurface}" Padding="6,4" Margin="0,2,0,12"/>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" x:Name="BtnOpcStart" Content="🚀 Bật Server" Click="BtnOpcStart_Click"
+                                        Style="{StaticResource KsSuccessButton}" Padding="10,6"/>
+                                <Button Grid.Column="2" x:Name="BtnOpcStop" Content="⏹️ Tắt Server" Click="BtnOpcStop_Click"
+                                        IsEnabled="False" Style="{StaticResource KsDangerButton}" Padding="10,6"/>
+                            </Grid>
+
+                            <Border Background="{StaticResource KsBgSurface}" CornerRadius="6" Padding="10">
+                                <StackPanel>
+                                    <TextBlock Text="ĐỒNG BỘ TÍN HIỆU PLC" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsTextDim}" Margin="0,0,0,6"/>
+                                    <TextBlock Text="• ns=2;s=Commands.Trigger: Kích hoạt chụp và kiểm tra&#x0a;• ns=2;s=Station.Verdict: Kết quả Pass/Fail cho PLC&#x0a;• ns=2;s=Station.CycleTimeMs: Thời gian chu kỳ chuỗi" FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource KsTextDim}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" Background="Transparent"/>
+
+                    <!-- Right: Address Space Nodes Explorer -->
+                    <Border Grid.Column="2" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="KHÔNG GIAN ĐỊA CHỈ (OPC UA ADDRESS SPACE NODES)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}"/>
+                                <Button Grid.Column="1" x:Name="BtnRefreshOpcNodes" Content="🔄 Làm Mới Nodes" Click="BtnRefreshOpcNodes_Click"
+                                        Style="{StaticResource KsSecondaryButton}" Padding="8,3"/>
+                            </Grid>
+
+                            <DataGrid Grid.Row="1" x:Name="GridOpcNodes" AutoGenerateColumns="False" IsReadOnly="True"
+                                      Background="Transparent" BorderBrush="{StaticResource KsBorder}" BorderThickness="1"
+                                      RowBackground="{StaticResource KsBgSurface}" AlternatingRowBackground="{StaticResource KsBgCard}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Node ID" Binding="{Binding NodeId}" Width="200" FontFamily="Consolas"/>
+                                    <DataGridTextColumn Header="Tên (BrowseName)" Binding="{Binding BrowseName}" Width="140"/>
+                                    <DataGridTextColumn Header="Giá Trị Thời Gian Thực" Binding="{Binding Value}" Width="160" FontWeight="Bold"/>
+                                    <DataGridCheckBoxColumn Header="Cho Phép Ghi" Binding="{Binding IsWritable}" Width="100"/>
+                                    <DataGridTextColumn Header="Cập Nhật Lúc" Binding="{Binding Timestamp, StringFormat='HH:mm:ss.fff'}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 3: SQL DATABASE LOGGING -->
+            <TabItem Header="💾 CSDL Công Nghiệp (SQL Logging)">
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="400" MinWidth="320"/>
+                        <ColumnDefinition Width="6"/>
+                        <ColumnDefinition Width="*" MinWidth="480"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: SQL Config -->
+                    <Border Grid.Column="0" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="CẤU HÌNH LƯU TRỮ CSDL SQL" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,12"/>
+
+                            <TextBlock Text="Đường dẫn tệp SQLite Database:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <TextBox x:Name="TxtSqlDbPath" Text="C:\ProgramData\VisionStudio\inspections.db" Background="{StaticResource KsBgSurface}" Padding="6,4" Margin="0,2,0,10"/>
+
+                            <CheckBox x:Name="ChkAutoLogSql" IsChecked="True" Content="Tự động ghi kết quả kiểm tra vào SQL theo batch" Foreground="{StaticResource KsText}" Margin="0,4,0,14"/>
+
+                            <Button x:Name="BtnTestSql" Content="🔍 Kiểm Tra &amp; Chạy Migration Bảng" Click="BtnTestSql_Click"
+                                    Style="{StaticResource KsPrimaryButton}" Padding="10,6" Margin="0,0,0,10"/>
+
+                            <Button x:Name="BtnPurgeSql" Content="🧹 Dọn Dẹp Bản Ghi Cũ (> 90 ngày)" Click="BtnPurgeSql_Click"
+                                    Style="{StaticResource KsSecondaryButton}" Padding="10,6"/>
+                        </StackPanel>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" Background="Transparent"/>
+
+                    <!-- Right: SQL Status & Info -->
+                    <Border Grid.Column="2" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="THÔNG TIN CƠ SỞ DỮ LIỆU &amp; LƯU TRỮ" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,12"/>
+                            <Border Background="{StaticResource KsBgSurface}" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="BẢNG: InspectionHistory (Đã lập chỉ mục tối ưu)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,6"/>
+                                    <TextBlock Text="• Trạng thái Migration: Tự động khởi tạo schema chuẩn&#x0a;• Chỉ mục tối ưu: idx_timestamp, idx_lot_serial, idx_verdict&#x0a;• Cơ chế ghi: Hàng đợi Asynchronous Batch Transaction chống thắt cổ chai dây chuyền" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="TxtSqlStatus" Text="Cơ sở dữ liệu sẵn sàng hoạt động." FontSize="12" Foreground="{StaticResource KsText}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 4: LIGHTING & TEXT SCANNER DEVICES -->
+            <TabItem Header="💡 Chiếu Sáng &amp; Máy Quét (Lighting &amp; Scanner)">
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="450"/>
+                        <ColumnDefinition Width="6"/>
+                        <ColumnDefinition Width="*" MinWidth="450"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Light Controller (4 Channels) -->
+                    <Border Grid.Column="0" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="BỘ ĐIỀU KHIỂN CHIẾU SÁNG ĐÈN LED (OPT / CCS / GARDASOFT)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,14"/>
+
+                            <!-- Channel 1 -->
+                            <TextBlock Text="Kênh 1 (Vành đèn Ring Light / Mặt phẳng):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <Grid Margin="0,2,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="50"/>
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="SldCh1" Minimum="0" Maximum="100" Value="80" ValueChanged="SldLight_ValueChanged" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=SldCh1, StringFormat='{}{0:F0}%'}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Channel 2 -->
+                            <TextBlock Text="Kênh 2 (Đèn vòm Dome / Đèn thanh Bar):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <Grid Margin="0,2,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="50"/>
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="SldCh2" Minimum="0" Maximum="100" Value="60" ValueChanged="SldLight_ValueChanged" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=SldCh2, StringFormat='{}{0:F0}%'}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Channel 3 -->
+                            <TextBlock Text="Kênh 3 (Đèn nền Backlight):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <Grid Margin="0,2,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="50"/>
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="SldCh3" Minimum="0" Maximum="100" Value="100" ValueChanged="SldLight_ValueChanged" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=SldCh3, StringFormat='{}{0:F0}%'}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Channel 4 -->
+                            <TextBlock Text="Kênh 4 (Đèn xiên góc Low Angle):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <Grid Margin="0,2,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="50"/>
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="SldCh4" Minimum="0" Maximum="100" Value="40" ValueChanged="SldLight_ValueChanged" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=SldCh4, StringFormat='{}{0:F0}%'}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <Button x:Name="BtnTurnOffLights" Content="🌑 Tắt Toàn Bộ Đèn" Click="BtnTurnOffLights_Click"
+                                    Style="{StaticResource KsSecondaryButton}" Padding="10,5"/>
+                        </StackPanel>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" Background="Transparent"/>
+
+                    <!-- Right: Barcode Scanner / TCP Text Device -->
+                    <Border Grid.Column="2" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="MÁY QUÉT MÃ VẠCH / THIẾT BỊ NỐI TIẾP (SERIAL / TCP SCANNER)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,14"/>
+
+                            <TextBlock Text="Cổng COM / Địa chỉ TCP thiết bị:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <TextBox x:Name="TxtScannerAddress" Text="COM3 / 192.168.1.50:2000" Background="{StaticResource KsBgSurface}" Padding="6,4" Margin="0,2,0,10"/>
+
+                            <TextBlock Text="Quy tắc trích xuất (Regex / Delimiter):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <TextBox x:Name="TxtScannerRule" Text="([A-Z0-9]{8,16})" Background="{StaticResource KsBgSurface}" Padding="6,4" Margin="0,2,0,12"/>
+
+                            <TextBlock Text="Giá trị mã vạch nhận được gần nhất:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <Border Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,2,0,12">
+                                <TextBlock x:Name="TxtLatestBarcode" Text="Chưa nhận dữ liệu mã vạch" FontSize="14" FontWeight="Bold" Foreground="{StaticResource KsAccentGlow}"/>
+                            </Border>
+
+                            <Button x:Name="BtnSimulateBarcode" Content="✨ Mô Phỏng Quét Mã Vạch (SN-2026-X889)" Click="BtnSimulateBarcode_Click"
+                                    Style="{StaticResource KsSecondaryButton}" Padding="10,6"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- STATUS BAR -->
+        <Border Grid.Row="2" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,1,0,0" Padding="12,0">
+            <TextBlock x:Name="TxtFooterStatus" Text="Sẵn sàng." FontSize="11" Foreground="{StaticResource KsTextDim}" VerticalAlignment="Center"/>
+        </Border>
+    </Grid>
+</Window>

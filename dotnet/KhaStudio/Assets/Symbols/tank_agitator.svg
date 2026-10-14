@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Agitated Reactor Tank (Bồn khuấy trộn có động cơ) -->
+  <!-- Động cơ giảm tốc trên nóc -->
+  <rect x="85" y="10" width="30" height="32" rx="4" fill="#1E293B"/>
+  <rect x="94" y="42" width="12" height="15" fill="#1E293B"/>
+  <!-- Thân bồn chứa -->
+  <path d="M45 65 C45 50, 155 50, 155 65 L155 145 C155 170, 45 170, 45 145 Z" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <!-- Trục khuấy (Shaft) xuyên suốt -->
+  <line x1="100" y1="55" x2="100" y2="140" stroke="#FFFFFF" stroke-width="4"/>
+  <!-- Cánh khuấy chân vịt / tua-bin (Impeller blades) -->
+  <path d="M65 135 C80 125, 100 135, 100 135 C100 135, 120 145, 135 135" stroke="#FFFFFF" stroke-width="6" fill="none"/>
+  <path d="M72 105 C85 98, 100 105, 100 105 C100 105, 115 112, 128 105" stroke="#FFFFFF" stroke-width="5" fill="none"/>
+  <!-- Chân đỡ bồn -->
+  <rect x="52" y="158" width="10" height="30" fill="#1E293B"/>
+  <rect x="138" y="158" width="10" height="30" fill="#1E293B"/>
+  <text x="100" y="88" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">MIXER</text>
+</svg>

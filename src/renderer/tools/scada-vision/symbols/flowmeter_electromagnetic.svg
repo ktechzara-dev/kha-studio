@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Magnetic Flowmeter (Đồng hồ đo lưu lượng điện từ) -->
+  <!-- Ống đo & 2 mặt bích nối -->
+  <rect x="30" y="105" width="140" height="50" rx="3" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <rect x="20" y="95" width="16" height="70" rx="2" fill="#334155" stroke="#1E293B" stroke-width="4"/>
+  <rect x="164" y="95" width="16" height="70" rx="2" fill="#334155" stroke="#1E293B" stroke-width="4"/>
+  <!-- Cổ nối cổ ngỗng -->
+  <rect x="92" y="75" width="16" height="30" fill="#334155" stroke="#1E293B" stroke-width="3"/>
+  <!-- Đầu đo Transmitter tròn có màn hình kính -->
+  <circle cx="100" cy="50" r="32" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <circle cx="100" cy="50" r="22" fill="#0F172A"/>
+  <text x="100" y="55" fill="#38BDF8" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">m³/h</text>
+</svg>

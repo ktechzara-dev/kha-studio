@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Overhead Crane (Cầu trục nhà xưởng) -->
+  <!-- Dầm cầu trục chính (Main Girder) -->
+  <rect x="20" y="35" width="160" height="24" rx="3" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <!-- Dầm biên & Bánh xe 2 đầu -->
+  <rect x="15" y="25" width="14" height="44" fill="#334155" stroke="#1E293B" stroke-width="3"/>
+  <rect x="171" y="25" width="14" height="44" fill="#334155" stroke="#1E293B" stroke-width="3"/>
+  <!-- Xe con Palang (Hoist Trolley) -->
+  <rect x="85" y="55" width="30" height="25" rx="3" fill="#F59E0B" stroke="#1E293B" stroke-width="4"/>
+  <!-- Cáp nâng & Móc cẩu (Wire rope & Hook) -->
+  <line x1="95" y1="80" x2="95" y2="135" stroke="#1E293B" stroke-width="3"/>
+  <line x1="105" y1="80" x2="105" y2="135" stroke="#1E293B" stroke-width="3"/>
+  <!-- Cụm móc cẩu Hook block -->
+  <rect x="88" y="135" width="24" height="18" rx="2" fill="#334155" stroke="#1E293B" stroke-width="3"/>
+  <path d="M100 153 C 100 175, 80 175, 80 162 C 80 155, 90 155, 90 162" fill="none" stroke="#EF4444" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,168 @@
+{
+ "schemaVersion": 2,
+ "version": "4.0.0",
+ "templates": [
+  {
+   "id": "REQ",
+   "module": "management",
+   "source": "Excel/Requirement_Register.xlsx",
+   "destination": "02_Customer_Requirement/Requirement_Register.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "b0770d8644a0024c701238de8111d01ff4eebfbfcddb2c7fed761e3a6414484b"
+  },
+  {
+   "id": "DOC",
+   "module": "management",
+   "source": "Excel/Document_Register.xlsx",
+   "destination": "08_Document_Register/Document_Register.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "1ee53e06ddc5d702a711e0059f7f3bba37e64e14c7bdec142aa5de764a70739d"
+  },
+  {
+   "id": "BOM",
+   "module": "material",
+   "source": "Excel/Consolidated_BOM.xlsx",
+   "destination": "02_Consolidated_BOM/Consolidated_BOM.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "038130cbc95a99c0efc9af31fbca84c948eb79380b1542db0830e4d05ef2169b"
+  },
+  {
+   "id": "IO",
+   "module": "electrical",
+   "source": "Excel/Physical_IO_List.xlsx",
+   "destination": "04_Physical_IO_List/Physical_IO_List.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "f0d9d9d28d707940686b2114a00610a8e2964e6d7a5cac23a70b6ca88a7c9896"
+  },
+  {
+   "id": "IFC",
+   "module": "communication",
+   "source": "Excel/Interface_Mapping.xlsx",
+   "destination": "04_Interface_Mapping/Interface_Mapping.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "0dfb4477cb17ec87b855399be18f6415623de7510ad03404b50a7fb4e65ae216"
+  },
+  {
+   "id": "IP",
+   "module": "communication",
+   "source": "Excel/Network_IP_List.xlsx",
+   "destination": "01_IP_List/Network_IP_List.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "edbb984ad6bcaa3433127776776c0267ce6500b7b314c23c3157f3ec5b3861d1"
+  },
+  {
+   "id": "ISS",
+   "module": "followup",
+   "source": "Excel/Issue_Register.xlsx",
+   "destination": "00_Master_Issue_Register/Issue_Register.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "abb5a4d552ce8a516251ddfa8af9cd525d23f54abb1e0a01caf884eb3f7cd2a1"
+  },
+  {
+   "id": "DAY",
+   "module": "site",
+   "source": "Excel/Daily_Report.xlsx",
+   "destination": "00_Daily_Report/Daily_Report.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "77a5bcdbe640bebc9c2d92549a2505139e75ab84c84b15643a19e50f1a9f6933"
+  },
+  {
+   "id": "TEST",
+   "module": "commissioning",
+   "source": "Excel/FAT_SAT_Checklist.xlsx",
+   "destination": "05_FAT/FAT_SAT_Checklist.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "3a4c2d8c3c61f4536a84e71d3be9a6af4048b15557e104da0bbe59e7ddb1b601"
+  },
+  {
+   "id": "CT",
+   "module": "commissioning",
+   "source": "Excel/Cycle_Time_Record.xlsx",
+   "destination": "07_Cycle_Time_Test/Cycle_Time_Record.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "cc13dbb486ce3613adba1d093d037ebf7b2d0deaa610266ac0950059d8fb1880"
+  },
+  {
+   "id": "SKU",
+   "module": "recipe",
+   "source": "Excel/Product_Recipe_Register.xlsx",
+   "destination": "01_Recipe_Register/Product_Recipe_Register.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "c9b776f7c8c624c226dfd7a58cfceac9dfd17c0a67b74c7bfd3885b63c3f91b7"
+  },
+  {
+   "id": "REL",
+   "module": "handover",
+   "source": "Excel/Release_Package_Register.xlsx",
+   "destination": "08_Package_Manifest/Release_Package_Register.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "7eaf05db8ef76d95b01d3fe0ad739431dd2168fc2b4141d83304af9276e60b08"
+  },
+  {
+   "id": "MOM",
+   "module": "management",
+   "source": "Word/Meeting_Minutes.docx",
+   "destination": "03_Meeting_Minutes/Meeting_Minutes.docx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "019ac7be0ecc4058338a379292b5e101c0115a01cfd0b7f4730f67e2ff48e494"
+  },
+  {
+   "id": "FDS",
+   "module": "concept",
+   "source": "Word/Control_Functional_Specification.docx",
+   "destination": "08_Control_Functional_Specification/Control_Functional_Specification.docx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "eee25b3a6a4d1a059b01fbe1c1c053c68bfb29e2b64b36bc126ea562876161da"
+  },
+  {
+   "id": "HOV",
+   "module": "handover",
+   "source": "Word/Handover_Record.docx",
+   "destination": "07_Signed_Handover/Handover_Record.docx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "49a8effbdfef3a8e2886656f32795d48a47c0428e11a4b1b2c065fc955472c4e"
+  },
+  {
+   "id": "PPT",
+   "module": "followup",
+   "source": "PowerPoint/Project_Review.pptx",
+   "destination": "03_Approved_Modifications/Project_Review.pptx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "50d2fc50b1328c6a59c94f937020ecdf0ab32b72f4f3c3101b2b10f050e0b9d6"
+  },
+  {
+   "id": "CT_ROBOT",
+   "module": "commissioning",
+   "source": "Excel/Cycle_Time_Robot.xlsx",
+   "destination": "07_Cycle_Time_Test/Cycle_Time_Robot.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "184e1b4498be5afedfa5bb1ea48116148383c963e226437834050aa0ad65bf11"
+  },
+  {
+   "id": "CT_STATION",
+   "module": "commissioning",
+   "source": "Excel/Cycle_Time_Station.xlsx",
+   "destination": "07_Cycle_Time_Test/Cycle_Time_Station.xlsx",
+   "revision": "R00",
+   "required": true,
+   "sha256": "debfed5ca731fc064ea745691c8694fe8a5a7a108e1d55e423162f30a9a6f03c"
+  }
+ ]
+}

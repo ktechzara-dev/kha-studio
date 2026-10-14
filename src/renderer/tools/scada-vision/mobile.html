@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#070b14">
+  <title>KhaStudio Pocket SCADA | Mobile HMI</title>
+  <link rel="stylesheet" href="../../css/all.min.css">
+  <style>
+    :root {
+      --bg-body: #070b14;
+      --bg-surface: #0e1626;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --border-color: rgba(56, 189, 248, 0.18);
+      --border-glow: rgba(56, 189, 248, 0.4);
+      --primary: #0284c7;
+      --primary-neon: #38bdf8;
+      --success: #10b981;
+      --success-neon: #34d399;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-neon: #f87171;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-mono: 'Consolas', 'Courier New', monospace;
+      --bottom-bar-height: 64px;
+      --top-bar-height: 54px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-body);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      height: 100dvh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOP BAR */
+    .mobile-header {
+      height: var(--top-bar-height);
+      background: rgba(11, 18, 33, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(2, 132, 199, 0.2);
+      border: 1px solid var(--primary-neon);
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+
+    .app-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    .beacon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success-neon);
+      animation: pulseBeacon 1.5s infinite;
+    }
+
+    @keyframes pulseBeacon {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .header-center {
+      flex: 1;
+      max-width: 180px;
+      margin: 0 8px;
+    }
+
+    .page-select-mobile {
+      width: 100%;
+      background: #091122;
+      border: 1px solid var(--border-color);
+      color: #38bdf8;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 8px;
+      border-radius: 6px;
+      outline: none;
+      text-overflow: ellipsis;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .icon-btn:active {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: var(--primary-neon);
+    }
+    .icon-btn.active {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: var(--success-neon);
+      color: var(--success-neon);
+    }
+
+    /* MAIN CONTENT VIEWPORT */
+    .mobile-main {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tab-view {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-view.active {
+      display: flex;
+    }
+
+    /* VIEW 1: SCADA CANVAS */
+    #viewCanvas {
+      background: #050811;
+      overflow: hidden;
+      touch-action: pan-x pan-y pinch-zoom;
+    }
+
+    .canvas-hud-top {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .hud-chip {
+      background: rgba(9, 17, 34, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      pointer-events: auto;
+    }
+
+    .hud-chip strong {
+      color: var(--primary-neon);
+      font-family: var(--font-mono);
+    }
+
+    .canvas-viewport-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      position: relative;
+    }
+
+    .canvas-scalable-stage {
+      transform-origin: center center;
+      transition: transform 0.15s ease-out;
+      position: relative;
+      box-shadow: 0 0 35px rgba(0, 0, 0, 0.8);
+      border: 1px solid #1e293b;
+      background: #091122;
+    }
+
+    /* VIEW 2: QUICK CONTROL PAD */
+    #viewControls {
+      padding: 14px;
+      gap: 14px;
+      background: linear-gradient(180deg, #070b14 0%, #0c1424 100%);
+    }
+
+    .control-section-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--primary-neon);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .e-stop-card {
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 2px solid rgba(239, 68, 68, 0.5);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    }
+
+    .e-stop-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #f87171 0%, #ef4444 50%, #991b1b 100%);
+      border: 4px solid #fecaca;
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.6), inset 0 2px 4px rgba(255,255,255,0.4);
+      color: #fff;
+      font-weight: 900;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      line-height: 1.1;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+    .e-stop-btn:active {
+      transform: scale(0.92);
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.8);
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mobile-cmd-btn {
+      height: 58px;
+      border-radius: 10px;
+      border: 1.5px solid transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      gap: 3px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .mobile-cmd-btn.run {
+      background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+      border-color: #34d399;
+    }
+    .mobile-cmd-btn.stop {
+      background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%);
+      border-color: #f87171;
+    }
+    .mobile-cmd-btn.auto {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border-color: #38bdf8;
+    }
+    .mobile-cmd-btn.reset {
+      background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+      border-color: #94a3b8;
+    }
+    .mobile-cmd-btn:active {
+      transform: translateY(2px);
+      filter: brightness(1.2);
+    }
+
+    /* SLIDERS & SETPOINT JOGGER */
+    .slider-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slider-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .slider-val-badge {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary-neon);
+      background: #070c18;
+      border: 1px solid var(--border-color);
+      padding: 2px 10px;
+      border-radius: 6px;
+    }
+
+    .custom-range {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #1e293b;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .custom-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary-neon);
+      border: 3px solid #fff;
+      box-shadow: 0 0 10px var(--primary-neon);
+      cursor: pointer;
+    }
+
+    .jog-buttons-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .jog-btn {
+      flex: 1;
+      height: 34px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .jog-btn:active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* VIEW 3: ALARMS */
+    #viewAlarms {
+      padding: 12px;
+      gap: 10px;
+      background: #070b14;
+    }
+
+    .alarm-summary-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .alarm-metric {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px;
+      text-align: center;
+    }
+    .alarm-metric .val {
+      font-size: 18px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+    }
+    .alarm-metric .label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .alarm-ack-all-btn {
+      height: 42px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border: 1px solid var(--primary-neon);
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .alarm-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .alarm-item-card {
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 8px;
+      border-left: 4px solid var(--danger);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .alarm-item-card.warning {
+      border-left-color: var(--warning);
+    }
+    .alarm-item-card.acked {
+      border-left-color: var(--success);
+      opacity: 0.65;
+    }
+
+    .alarm-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .alarm-badge-tag {
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      background: #1e293b;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .alarm-time {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .alarm-desc {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .alarm-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .alarm-val {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--danger-neon);
+    }
+    .alarm-item-card.warning .alarm-val {
+      color: var(--warning);
+    }
+    .btn-ack-item {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #38bdf8;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* VIEW 4: TAG MONITOR */
+    #viewTags {
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .search-tag-box {
+      width: 100%;
+      height: 38px;
+      background: #091122;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: #fff;
+      padding: 0 12px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    .tags-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .tag-row-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .tag-row-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .tag-row-name {
+      font-size: 12px;
+      font-weight: 800;
+      color: #f1f5f9;
+    }
+    .tag-row-addr {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .tag-row-value {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--success-neon);
+      text-align: right;
+    }
+    .tag-row-unit {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* BOTTOM NAV BAR */
+    .mobile-bottom-nav {
+      height: var(--bottom-bar-height);
+      background: rgba(11, 18, 33, 0.96);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-color);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      z-index: 100;
+      flex-shrink: 0;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .nav-tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .nav-tab-item.active {
+      color: var(--primary-neon);
+    }
+
+    .nav-tab-item.active::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      width: 32px;
+      height: 3px;
+      background: var(--primary-neon);
+      border-radius: 0 0 4px 4px;
+      box-shadow: 0 0 8px var(--primary-neon);
+    }
+
+    .nav-tab-icon {
+      font-size: 17px;
+    }
+
+    .nav-tab-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .nav-badge-count {
+      position: absolute;
+      top: 6px;
+      right: calc(50% - 18px);
+      background: var(--danger);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 900;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 6px var(--danger);
+    }
+
+    /* BOTTOM SHEET DRAWER (DEVICE DETAIL) */
+    .mobile-drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: flex-end;
+    }
+    .mobile-drawer-backdrop.active {
+      display: flex;
+    }
+
+    .mobile-drawer-content {
+      width: 100%;
+      background: #0d1526;
+      border-top: 1.5px solid var(--primary-neon);
+      border-radius: 18px 18px 0 0;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideUp 0.25s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .drawer-handle {
+      width: 38px;
+      height: 4px;
+      background: #334155;
+      border-radius: 2px;
+      margin: 0 auto -4px auto;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .drawer-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .drawer-close {
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    /* PIPE STYLES WITH FLOW SIMULATION */
+    .pipe-element {
+      position: absolute;
+      background: #1e293b;
+      border: 2px solid #334155;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .pipe-element.simulating::after {
+      content: ""; position: absolute; inset: 0;
+      background-image: repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,0.7) 10px, rgba(255,255,255,0.7) 20px);
+      animation: pipeFlow 0.8s linear infinite;
+      opacity: 0.7;
+    }
+    .pipe-v.simulating::after {
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.7) 10px, rgba(255,255,255,0.7) 20px);
+      animation: pipeFlowV 0.8s linear infinite;
+    }
+    @keyframes pipeFlow { from { background-position: 0 0; } to { background-position: 30px 0; } }
+    @keyframes pipeFlowV { from { background-position: 0 30px; } to { background-position: 0 0; } }
+
+    /* INSTRUMENT FACEPLATES */
+    .hmi-gauge {
+      width: 100%; height: 100%; background: #0c1527;
+      border: 2px solid #243552; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+    }
+    .gauge-needle {
+      position: absolute; width: 2px; height: 42%; background: #ef4444;
+      bottom: 50%; left: calc(50% - 1px); transform-origin: bottom center;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .gauge-cap { width: 10px; height: 10px; background: #fff; border-radius: 50%; z-index: 2; }
+    .gauge-val { font-family: monospace; font-size: 12px; font-weight: bold; color: #38bdf8; margin-top: 14px; z-index: 2; }
+    .gauge-unit { font-size: 8px; color: #94a3b8; }
+
+    /* LEVEL BAR */
+    .hmi-tank-bar {
+      width: 100%; height: 100%; background: #0c1527;
+      border: 2px solid #243552; border-radius: 6px;
+      display: flex; flex-direction: column; overflow: hidden; position: relative;
+    }
+    .tank-liquid {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(180deg, #38bdf8, #0284c7);
+      transition: height 0.5s ease-out;
+      opacity: 0.85;
+    }
+    .tank-ticks {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: space-between; padding: 4px; pointer-events: none;
+    }
+    .tick-line { border-top: 1px dashed rgba(255,255,255,0.3); width: 100%; font-size: 8px; color: #cbd5e1; }
+
+    /* DIGITAL DISPLAY */
+    .hmi-display {
+      width: 100%; height: 100%; background: #090e1a;
+      border: 1.5px solid #243552; border-radius: 5px;
+      padding: 4px 8px; display: flex; flex-direction: column; justify-content: center;
+    }
+    .display-tag { font-size: 9px; color: #94a3b8; font-weight: 700; }
+    .display-pv { font-family: monospace; font-size: 15px; font-weight: 800; color: #10b981; }
+
+    /* PUSHBUTTONS */
+    .hmi-btn {
+      width: 100%; height: 100%; border-radius: 6px;
+      border: 2px solid #334155; font-weight: 800; font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4); cursor: pointer;
+    }
+    .hmi-btn.start { background: linear-gradient(180deg, #10b981, #047857); color: #fff; border-color: #34d399; }
+    .hmi-btn.stop { background: linear-gradient(180deg, #ef4444, #b91c1c); color: #fff; border-color: #f87171; }
+    .hmi-btn:active { transform: translateY(1px); box-shadow: none; }
+
+    .canvas-item {
+      position: absolute;
+      cursor: pointer;
+    }
+    .canvas-item-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* FIELD OPS & BÁO CÁO HIỆN TRƯỜNG */
+    #viewFieldOps {
+      padding: 12px;
+      gap: 12px;
+      background: linear-gradient(180deg, #070b14 0%, #0b1424 100%);
+    }
+
+    .field-giant-btn {
+      width: 100%;
+      height: 44px;
+      background: #0284c7;
+      border: 1px solid #0369a1;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .field-giant-btn:active {
+      background: #0369a1;
+    }
+
+    .plan-card-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .plan-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .plan-priority-badge {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .plan-priority-badge.crit { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+    .plan-priority-badge.high { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+    .plan-priority-badge.med { background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid #0284c7; }
+
+    .plan-checklist-box {
+      background: #080d1a;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .plan-check-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+    .plan-check-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--success);
+      cursor: pointer;
+    }
+
+    .field-report-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--primary-neon);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-report-card.crit { border-left-color: var(--danger); }
+    .field-report-card.warn { border-left-color: var(--warning); }
+    .field-report-card.ok { border-left-color: var(--success); }
+
+    .sig-canvas-container {
+      background: #070d18;
+      border: 1.5px dashed var(--primary-neon);
+      border-radius: 8px;
+      position: relative;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .photo-preview-wrap {
+      width: 100%;
+      height: 180px;
+      background: #080e1b;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .photo-preview-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header class="mobile-header">
+    <div class="header-left">
+      <div class="beacon" title="PLC Status"></div>
+      <div class="app-badge">
+        <span class="app-title">KHA SCADA</span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <select id="mobilePageSelector" class="page-select-mobile" onchange="onMobilePageChange(this.value)">
+        <option value="page_1">Trạm Bơm Chiller</option>
+      </select>
+    </div>
+
+    <div class="header-right">
+      <button class="icon-btn active" id="btnToggleSim" onclick="toggleMobileSim()" title="Mô phỏng dữ liệu PLC">
+        ⚡
+      </button>
+      <button class="icon-btn" onclick="toggleCanvasFit()" title="Tự động vừa màn hình">
+        ⛶
+      </button>
+      <button class="icon-btn" onclick="reloadProjectData()" title="Đồng bộ từ máy tính">
+        🔄
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN TABS CONTAINER -->
+  <main class="mobile-main">
+    
+    <!-- TAB 1: GIÁM SÁT HMI LIVE CANVAS -->
+    <section class="tab-view active" id="viewCanvas">
+      <div class="canvas-hud-top">
+        <div class="hud-chip">
+          <span>Khung:</span>
+          <strong id="hudResolution">1280×720</strong>
+        </div>
+        <div class="hud-chip">
+          <span>Tỷ lệ:</span>
+          <strong id="hudZoom">100%</strong>
+        </div>
+      </div>
+
+      <div class="canvas-viewport-wrapper" id="canvasViewportWrapper">
+        <div class="canvas-scalable-stage" id="mobileHmiBoard" style="width: 1280px; height: 720px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: ĐIỀU KHIỂN NHANH (POCKET CONTROL PAD) -->
+    <section class="tab-view" id="viewControls">
+      <div class="e-stop-card">
+        <div>
+          <h3 style="color: #f87171; font-size: 15px; font-weight: 900;">DỪNG KHẨN CẤP</h3>
+          <p style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">Ngắt toàn bộ trạm bơm & van áp lực</p>
+        </div>
+        <button class="e-stop-btn" onclick="triggerEStop()">
+          <span>E-STOP</span>
+          <span style="font-size: 9px; opacity: 0.8;">CHẠM</span>
+        </button>
+      </div>
+
+      <div class="control-section-title">
+        <span>⚡ Lệnh Chạy / Dừng Hệ Thống</span>
+      </div>
+
+      <div class="grid-2col">
+        <button class="mobile-cmd-btn run" onclick="sendMobileCommand('START_ALL')">
+          <span style="font-size: 16px;">▶</span>
+          <span>CHẠY TỰ ĐỘNG</span>
+        </button>
+        <button class="mobile-cmd-btn stop" onclick="sendMobileCommand('STOP_ALL')">
+          <span style="font-size: 16px;">⏹</span>
+          <span>DỪNG TRẠM</span>
+        </button>
+        <button class="mobile-cmd-btn auto" onclick="sendMobileCommand('AUTO_MANUAL')">
+          <span style="font-size: 16px;">🔄</span>
+          <span id="txtAutoManual">CHẾ ĐỘ: AUTO</span>
+        </button>
+        <button class="mobile-cmd-btn reset" onclick="sendMobileCommand('RESET_FAULT')">
+          <span style="font-size: 16px;">🧹</span>
+          <span>RESET LỖI</span>
+        </button>
+      </div>
+
+      <div class="control-section-title" style="margin-top: 6px;">
+        <span>🎚️ Cài Đặt Tần Số Biến Tần VFD</span>
+      </div>
+
+      <div class="slider-card">
+        <div class="slider-header">
+          <span class="slider-title">Bơm Tuần Hoàn PUMP-01 (Hz)</span>
+          <span class="slider-val-badge" id="txtVfdValue">48.5 Hz</span>
+        </div>
+        <input type="range" min="0" max="50" step="0.5" value="48.5" class="custom-range" id="sliderVfd" oninput="onVfdSliderChange(this.value)">
+        <div class="jog-buttons-row">
+          <button class="jog-btn" onclick="jogVfd(-5)">-5 Hz</button>
+          <button class="jog-btn" onclick="jogVfd(-1)">-1 Hz</button>
+          <button class="jog-btn" onclick="jogVfd(1)">+1 Hz</button>
+          <button class="jog-btn" onclick="jogVfd(5)">+5 Hz</button>
+          <button class="jog-btn" onclick="setVfd(50)">MAX 50Hz</button>
+        </div>
+      </div>
+
+      <div class="control-section-title" style="margin-top: 6px;">
+        <span>🚰 Góc Mở Van Điều Khiển CV-101</span>
+      </div>
+
+      <div class="slider-card">
+        <div class="slider-header">
+          <span class="slider-title">Độ Mở Van Tuyến Tính (%)</span>
+          <span class="slider-val-badge" id="txtValveValue" style="color: #34d399;">75 %</span>
+        </div>
+        <input type="range" min="0" max="100" step="1" value="75" class="custom-range" id="sliderValve" oninput="onValveSliderChange(this.value)">
+      </div>
+    </section>
+
+    <!-- TAB 3: BẢNG CẢNH BÁO (ACTIVE ALARMS) -->
+    <section class="tab-view" id="viewAlarms">
+      <div class="alarm-summary-bar">
+        <div class="alarm-metric">
+          <div class="val" style="color: #ef4444;" id="alarmCountCrit">1</div>
+          <div class="label">Nguy Cấp</div>
+        </div>
+        <div class="alarm-metric">
+          <div class="val" style="color: #f59e0b;" id="alarmCountWarn">2</div>
+          <div class="label">Cảnh Báo</div>
+        </div>
+        <div class="alarm-metric">
+          <div class="val" style="color: #10b981;" id="alarmCountAck">0</div>
+          <div class="label">Đã Xác Nhận</div>
+        </div>
+      </div>
+
+      <button class="alarm-ack-all-btn" onclick="ackAllAlarms()">
+        <span>✓</span>
+        <span>XÁC NHẬN TẤT CẢ (ACK ALL)</span>
+      </button>
+
+      <div class="alarm-list-container" id="alarmListContainer">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- TAB 4: THEO DÕI TAG PLC (TAG MONITOR) -->
+    <section class="tab-view" id="viewTags">
+      <input type="text" class="search-tag-box" placeholder="🔍 Tìm kiếm tên tag, địa chỉ PLC..." oninput="filterTagsList(this.value)">
+      <div class="tags-grid" id="tagsListGrid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- TAB 5: BÁO CÁO CÔNG VIỆC & HIỆN TRƯỜNG (FIELD OPS) -->
+    <section class="tab-view" id="viewFieldOps">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 style="font-size: 14px; font-weight: 800; color: #fff;">📋 CÔNG VIỆC &amp; HIỆN TRƯỜNG</h2>
+          <span style="font-size: 10px; color: var(--text-muted);">Kỹ sư phụ trách: Kha.nm &bull; Buitapp System</span>
+        </div>
+        <button class="icon-btn" onclick="fetchPlansAndReports()" title="Đồng bộ lại từ máy tính">🔄</button>
+      </div>
+
+      <!-- Nút chụp ảnh lập báo cáo nhanh to bản -->
+      <button class="field-giant-btn" onclick="openNewFieldReportDrawer()">
+        <span style="font-size: 18px;">📸</span>
+        <span>LẬP BÁO CÁO HIỆN TRƯỜNG MỚI</span>
+      </button>
+
+      <!-- PHẦN 1: KẾ HOẠCH CẦN THỰC HIỆN HÔM NAY -->
+      <div class="control-section-title" style="margin-top: 4px;">
+        <span>📅 Kế Hoạch Ca Trực &amp; Nhiệm Vụ Hôm Nay</span>
+      </div>
+      <div id="fieldPlansContainer" style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- PHẦN 2: LỊCH SỬ BÁO CÁO ĐÃ GỬI -->
+      <div class="control-section-title" style="margin-top: 10px;">
+        <span>📑 Báo Cáo Hiện Trường Đã Gửi Về Trung Tâm</span>
+      </div>
+      <div id="fieldReportsHistoryContainer" style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="mobile-bottom-nav">
+    <div class="nav-tab-item active" onclick="switchMobileTab('viewCanvas', this)">
+      <div class="nav-tab-icon">📱</div>
+      <div class="nav-tab-label">Giám Sát</div>
+    </div>
+    <div class="nav-tab-item" onclick="switchMobileTab('viewControls', this)">
+      <div class="nav-tab-icon">🎛️</div>
+      <div class="nav-tab-label">Điều Khiển</div>
+    </div>
+    <div class="nav-tab-item" onclick="switchMobileTab('viewAlarms', this)">
+      <div class="nav-tab-icon">🚨</div>
+      <div class="nav-tab-label">Cảnh Báo</div>
+      <div class="nav-badge-count" id="bottomAlarmBadge">3</div>
+    </div>
+    <div class="nav-tab-item" onclick="switchMobileTab('viewTags', this)">
+      <div class="nav-tab-icon">📊</div>
+      <div class="nav-tab-label">Thông Số</div>
+    </div>
+    <div class="nav-tab-item" onclick="switchMobileTab('viewFieldOps', this)">
+      <div class="nav-tab-icon">📋</div>
+      <div class="nav-tab-label">Hiện Trường</div>
+      <div class="nav-badge-count" id="bottomPlanBadge" style="background: #3b82f6;">3</div>
+    </div>
+  </nav>
+
+  <!-- MODAL DRAWER: TẠO BÁO CÁO HIỆN TRƯỜNG -->
+  <div class="mobile-drawer-backdrop" id="fieldReportDrawerBackdrop" onclick="closeFieldReportDrawer(event)">
+    <div class="mobile-drawer-content" onclick="event.stopPropagation()" style="max-height: 90vh; padding-bottom: 48px;">
+      <div class="drawer-handle"></div>
+      <div class="drawer-header">
+        <div>
+          <div class="drawer-title">📸 BÁO CÁO HIỆN TRƯỜNG</div>
+          <span style="font-size: 11px; color: var(--primary-neon);">Biên bản sự cố / Kiểm tra tại chỗ</span>
+        </div>
+        <span class="drawer-close" onclick="closeFieldReportDrawer()">&times;</span>
+      </div>
+
+      <!-- FORM NHẬP BÁO CÁO -->
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
+        
+        <!-- 1. Kế hoạch liên kết -->
+        <div>
+          <label style="font-size: 11px; color: var(--text-muted); font-weight: 700;">Nhiệm Vụ / Kế Hoạch Liên Kết:</label>
+          <select id="repFormPlanSelect" style="width: 100%; background: #080e1b; border: 1px solid var(--border-color); color: #fff; padding: 7px 10px; border-radius: 6px; font-size: 12px; margin-top: 4px;" onchange="onReportPlanSelected(this.value)">
+            <option value="">-- Sự cố đột xuất ngoài kế hoạch --</option>
+          </select>
+        </div>
+
+        <!-- 2. Trạm & Mã Thiết Bị -->
+        <div class="grid-2col">
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 700;">Khu Vực / Trạm:</label>
+            <input type="text" id="repFormStation" value="Trạm Bơm Chiller" style="width: 100%; background: #080e1b; border: 1px solid var(--border-color); color: #fff; padding: 7px 10px; border-radius: 6px; font-size: 12px; margin-top: 4px;">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 700;">Mã Thiết Bị (Tag):</label>
+            <input type="text" id="repFormTag" value="PUMP-01" style="width: 100%; background: #080e1b; border: 1px solid var(--border-color); color: #fff; padding: 7px 10px; border-radius: 6px; font-size: 12px; margin-top: 4px;">
+          </div>
+        </div>
+
+        <!-- 3. Đánh Giá Hiện Trường (Condition) -->
+        <div>
+          <label style="font-size: 11px; color: var(--text-muted); font-weight: 700;">Tình Trạng Hiện Trường:</label>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px;">
+            <button type="button" class="tool-btn" id="btnCondNormal" onclick="setReportCondition('Bình thường')" style="background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #34d399; font-weight: 800; font-size: 11px; padding: 8px 4px;">🟢 Bình Thường</button>
+            <button type="button" class="tool-btn" id="btnCondWarn" onclick="setReportCondition('Cần theo dõi')" style="background: #1e293b; border-color: #334155; color: #cbd5e1; font-weight: 700; font-size: 11px; padding: 8px 4px;">🟡 Cần Theo Dõi</button>
+            <button type="button" class="tool-btn" id="btnCondCrit" onclick="setReportCondition('Nguy cấp')" style="background: #1e293b; border-color: #334155; color: #cbd5e1; font-weight: 700; font-size: 11px; padding: 8px 4px;">🔴 Nguy Cấp</button>
+          </div>
+        </div>
+
+        <!-- 4. CHỤP ẢNH HIỆN TRƯỜNG (CAMERA SAU / TẢI ẢNH) -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 700;">Ảnh Hiện Trường / Sự Cố:</label>
+            <button type="button" class="tool-btn primary" onclick="document.getElementById('fieldPhotoInput').click()" style="padding: 4px 8px; font-size: 11px;">
+              📸 Chụp Ảnh / Chọn File
+            </button>
+          </div>
+          <input type="file" id="fieldPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleFieldPhotoSelect(event)">
+          
+          <div class="photo-preview-wrap" id="fieldPhotoPreviewWrap" style="margin-top: 6px;">
+            <div id="fieldPhotoPlaceholder" style="text-align: center; color: var(--text-muted); font-size: 11px;">
+              <span>📷 Chưa có ảnh chụp hiện trường</span><br>
+              <span style="font-size: 10px; opacity: 0.7;">Bấm nút trên để mở camera điện thoại</span>
+            </div>
+            <img id="fieldPhotoImg" style="display: none;">
+            <button type="button" id="btnRemovePhoto" onclick="removeFieldPhoto()" style="display: none; position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.85); color: #fff; border: none; border-radius: 4px; padding: 3px 8px; font-size: 10px; font-weight: 700; cursor: pointer;">✕ Xóa</button>
+          </div>
+        </div>
+
+        <!-- 5. CHECKLIST HIỆN TRƯỜNG -->
+        <div>
+          <label style="font-size: 11px; color: var(--text-muted); font-weight: 700;">Kiểm Tra Nhanh Tiêu Chí Kỹ Thuật:</label>
+          <div class="plan-checklist-box" style="margin-top: 4px;" id="repChecklistContainer">
+            <!-- 5 items rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- 6. Ghi nhận & Xử lý -->
+        <div>
+          <label style="font-size: 11px; color: var(--text-muted); font-weight: 700;">Ghi Nhận Hiện Trường:</label>
+          <textarea id="repFormFindings" rows="2" placeholder="Mô tả chi tiết tình trạng máy móc, thông số đo được..." style="width: 100%; background: #080e1b; border: 1px solid var(--border-color); color: #fff; padding: 7px 10px; border-radius: 6px; font-size: 12px; margin-top: 4px; resize: vertical;"></textarea>
+        </div>
+
+        <div>
+          <label style="font-size: 11px; color: var(--text-muted); font-weight: 700;">Biện Pháp Đã Xử Lý / Đề Xuất:</label>
+          <textarea id="repFormAction" rows="2" placeholder="Đã siết ốc, tra dầu, thay phớt, hoặc đề xuất dừng máy sửa chữa..." style="width: 100%; background: #080e1b; border: 1px solid var(--border-color); color: #fff; padding: 7px 10px; border-radius: 6px; font-size: 12px; margin-top: 4px; resize: vertical;"></textarea>
+        </div>
+
+        <!-- 7. CHỮ KÝ CẢM ỨNG KỸ THUẬT SỐ -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 700;">Chữ Ký Cảm Ứng Của Kỹ Sư Hiện Trường:</label>
+            <button type="button" class="tool-btn" onclick="clearSignatureCanvas()" style="padding: 3px 8px; font-size: 10px;">🧹 Ký lại</button>
+          </div>
+          <div class="sig-canvas-container" style="margin-top: 4px; height: 110px;">
+            <canvas id="fieldSigCanvas" width="340" height="110" style="width: 100%; height: 100%;"></canvas>
+            <span id="sigPromptHint" style="position: absolute; font-size: 11px; color: #475569; pointer-events: none;">Dùng ngón tay ký tên vào đây</span>
+          </div>
+          <div style="margin-top: 4px;">
+            <input type="text" id="repFormSignerName" value="Kỹ sư Kha.nm" placeholder="Họ và tên người lập báo cáo" style="width: 100%; background: #080e1b; border: 1px solid var(--border-color); color: #38bdf8; font-weight: 700; padding: 6px 10px; border-radius: 6px; font-size: 12px;">
+          </div>
+        </div>
+
+        <!-- 8. NÚT GỬI BÁO CÁO -->
+        <button type="button" class="field-giant-btn" onclick="submitFieldReport()" style="margin-top: 8px;">
+          <span style="font-size: 16px;">🚀</span>
+          <span>GỬI BÁO CÁO VỀ TRUNG TÂM (LƯU &amp; ĐỒNG BỘ)</span>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- DEVICE DETAIL BOTTOM SHEET DRAWER -->
+  <div class="mobile-drawer-backdrop" id="deviceDrawerBackdrop" onclick="closeDeviceDrawer(event)">
+    <div class="mobile-drawer-content" onclick="event.stopPropagation()">
+      <div class="drawer-handle"></div>
+      <div class="drawer-header">
+        <div>
+          <div class="drawer-title" id="drawerDeviceName">Thiết Bị</div>
+          <span style="font-size: 11px; color: var(--primary-neon); font-family: var(--font-mono);" id="drawerDeviceTag">TAG_01</span>
+        </div>
+        <span class="drawer-close" onclick="closeDeviceDrawer()">&times;</span>
+      </div>
+
+      <div style="background: #080d1a; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 12px; color: var(--text-muted);">Trạng Thái:</span>
+        <span style="font-weight: 800; font-size: 13px; color: var(--success);" id="drawerDeviceState">RUNNING</span>
+      </div>
+
+      <div class="grid-2col">
+        <button class="mobile-cmd-btn run" onclick="setDrawerDeviceState('Run')">
+          <span>🟢 BẬT CHẠY</span>
+        </button>
+        <button class="mobile-cmd-btn stop" onclick="setDrawerDeviceState('Stop')">
+          <span>🔴 DỪNG LẠI</span>
+        </button>
+        <button class="mobile-cmd-btn auto" onclick="toggleDrawerDeviceState()">
+          <span>🔄 ĐẢO TRẠNG THÁI</span>
+        </button>
+        <button class="mobile-cmd-btn reset" onclick="triggerDrawerAlarm()">
+          <span>⚠️ TEST LỖI</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LOGIC MOBILE SCADA -->
+  <script>
+    // State của ứng dụng Mobile
+    let projectData = null;
+    let pages = [];
+    let activePageId = 'page_1';
+    let isSimulating = true;
+    let simTimer = null;
+    let isAutoMode = true;
+    let fitMode = 'fit'; // 'fit' | '100%'
+    let selectedDrawerElement = null;
+
+    // Alarms mẫu
+    let alarms = [
+      { id: 'alm_1', tag: 'CHILLER_TEMP_01', desc: 'Nhiệt độ dàn lạnh vượt ngưỡng cao HH (95°C)', severity: 'crit', val: '96.2°C', time: '13:25:10', acked: false },
+      { id: 'alm_2', tag: 'TANK_LEVEL_01', desc: 'Mức bồn nước ngưng vượt ngưỡng H (85%)', severity: 'warn', val: '86.4%', time: '13:20:45', acked: false },
+      { id: 'alm_3', tag: 'PUMP_PRESS_02', desc: 'Áp suất đầu đẩy bơm P2 thấp hơn định mức', severity: 'warn', val: '1.8 Bar', time: '13:15:02', acked: false }
+    ];
+
+    // Tags mẫu
+    let tagsList = [
+      { tag: 'PUMP_01_SPEED', name: 'Tốc độ Bơm Chiller 1', addr: 'DB1.DBD10', val: 48.5, unit: 'Hz' },
+      { tag: 'CHILLER_TEMP_01', name: 'Nhiệt độ Dàn Lạnh', addr: 'DB1.DBD14', val: 78.5, unit: '°C' },
+      { tag: 'TANK_LEVEL_01', name: 'Mức Bồn Nước Chứa', addr: 'DB1.DBD18', val: 68.2, unit: '%' },
+      { tag: 'PRESS_SUPPLY_01', name: 'Áp Suất Cấp Nước', addr: 'DB1.DBD22', val: 4.2, unit: 'Bar' },
+      { tag: 'VALVE_CV101_POS', name: 'Vị Trí Van Điều Khiển', addr: 'DB1.DBD26', val: 75.0, unit: '%' },
+      { tag: 'SYS_STATUS_RUN', name: 'Trạng Thái Hệ Thống', addr: 'DB1.DBX0.0', val: 1, unit: 'BOOL' }
+    ];
+
+    // KHỞI ĐỘNG
+    window.addEventListener('DOMContentLoaded', () => {
+      loadProjectData();
+      initSimulation();
+      renderAlarms();
+      renderTagsList();
+      window.addEventListener('resize', autoScaleCanvas);
+      autoScaleCanvas();
+
+      // Lắng nghe storage event từ desktop editor
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'kha_scada_project_state' || e.key === 'kha_scada_pages_data') {
+          reloadProjectData();
+        }
+      });
+    });
+
+    // NẠP DỮ LIỆU DỰ ÁN
+    async function loadProjectData() {
+      // 1. Thử nạp từ Server LAN API (Đồng bộ trực tiếp từ máy tính qua Wi-Fi)
+      try {
+        const resp = await fetch('/api/project_state');
+        if (resp.ok) {
+          const parsed = await resp.json();
+          if (parsed && parsed.pages && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
+            pages = parsed.pages;
+            activePageId = parsed.activePageId || pages[0].id;
+            updatePageSelectorUI();
+            renderActivePage();
+            return;
+          }
+        }
+      } catch (e) {
+        console.log('Không kết nối được LAN API, thử đọc bộ nhớ đệm:', e);
+      }
+
+      // 2. Thử đọc từ localStorage
+      try {
+        const stored = localStorage.getItem('kha_scada_project_state') || localStorage.getItem('kha_scada_pages_data');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.pages && Array.isArray(parsed.pages)) {
+            pages = parsed.pages;
+            activePageId = parsed.activePageId || pages[0].id;
+          } else if (Array.isArray(parsed)) {
+            pages = [{
+              id: 'page_1',
+              name: 'Trang 1: Giao Diện HMI',
+              resolution: '1280x720',
+              backgroundColor: '#091122',
+              elements: parsed
+            }];
+            activePageId = 'page_1';
+          }
+        }
+      } catch (e) {
+        console.warn('Lỗi đọc localStorage:', e);
+      }
+
+      // Tạo màn hình mặc định nếu chưa có
+      if (!pages || pages.length === 0) {
+        pages = [
+          {
+            id: 'page_1',
+            name: 'Trạm Bơm Chiller',
+            resolution: '1280x720',
+            backgroundColor: '#091122',
+            elements: createDemoElements()
+          }
+        ];
+        activePageId = 'page_1';
+      }
+
+      updatePageSelectorUI();
+      renderActivePage();
+    }
+
+    function createDemoElements() {
+      return [
+        { id: 'el_1', type: 'symbol', name: 'Bơm Ly Tâm', tag: 'PUMP-01', svgFile: 'centrifugal_pump.svg', x: 220, y: 260, w: 100, h: 100, rot: 0, state: 'Run' },
+        { id: 'el_2', type: 'symbol', name: 'Van Điều Khiển', tag: 'VALVE-01', svgFile: 'control_valve.svg', x: 420, y: 260, w: 90, h: 90, rot: 0, state: 'Run' },
+        { id: 'el_3', type: 'tank_bar', name: 'Bồn Nước Lạnh', tag: 'TANK-01', unit: '%', val: 72, x: 80, y: 180, w: 60, h: 220 },
+        { id: 'el_4', type: 'gauge', name: 'Áp Suất Đường Ống', tag: 'PI-101', unit: 'Bar', min: 0, max: 10, val: 4.5, x: 600, y: 240, w: 120, h: 120 },
+        { id: 'el_5', type: 'display', name: 'Nhiệt Độ Hồi', tag: 'TI-201', unit: '°C', val: 24.8, x: 800, y: 260, w: 140, h: 60 },
+        { id: 'el_6', type: 'pipe', x: 140, y: 295, w: 80, h: 20, fluidColor: '#0284c7' },
+        { id: 'el_7', type: 'pipe', x: 320, y: 295, w: 100, h: 20, fluidColor: '#0284c7' },
+        { id: 'el_8', type: 'pipe', x: 510, y: 295, w: 90, h: 20, fluidColor: '#0284c7' }
+      ];
+    }
+
+    function updatePageSelectorUI() {
+      const sel = document.getElementById('mobilePageSelector');
+      if (!sel) return;
+      sel.innerHTML = '';
+      pages.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        if (p.id === activePageId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    function onMobilePageChange(pageId) {
+      activePageId = pageId;
+      renderActivePage();
+      hapticTap();
+    }
+
+    function reloadProjectData() {
+      loadProjectData();
+      showToast('Đã đồng bộ dự án từ máy tính!');
+      hapticTap();
+    }
+
+    // RENDER TRANG CANVAS
+    function renderActivePage() {
+      const curPage = pages.find(p => p.id === activePageId) || pages[0];
+      if (!curPage) return;
+
+      const board = document.getElementById('mobileHmiBoard');
+      if (!board) return;
+
+      const res = curPage.resolution || '1280x720';
+      let [w, h] = res.split('x').map(Number);
+      if (!w || !h) { w = 1280; h = 720; }
+
+      board.style.width = w + 'px';
+      board.style.height = h + 'px';
+      board.style.backgroundColor = curPage.backgroundColor || '#091122';
+      board.innerHTML = '';
+
+      document.getElementById('hudResolution').textContent = `${w}×${h}`;
+
+      const elements = curPage.elements || [];
+      elements.forEach(el => {
+        const div = document.createElement('div');
+        div.id = 'm_' + el.id;
+        div.className = 'canvas-item';
+        div.style.left = el.x + 'px';
+        div.style.top = el.y + 'px';
+        div.style.width = el.w + 'px';
+        div.style.height = el.h + 'px';
+        div.style.transform = `rotate(${el.rot || 0}deg) ${el.flipH ? 'scaleX(-1)' : ''}`;
+        div.style.zIndex = el.zIndex || 1;
+
+        div.onclick = (e) => {
+          e.stopPropagation();
+          openDeviceDrawer(el);
+        };
+
+        renderElementContent(div, el);
+        board.appendChild(div);
+      });
+
+      autoScaleCanvas();
+    }
+
+    function renderElementContent(div, el) {
+      if (el.type === 'pipe') {
+        const cls = `pipe-element ${el.isVertical ? 'pipe-v' : ''} ${isSimulating ? 'simulating' : ''}`;
+        div.innerHTML = `<div class="${cls}" style="width: 100%; height: 100%; background: ${el.fluidColor || '#0284c7'};"></div>`;
+      }
+      else if (el.type === 'symbol') {
+        const color = el.state === 'Run' ? '#10b981' : (el.state === 'Stop' ? '#ef4444' : '#f59e0b');
+        const imgSrc = el.imgData || (el.svgFile ? (el.svgFile.startsWith('data:') ? el.svgFile : `symbols/${el.svgFile}`) : '');
+        div.innerHTML = `
+          <div class="canvas-item-inner" style="flex-direction: column;">
+            <img src="${imgSrc}" style="width: 75%; height: 75%; object-fit: contain; filter: drop-shadow(0 0 6px ${color});">
+            <span style="font-size: 9px; font-weight: 800; color: #fff; background: #0f172a; border: 1px solid ${color}; padding: 1px 4px; border-radius: 3px; margin-top: 1px;">
+              ${el.tag || ''}
+            </span>
+          </div>
+        `;
+      }
+      else if (el.type === 'gauge') {
+        const val = el.val !== undefined ? el.val : 4.5;
+        const min = el.min || 0;
+        const max = el.max || 10;
+        const angle = -120 + ((val - min) / (max - min)) * 240;
+        div.innerHTML = `
+          <div class="hmi-gauge">
+            <div class="gauge-needle" style="transform: rotate(${angle}deg);"></div>
+            <div class="gauge-cap"></div>
+            <div class="gauge-val">${Number(val).toFixed(1)}</div>
+            <div class="gauge-unit">${el.tag || ''} (${el.unit || 'Bar'})</div>
+          </div>
+        `;
+      }
+      else if (el.type === 'tank_bar') {
+        const val = el.val !== undefined ? el.val : 70;
+        div.innerHTML = `
+          <div class="hmi-tank-bar">
+            <div class="tank-liquid" style="height: ${val}%;"></div>
+            <div class="tank-ticks">
+              <div class="tick-line" style="color: #ef4444;">HH 95%</div>
+              <div class="tick-line">H 80%</div>
+              <div class="tick-line">L 20%</div>
+              <div class="tick-line" style="color: #ef4444;">LL 5%</div>
+            </div>
+          </div>
+        `;
+      }
+      else if (el.type === 'display') {
+        const val = el.val !== undefined ? el.val : 25.0;
+        div.innerHTML = `
+          <div class="hmi-display">
+            <div class="display-tag">${el.tag || ''}:</div>
+            <div class="display-pv">${Number(val).toFixed(1)} <span style="font-size: 10px; color: #94a3b8;">${el.unit || ''}</span></div>
+          </div>
+        `;
+      }
+      else if (el.type === 'button') {
+        div.innerHTML = `
+          <div class="hmi-btn ${el.btnStyle || 'start'}">
+            ${el.tag || 'NÚT'}
+          </div>
+        `;
+      }
+    }
+
+    // TỰ ĐỘNG SCALE CANVAS VỪA MÀN HÌNH ĐIỆN THOẠI
+    function autoScaleCanvas() {
+      const wrapper = document.getElementById('canvasViewportWrapper');
+      const board = document.getElementById('mobileHmiBoard');
+      if (!wrapper || !board) return;
+
+      const boardW = parseFloat(board.style.width) || 1280;
+      const boardH = parseFloat(board.style.height) || 720;
+
+      const wrapW = wrapper.clientWidth - 16;
+      const wrapH = wrapper.clientHeight - 16;
+
+      let scale = 1;
+      if (fitMode === 'fit') {
+        scale = Math.min(wrapW / boardW, wrapH / boardH);
+      } else {
+        scale = 1.0;
+      }
+
+      board.style.transform = `scale(${scale})`;
+      document.getElementById('hudZoom').textContent = `${Math.round(scale * 100)}%`;
+    }
+
+    function toggleCanvasFit() {
+      fitMode = fitMode === 'fit' ? '100%' : 'fit';
+      autoScaleCanvas();
+      hapticTap();
+      showToast(`Chế độ: ${fitMode === 'fit' ? 'Vừa màn hình' : 'Kích thước thật 100%'}`);
+    }
+
+    // SIMULATION LOOP
+    function initSimulation() {
+      if (simTimer) clearInterval(simTimer);
+      simTimer = setInterval(() => {
+        if (!isSimulating) return;
+
+        // Cập nhật ngẫu nhiên nhỏ các số đo
+        const curPage = pages.find(p => p.id === activePageId);
+        if (curPage && curPage.elements) {
+          curPage.elements.forEach(el => {
+            if (el.type === 'gauge' || el.type === 'display' || el.type === 'tank_bar') {
+              if (el.val !== undefined) {
+                const delta = (Math.random() - 0.5) * 0.8;
+                el.val = Math.max(0, Math.min(100, el.val + delta));
+                const div = document.getElementById('m_' + el.id);
+                if (div) renderElementContent(div, el);
+              }
+            }
+          });
+        }
+
+        // Cập nhật giá trị VFD và Slider
+        const vfdVal = 48.5 + (Math.random() - 0.5) * 0.4;
+        document.getElementById('txtVfdValue').textContent = `${vfdVal.toFixed(1)} Hz`;
+
+      }, 1000);
+    }
+
+    function toggleMobileSim() {
+      isSimulating = !isSimulating;
+      const btn = document.getElementById('btnToggleSim');
+      if (btn) btn.classList.toggle('active', isSimulating);
+      
+      const pipes = document.querySelectorAll('.pipe-element');
+      pipes.forEach(p => p.classList.toggle('simulating', isSimulating));
+      
+      hapticTap();
+      showToast(isSimulating ? 'Đã bật mô phỏng trực tiếp' : 'Đã dừng mô phỏng');
+    }
+
+    // CHUYỂN TAB DƯỚI
+    function switchMobileTab(viewId, tabElement) {
+      document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-tab-item').forEach(t => t.classList.remove('active'));
+
+      const target = document.getElementById(viewId);
+      if (target) target.classList.add('active');
+      if (tabElement) tabElement.classList.add('active');
+
+      if (viewId === 'viewCanvas') {
+        setTimeout(autoScaleCanvas, 50);
+      }
+
+      hapticTap();
+    }
+
+    // ĐIỀU KHIỂN & LỆNH
+    function triggerEStop() {
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+      alert('🚨 ĐÃ KÍCH HOẠT DỪNG KHẨN CẤP (EMERGENCY STOP)! Toàn bộ thiết bị đã ngắt nguồn an toàn.');
+    }
+
+    function sendMobileCommand(cmd) {
+      hapticTap();
+      if (cmd === 'START_ALL') {
+        showToast('▶ Lệnh: Khởi động toàn bộ trạm thành công!');
+      } else if (cmd === 'STOP_ALL') {
+        showToast('⏹ Lệnh: Dừng trạm tuần tự thành công!');
+      } else if (cmd === 'AUTO_MANUAL') {
+        isAutoMode = !isAutoMode;
+        document.getElementById('txtAutoManual').textContent = `CHẾ ĐỘ: ${isAutoMode ? 'AUTO' : 'MANUAL'}`;
+        showToast(`Chuyển sang chế độ ${isAutoMode ? 'TỰ ĐỘNG (AUTO)' : 'BẰNG TAY (MANUAL)'}`);
+      } else if (cmd === 'RESET_FAULT') {
+        showToast('🧹 Đã gửi xung xóa lỗi PLC!');
+      }
+    }
+
+    function onVfdSliderChange(val) {
+      document.getElementById('txtVfdValue').textContent = `${parseFloat(val).toFixed(1)} Hz`;
+    }
+
+    function jogVfd(delta) {
+      const slider = document.getElementById('sliderVfd');
+      let val = Math.max(0, Math.min(50, parseFloat(slider.value) + delta));
+      slider.value = val;
+      onVfdSliderChange(val);
+      hapticTap();
+    }
+
+    function setVfd(target) {
+      const slider = document.getElementById('sliderVfd');
+      slider.value = target;
+      onVfdSliderChange(target);
+      hapticTap();
+    }
+
+    function onValveSliderChange(val) {
+      document.getElementById('txtValveValue').textContent = `${val} %`;
+    }
+
+    // QUẢN LÝ CẢNH BÁO ALARMS
+    function renderAlarms() {
+      const container = document.getElementById('alarmListContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      let crit = 0, warn = 0, ack = 0;
+
+      alarms.forEach(a => {
+        if (a.severity === 'crit' && !a.acked) crit++;
+        if (a.severity === 'warn' && !a.acked) warn++;
+        if (a.acked) ack++;
+
+        const card = document.createElement('div');
+        card.className = `alarm-item-card ${a.severity === 'warn' ? 'warning' : ''} ${a.acked ? 'acked' : ''}`;
+        card.innerHTML = `
+          <div class="alarm-card-top">
+            <span class="alarm-badge-tag">${a.tag}</span>
+            <span class="alarm-time">${a.time}</span>
+          </div>
+          <div class="alarm-desc">${a.desc}</div>
+          <div class="alarm-footer">
+            <span class="alarm-val">Giá trị: <strong>${a.val}</strong></span>
+            ${!a.acked ? `<button class="btn-ack-item" onclick="ackAlarm('${a.id}')">✓ Xác Nhận</button>` : `<span style="font-size: 10px; color: var(--success);">✓ Đã xác nhận</span>`}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById('alarmCountCrit').textContent = crit;
+      document.getElementById('alarmCountWarn').textContent = warn;
+      document.getElementById('alarmCountAck').textContent = ack;
+      
+      const badge = document.getElementById('bottomAlarmBadge');
+      const unack = crit + warn;
+      if (badge) {
+        badge.textContent = unack;
+        badge.style.display = unack > 0 ? 'flex' : 'none';
+      }
+    }
+
+    function ackAlarm(id) {
+      const alm = alarms.find(a => a.id === id);
+      if (alm) {
+        alm.acked = true;
+        renderAlarms();
+        hapticTap();
+        showToast(`Đã xác nhận cảnh báo ${alm.tag}`);
+      }
+    }
+
+    function ackAllAlarms() {
+      alarms.forEach(a => a.acked = true);
+      renderAlarms();
+      hapticTap();
+      showToast('Đã xác nhận toàn bộ cảnh báo (ACK ALL)!');
+    }
+
+    // THEO DÕI TAGS
+    function renderTagsList(filter = '') {
+      const grid = document.getElementById('tagsListGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      const filtered = tagsList.filter(t => !filter || t.tag.toLowerCase().includes(filter.toLowerCase()) || t.name.toLowerCase().includes(filter.toLowerCase()));
+
+      filtered.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'tag-row-card';
+        card.innerHTML = `
+          <div class="tag-row-info">
+            <span class="tag-row-name">${t.name}</span>
+            <span class="tag-row-addr">${t.tag} &bull; ${t.addr}</span>
+          </div>
+          <div>
+            <div class="tag-row-value">${typeof t.val === 'number' ? t.val.toFixed(1) : t.val}</div>
+            <div class="tag-row-unit">${t.unit}</div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterTagsList(query) {
+      renderTagsList(query);
+    }
+
+    // BOTTOM SHEET DRAWER THIẾT BỊ
+    function openDeviceDrawer(el) {
+      selectedDrawerElement = el;
+      document.getElementById('drawerDeviceName').textContent = el.name || 'Thiết Bị SCADA';
+      document.getElementById('drawerDeviceTag').textContent = el.tag || 'TAG';
+      document.getElementById('drawerDeviceState').textContent = el.state || 'RUNNING';
+      document.getElementById('deviceDrawerBackdrop').classList.add('active');
+      hapticTap();
+    }
+
+    function closeDeviceDrawer() {
+      document.getElementById('deviceDrawerBackdrop').classList.remove('active');
+    }
+
+    function setDrawerDeviceState(state) {
+      if (!selectedDrawerElement) return;
+      selectedDrawerElement.state = state;
+      document.getElementById('drawerDeviceState').textContent = state.toUpperCase();
+      renderActivePage();
+      hapticTap();
+      showToast(`Đã chuyển ${selectedDrawerElement.tag} sang: ${state}`);
+    }
+
+    function toggleDrawerDeviceState() {
+      if (!selectedDrawerElement) return;
+      const next = selectedDrawerElement.state === 'Run' ? 'Stop' : 'Run';
+      setDrawerDeviceState(next);
+    }
+
+    function triggerDrawerAlarm() {
+      if (!selectedDrawerElement) return;
+      alarms.unshift({
+        id: 'alm_' + Date.now(),
+        tag: selectedDrawerElement.tag,
+        desc: `Sự cố giả lập kiểm tra bảo vệ ${selectedDrawerElement.name}`,
+        severity: 'crit',
+        val: 'TRIP FAULT',
+        time: new Date().toLocaleTimeString(),
+        acked: false
+      });
+      renderAlarms();
+      closeDeviceDrawer();
+      hapticTap();
+      showToast(`Đã tạo cảnh báo kiểm tra cho ${selectedDrawerElement.tag}`);
+    }
+
+    // ================================================================
+    // QUẢN LÝ KẾ HOẠCH & BÁO CÁO HIỆN TRƯỜNG (FIELD OPS)
+    // ================================================================
+    let workPlans = [];
+    let fieldReports = [];
+    let currentReportCondition = 'Bình thường';
+    let currentCapturedPhotoBase64 = null;
+    let sigCanvas = null;
+    let sigCtx = null;
+    let isDrawingSig = false;
+
+    const defaultFieldChecklistItems = [
+      { id: 'chk_1', text: 'Nhiệt độ vỏ động cơ / gối đỡ (< 75°C)', status: 'pass' },
+      { id: 'chk_2', text: 'Độ rung động & tiếng ồn cơ khí bất thường', status: 'pass' },
+      { id: 'chk_3', text: 'Áp suất đầu đẩy & chỉ thị đồng hồ Gauge', status: 'pass' },
+      { id: 'chk_4', text: 'Rò rỉ môi chất / phớt làm kín / van chặn', status: 'pass' },
+      { id: 'chk_5', text: 'Dây cáp điện, tủ điều khiển & tiếp địa an toàn', status: 'pass' }
+    ];
+    let currentChecklistResults = JSON.parse(JSON.stringify(defaultFieldChecklistItems));
+
+    async function fetchPlansAndReports() {
+      // 1. Nạp Kế hoạch từ LAN API
+      try {
+        const pResp = await fetch('/api/work_plans');
+        if (pResp.ok) {
+          const data = await pResp.json();
+          if (Array.isArray(data)) workPlans = data;
+        }
+      } catch (e) {
+        try {
+          const storedP = localStorage.getItem('kha_field_work_plans');
+          if (storedP) workPlans = JSON.parse(storedP);
+        } catch (err) {}
+      }
+
+      // 2. Nạp Báo cáo từ LAN API
+      try {
+        const rResp = await fetch('/api/field_reports');
+        if (rResp.ok) {
+          const data = await rResp.json();
+          if (Array.isArray(data)) fieldReports = data;
+        }
+      } catch (e) {
+        try {
+          const storedR = localStorage.getItem('kha_field_reports');
+          if (storedR) fieldReports = JSON.parse(storedR);
+        } catch (err) {}
+      }
+
+      renderFieldPlans();
+      renderFieldReportsHistory();
+      updatePlanBadge();
+    }
+
+    function updatePlanBadge() {
+      const badge = document.getElementById('bottomPlanBadge');
+      if (!badge) return;
+      const pending = workPlans.filter(p => p.status !== 'Đã hoàn thành').length;
+      badge.textContent = pending;
+      badge.style.display = pending > 0 ? 'flex' : 'none';
+    }
+
+    function renderFieldPlans() {
+      const container = document.getElementById('fieldPlansContainer');
+      const planSelect = document.getElementById('repFormPlanSelect');
+      if (!container) return;
+
+      container.innerHTML = '';
+      if (planSelect) {
+        planSelect.innerHTML = '<option value="">-- Sự cố đột xuất ngoài kế hoạch --</option>';
+      }
+
+      if (workPlans.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 12px;">Chưa có kế hoạch nào được giao hôm nay.</div>';
+        return;
+      }
+
+      workPlans.forEach(plan => {
+        if (planSelect) {
+          const opt = document.createElement('option');
+          opt.value = plan.id;
+          opt.textContent = `[${plan.priority}] ${plan.title} (${plan.equipmentTag || ''})`;
+          planSelect.appendChild(opt);
+        }
+
+        const prioClass = plan.priority === 'Khẩn cấp' ? 'crit' : (plan.priority === 'Cao' ? 'high' : 'med');
+        const card = document.createElement('div');
+        card.className = 'plan-card-item';
+
+        let checkHtml = '';
+        (plan.checklist || []).forEach((c, idx) => {
+          checkHtml += `
+            <label class="plan-check-item">
+              <input type="checkbox" ${c.checked ? 'checked' : ''} onchange="togglePlanChecklist('${plan.id}', ${idx})">
+              <span style="${c.checked ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${c.text}</span>
+            </label>
+          `;
+        });
+
+        card.innerHTML = `
+          <div class="plan-card-top">
+            <div>
+              <span class="plan-priority-badge ${prioClass}">${plan.priority}</span>
+              <strong style="font-size: 13px; color: #fff; margin-left: 6px;">${plan.title}</strong>
+            </div>
+            <span style="font-size: 10px; color: var(--primary-neon); font-family: monospace; font-weight: 700;">${plan.equipmentTag || ''}</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted);">
+            Trạm: <strong>${plan.station || 'Hiện trường'}</strong> &bull; Hạn: ${plan.dueDate || 'Hôm nay'}
+          </div>
+          ${plan.notes ? `<div style="font-size: 10.5px; color: #94a3b8; font-style: italic;">Ghi chú: ${plan.notes}</div>` : ''}
+          <div class="plan-checklist-box">
+            ${checkHtml}
+          </div>
+          <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+            <button class="tool-btn primary" onclick="openNewFieldReportDrawer('${plan.id}')" style="padding: 5px 10px; font-size: 11px; font-weight: 700;">
+              📝 Lập Báo Cáo Cho Mục Này
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function togglePlanChecklist(planId, idx) {
+      const plan = workPlans.find(p => p.id === planId);
+      if (plan && plan.checklist && plan.checklist[idx]) {
+        plan.checklist[idx].checked = !plan.checklist[idx].checked;
+        const allDone = plan.checklist.every(c => c.checked);
+        if (allDone) plan.status = 'Đã hoàn thành';
+        else plan.status = 'Đang thực hiện';
+
+        // Lưu và đồng bộ
+        try {
+          localStorage.setItem('kha_field_work_plans', JSON.stringify(workPlans));
+          fetch('/api/work_plans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(workPlans)
+          }).catch(() => {});
+        } catch (e) {}
+
+        renderFieldPlans();
+        updatePlanBadge();
+        hapticTap();
+      }
+    }
+
+    function renderFieldReportsHistory() {
+      const container = document.getElementById('fieldReportsHistoryContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (fieldReports.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 12px;">Chưa có báo cáo hiện trường nào.</div>';
+        return;
+      }
+
+      fieldReports.forEach(rep => {
+        const condClass = rep.condition === 'Nguy cấp' ? 'crit' : (rep.condition === 'Cần theo dõi' ? 'warn' : 'ok');
+        const condColor = rep.condition === 'Nguy cấp' ? '#f87171' : (rep.condition === 'Cần theo dõi' ? '#fbbf24' : '#34d399');
+
+        const card = document.createElement('div');
+        card.className = `field-report-card ${condClass}`;
+
+        const photoHtml = rep.photoData ? `
+          <div style="width: 100%; height: 140px; border-radius: 6px; overflow: hidden; margin: 4px 0;">
+            <img src="${rep.photoData}" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+        ` : '';
+
+        const sigHtml = rep.signatureData ? `
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; background: #070d18; padding: 4px 8px; border-radius: 6px;">
+            <img src="${rep.signatureData}" style="height: 36px; object-fit: contain; filter: invert(1);">
+            <div style="font-size: 10px; color: var(--text-muted);">Ký nhận: <strong style="color: #fff;">${rep.signerName || 'Kỹ sư'}</strong></div>
+          </div>
+        ` : '';
+
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <strong style="font-size: 13px; color: #fff;">${rep.title || 'Báo Cáo Hiện Trường'}</strong>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                ${rep.timestamp} &bull; ${rep.station} (${rep.equipmentTag})
+              </div>
+            </div>
+            <span style="font-size: 10px; font-weight: 800; color: ${condColor}; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">
+              ${rep.condition}
+            </span>
+          </div>
+          ${photoHtml}
+          <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4; margin-top: 2px;">
+            <strong>Ghi nhận:</strong> ${rep.findings || 'Bình thường'}
+          </div>
+          ${rep.actionTaken ? `<div style="font-size: 11px; color: #38bdf8; line-height: 1.4;"><strong>Đã xử lý:</strong> ${rep.actionTaken}</div>` : ''}
+          ${sigHtml}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // FORM TẠO BÁO CÁO HIỆN TRƯỜNG
+    function openNewFieldReportDrawer(planId) {
+      const drawer = document.getElementById('fieldReportDrawerBackdrop');
+      if (!drawer) return;
+
+      currentCapturedPhotoBase64 = null;
+      removeFieldPhoto();
+      currentReportCondition = 'Bình thường';
+      setReportCondition('Bình thường');
+
+      // Reset checklist
+      currentChecklistResults = JSON.parse(JSON.stringify(defaultFieldChecklistItems));
+      renderReportChecklistInputs();
+
+      // Nếu có liên kết với kế hoạch
+      const planSelect = document.getElementById('repFormPlanSelect');
+      if (planId && planSelect) {
+        planSelect.value = planId;
+        onReportPlanSelected(planId);
+      } else {
+        if (planSelect) planSelect.value = '';
+        document.getElementById('repFormStation').value = 'Trạm Bơm Chiller';
+        document.getElementById('repFormTag').value = 'PUMP-01';
+        document.getElementById('repFormFindings').value = '';
+        document.getElementById('repFormAction').value = '';
+      }
+
+      drawer.classList.add('active');
+      hapticTap();
+
+      setTimeout(initSignatureCanvas, 150);
+    }
+
+    function closeFieldReportDrawer() {
+      const drawer = document.getElementById('fieldReportDrawerBackdrop');
+      if (drawer) drawer.classList.remove('active');
+    }
+
+    function onReportPlanSelected(planId) {
+      if (!planId) return;
+      const plan = workPlans.find(p => p.id === planId);
+      if (plan) {
+        document.getElementById('repFormStation').value = plan.station || 'Hiện trường';
+        document.getElementById('repFormTag').value = plan.equipmentTag || '';
+        document.getElementById('repFormFindings').value = `Thực hiện theo kế hoạch: ${plan.title}`;
+      }
+    }
+
+    function setReportCondition(cond) {
+      currentReportCondition = cond;
+      const bNormal = document.getElementById('btnCondNormal');
+      const bWarn = document.getElementById('btnCondWarn');
+      const bCrit = document.getElementById('btnCondCrit');
+
+      if (bNormal) bNormal.style.background = cond === 'Bình thường' ? 'rgba(16, 185, 129, 0.4)' : '#1e293b';
+      if (bWarn) bWarn.style.background = cond === 'Cần theo dõi' ? 'rgba(245, 158, 11, 0.4)' : '#1e293b';
+      if (bCrit) bCrit.style.background = cond === 'Nguy cấp' ? 'rgba(239, 68, 68, 0.4)' : '#1e293b';
+      hapticTap();
+    }
+
+    function renderReportChecklistInputs() {
+      const container = document.getElementById('repChecklistContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      currentChecklistResults.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid #1e293b; padding-bottom: 6px;';
+
+        div.innerHTML = `
+          <span style="font-size: 11px; color: #e2e8f0; flex: 1;">${item.text}</span>
+          <div style="display: flex; gap: 4px;">
+            <button type="button" onclick="setChecklistStatus(${idx}, 'pass', this)" style="padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; cursor: pointer; background: ${item.status === 'pass' ? '#10b981' : '#1e293b'}; color: #fff; border: 1px solid #334155;">✓ Đạt</button>
+            <button type="button" onclick="setChecklistStatus(${idx}, 'fail', this)" style="padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; cursor: pointer; background: ${item.status === 'fail' ? '#ef4444' : '#1e293b'}; color: #fff; border: 1px solid #334155;">✕ Lỗi</button>
+            <button type="button" onclick="setChecklistStatus(${idx}, 'na', this)" style="padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; cursor: pointer; background: ${item.status === 'na' ? '#0284c7' : '#1e293b'}; color: #fff; border: 1px solid #334155;">— K/A</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function setChecklistStatus(idx, status, btn) {
+      if (currentChecklistResults[idx]) {
+        currentChecklistResults[idx].status = status;
+        renderReportChecklistInputs();
+        hapticTap();
+      }
+    }
+
+    // XỬ LÝ ẢNH CHỤP CAMERA
+    function handleFieldPhotoSelect(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        currentCapturedPhotoBase64 = evt.target.result;
+        const img = document.getElementById('fieldPhotoImg');
+        const holder = document.getElementById('fieldPhotoPlaceholder');
+        const btnRm = document.getElementById('btnRemovePhoto');
+        if (img) {
+          img.src = currentCapturedPhotoBase64;
+          img.style.display = 'block';
+        }
+        if (holder) holder.style.display = 'none';
+        if (btnRm) btnRm.style.display = 'block';
+        hapticTap();
+        showToast('📸 Đã chụp & gắn ảnh hiện trường thành công!');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeFieldPhoto() {
+      currentCapturedPhotoBase64 = null;
+      const img = document.getElementById('fieldPhotoImg');
+      const holder = document.getElementById('fieldPhotoPlaceholder');
+      const btnRm = document.getElementById('btnRemovePhoto');
+      const input = document.getElementById('fieldPhotoInput');
+      if (img) { img.src = ''; img.style.display = 'none'; }
+      if (holder) holder.style.display = 'block';
+      if (btnRm) btnRm.style.display = 'none';
+      if (input) input.value = '';
+    }
+
+    // CHỮ KÝ CẢM ỨNG (SIGNATURE PAD)
+    function initSignatureCanvas() {
+      sigCanvas = document.getElementById('fieldSigCanvas');
+      if (!sigCanvas) return;
+      sigCtx = sigCanvas.getContext('2d');
+      sigCtx.strokeStyle = '#38bdf8';
+      sigCtx.lineWidth = 2.5;
+      sigCtx.lineCap = 'round';
+      sigCtx.lineJoin = 'round';
+
+      const getPos = (e) => {
+        const rect = sigCanvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: (clientX - rect.left) * (sigCanvas.width / rect.width),
+          y: (clientY - rect.top) * (sigCanvas.height / rect.height)
+        };
+      };
+
+      const start = (e) => {
+        isDrawingSig = true;
+        const hint = document.getElementById('sigPromptHint');
+        if (hint) hint.style.display = 'none';
+        const pos = getPos(e);
+        sigCtx.beginPath();
+        sigCtx.moveTo(pos.x, pos.y);
+        e.preventDefault();
+      };
+
+      const move = (e) => {
+        if (!isDrawingSig) return;
+        const pos = getPos(e);
+        sigCtx.lineTo(pos.x, pos.y);
+        sigCtx.stroke();
+        e.preventDefault();
+      };
+
+      const stop = (e) => {
+        isDrawingSig = false;
+      };
+
+      sigCanvas.onmousedown = start;
+      sigCanvas.onmousemove = move;
+      window.onmouseup = stop;
+
+      sigCanvas.ontouchstart = start;
+      sigCanvas.ontouchmove = move;
+      sigCanvas.ontouchend = stop;
+    }
+
+    function clearSignatureCanvas() {
+      if (sigCtx && sigCanvas) {
+        sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      }
+      const hint = document.getElementById('sigPromptHint');
+      if (hint) hint.style.display = 'block';
+    }
+
+    // GỬI BÁO CÁO HIỆN TRƯỜNG
+    async function submitFieldReport() {
+      const station = document.getElementById('repFormStation')?.value || 'Hiện trường';
+      const tag = document.getElementById('repFormTag')?.value || 'PUMP-01';
+      const planId = document.getElementById('repFormPlanSelect')?.value || '';
+      const findings = document.getElementById('repFormFindings')?.value || '';
+      const action = document.getElementById('repFormAction')?.value || '';
+      const signer = document.getElementById('repFormSignerName')?.value || 'Kỹ sư Kha.nm';
+
+      let sigData = null;
+      if (sigCanvas) {
+        sigData = sigCanvas.toDataURL('image/png');
+      }
+
+      const reportObj = {
+        id: 'rep_' + Date.now(),
+        planId: planId,
+        title: `Báo cáo kiểm tra ${tag} (${station})`,
+        reporter: signer,
+        station: station,
+        equipmentTag: tag,
+        reportType: planId ? 'Bảo dưỡng theo kế hoạch' : 'Sự cố đột xuất hiện trường',
+        condition: currentReportCondition,
+        checklistResults: currentChecklistResults,
+        findings: findings || 'Đã kiểm tra hoạt động ổn định.',
+        actionTaken: action || 'Duy trì trạng thái làm việc.',
+        photoData: currentCapturedPhotoBase64,
+        signatureData: sigData,
+        signerName: signer,
+        timestamp: new Date().toLocaleString('vi-VN'),
+        syncStatus: 'Đã đồng bộ'
+      };
+
+      fieldReports.unshift(reportObj);
+
+      // Nếu có gắn với kế hoạch, cập nhật kế hoạch là hoàn thành
+      if (planId) {
+        const p = workPlans.find(plan => plan.id === planId);
+        if (p) {
+          p.status = 'Đã hoàn thành';
+          (p.checklist || []).forEach(c => c.checked = true);
+        }
+      }
+
+      // Lưu LocalStorage
+      try {
+        localStorage.setItem('kha_field_reports', JSON.stringify(fieldReports));
+        localStorage.setItem('kha_field_work_plans', JSON.stringify(workPlans));
+      } catch (e) {}
+
+      // Đồng bộ sang Server LAN
+      try {
+        fetch('/api/field_reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fieldReports)
+        }).catch(() => {});
+
+        fetch('/api/work_plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(workPlans)
+        }).catch(() => {});
+      } catch (e) {}
+
+      renderFieldReportsHistory();
+      renderFieldPlans();
+      updatePlanBadge();
+      closeFieldReportDrawer();
+
+      if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+      showToast('🚀 Đã gửi báo cáo hiện trường về máy tính thành công!');
+    }
+
+    // Khởi động nạp dữ liệu kế hoạch & báo cáo
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchPlansAndReports();
+    });
+  </script>
+</body>
+</html>

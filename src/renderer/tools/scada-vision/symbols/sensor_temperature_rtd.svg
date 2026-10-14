@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- RTD Temperature Sensor PT100 (Cảm biến can nhiệt công nghiệp) -->
+  <!-- Đầu củ hành (Connection Head) -->
+  <polygon points="70,30 130,30 140,70 60,70" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <rect x="135" y="45" width="25" height="15" rx="3" fill="#334155" stroke="#1E293B" stroke-width="3"/>
+  <!-- Cổ ren kết nối (Nipple/Thread) -->
+  <rect x="88" y="70" width="24" height="20" fill="#334155" stroke="#1E293B" stroke-width="3"/>
+  <polygon points="78,90 122,90 115,105 85,105" fill="#475569" stroke="#1E293B" stroke-width="3"/>
+  <!-- Que đo inox (Thermowell Stem) -->
+  <rect x="94" y="105" width="12" height="75" rx="2" fill="#70757A" stroke="#1E293B" stroke-width="3"/>
+  <circle cx="100" cy="180" r="6" fill="#EF4444"/>
+</svg>

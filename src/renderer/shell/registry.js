@@ -12,6 +12,15 @@ const CATEGORIES = {
 
 const TOOLS = [
   {
+    id: 'apm', icon: 'layers', color: ['#2463EB', '#60A5FA'], cat: 'industry',
+    name: { vi: 'Automation Project Master (APM)', en: 'Automation Project Master (APM)' },
+    desc: {
+      vi: 'Khởi tạo cấu trúc thư mục tự động, 18 biểu mẫu kỹ thuật V4, theo dõi lộ trình 12 giai đoạn, Issue và Cycle Time.',
+      en: 'Initialize automated project folders, 18 technical templates V4, 12-stage roadmap, issues and cycle time.',
+    },
+    path: 'tools/apm/index.html', keywords: 'apm du an automation plc robot roadmap cycle time issue project',
+  },
+  {
     id: 'pallet', icon: 'package', color: ['#38BDF8', '#6366F1'], cat: 'industry',
     name: { vi: 'Pallet Pattern Studio', en: 'Pallet Pattern Studio' },
     desc: {
@@ -19,6 +28,105 @@ const TOOLS = [
       en: 'Design 2D/3D pallet stacking patterns, export SVG/PNG/Excel/ZIP for HMI.',
     },
     path: 'tools/pallet/index.html', keywords: 'pallet xep hang robot hmi 3d excel',
+  },
+  {
+    id: 'calculator', icon: 'calculator', color: ['#10B981', '#06B6D4'], cat: 'industry',
+    name: { vi: 'Industrial Calculator Pro', en: 'Industrial Calculator Pro' },
+    desc: {
+      vi: 'Trạm tính toán kỹ thuật tự động hóa: Analog 4-20mA/0-10V, Đảo Word Modbus IEEE-754, OEE & Takt Time, Tính chọn CB & Cáp động cơ.',
+      en: 'Automation calculation hub: Analog Scaler, Modbus IEEE-754 Word Swap, OEE & Takt Time, Motor Sizing.',
+    },
+    path: 'tools/calculator/index.html', keywords: 'calc calculate scale analog 4-20ma modbus ieee754 float oee cycle time takt motor cable ampe',
+  },
+  {
+    id: 'plc-modbus', icon: 'cpu', color: ['#06B6D4', '#3B82F6'], cat: 'industry',
+    name: { vi: 'PLC & Modbus Inspector Pro', en: 'PLC & Modbus Inspector Pro' },
+    desc: {
+      vi: 'Kiểm thử & giám sát truyền thông công nghiệp đa giao thức: Modbus TCP/RTU Master, Siemens S7 PLC (S7-1200/1500/300/400/200), Test kết nối Siemens OPC UA (HEL/ACK Handshake & Discovery), Data Monitor Grid và Traffic Hex Inspector.',
+      en: 'Universal industrial communication tool: Modbus TCP/RTU Master, Siemens S7 PLC Inspector, Siemens OPC UA Tester (HEL/ACK Handshake & Discovery), Real-time Data Grid Monitor, and Traffic Hex Inspector.',
+    },
+    path: 'tools/plc-modbus/index.html', keywords: 'modbus rtu tcp examiner modscan qmodmaster s7 siemens plc opc ua opcua register coil holding hex traffic fieldbus',
+  },
+  {
+    id: 'tia-portal', icon: 'cpu', color: ['#0284C7', '#0EA5E9'], cat: 'industry',
+    name: { vi: 'Siemens TIA Portal Openness Hub', en: 'Siemens TIA Portal Openness Hub' },
+    desc: {
+      vi: 'Tích hợp tự động hóa Siemens TIA Portal V21/V20/V17 qua Openness API: Quản lý instance, gắn kết PID, trạng thái dự án, duyệt cây thiết bị PLC & HMI WinCC Unified, sẵn sàng máy chủ MCP cho AI (Gemini).',
+      en: 'Siemens TIA Portal V21/V20/V17 Openness integration: Instance attach, project lifecycle, PLC & WinCC Unified device explorer, with built-in MCP server for AI (Gemini).',
+    },
+    path: 'tools/tia-portal/index.html', keywords: 'tia portal siemens openness plc hmi wincc unified attach project device mcp gemini ai v21 v20',
+  },
+  {
+    id: 'scada-vision', icon: 'monitor', color: ['#6366F1', '#EC4899'], cat: 'industry',
+    name: { vi: 'HMI & SCADA Screen Designer Pro', en: 'HMI & SCADA Screen Designer Pro' },
+    desc: {
+      vi: 'Thiết kế màn hình HMI/SCADA chuẩn công nghiệp Châu Âu DIN/ISA: Canvas Editor kéo thả, đường ống dòng chảy, đồng hồ đo áp suất, bồn bể, mô phỏng Live Runtime, kèm thị giác máy OpenCV.',
+      en: 'European industrial HMI/SCADA screen designer: Drag-and-drop canvas, animated fluid pipes, instruments, live runtime simulation, and OpenCV machine vision.',
+    },
+    path: 'tools/scada-vision/index.html', keywords: 'scada hmi tiaportal wincc ignition designer canvas pipes symbols gauges isa101 opencv vision wpf',
+  },
+  {
+    id: 'vision-studio', icon: 'camera', color: ['#0284C7', '#38BDF8'], cat: 'industry',
+    name: { vi: 'Industrial Machine Vision Studio (VisionStudio)', en: 'Industrial Machine Vision Studio (VisionStudio)' },
+    desc: {
+      vi: 'Studio nghiên cứu & xử lý ảnh thị giác máy công nghiệp chuẩn hãng: Biên tập Pipeline đồ thị khối (DAG), 50+ công cụ thuật toán (Caliper, Blob, Canny, Golden Diff, QR/Barcode, OCR), tích hợp Camera đa nguồn (GigE GenICam SFNC, USB3, File/Folder, Synthetic simulator) và kết nối PLC/Robot.',
+      en: 'Industrial machine vision research & pipeline studio: Visual DAG workflow editor, 50+ inspection algorithms, multi-source cameras (GigE GenICam, USB3, Synthetic Simulators), PLC & Robot interfaces.',
+    },
+    path: 'tools/vision-studio/index.html', keywords: 'vision machine vision camera gige opencv caliper blob barcode qr defect dag pipeline visual inspection halcon visionpro',
+  },
+  {
+    id: 'field-ops', icon: 'clipboard', color: ['#8B5CF6', '#3B82F6'], cat: 'industry',
+    name: { vi: 'Field Ops & Work Planning Hub', en: 'Field Ops & Work Planning Hub' },
+    desc: {
+      vi: 'Trung tâm quản lý kế hoạch công việc bảo trì & báo cáo hiện trường 2 chiều: Kết nối di động qua Wi-Fi, chụp ảnh camera, checklist 5 tiêu chuẩn kỹ thuật, chữ ký điện tử và xuất báo cáo ISO/Excel.',
+      en: 'Field operations & work planning suite: Real-time mobile sync, camera capture, 5-point technical checklist, digital signature, and ISO/Excel reporting.',
+    },
+    path: 'tools/field-ops/index.html', keywords: 'field ops bao cao hien truong ke hoach cong viec checklist mobile camera chu ky iso excel',
+  },
+  {
+    id: 'cad', icon: 'compass', color: ['#EC4899', '#8B5CF6'], cat: 'industry',
+    name: { vi: 'Text to AutoCAD Pro', en: 'Text to AutoCAD Pro' },
+    desc: {
+      vi: 'Sinh bản vẽ kỹ thuật CAD từ văn bản / prompt: Xuất file DXF, AutoCAD Script (.scr), AutoLISP (.lsp) và CAD Viewer 2D tương tác.',
+      en: 'Generate technical CAD drawings from text / AI prompts: Export DXF, AutoCAD Script (.scr), AutoLISP (.lsp) and interactive 2D viewer.',
+    },
+    path: 'tools/cad/index.html', keywords: 'cad autocad dxf scr lisp text to cad prompt ai ve ky thuat mechanical electrical',
+  },
+  {
+    id: 'io-tag', icon: 'list', color: ['#10B981', '#06B6D4'], cat: 'industry',
+    name: { vi: 'IO Mapping & PLC Tag Generator Pro', en: 'IO Mapping & PLC Tag Generator Pro' },
+    desc: {
+      vi: 'Sinh bảng địa chỉ I/O và Tag tự động cho TIA Portal (SDF/XLSX), Studio 5000, GX Works (X/Y) kèm các mẫu trạm máy tự động hóa.',
+      en: 'Auto IO mapping and tag table generator for TIA Portal, Studio 5000, GX Works with engineering station presets.',
+    },
+    path: 'tools/io-tag/index.html', keywords: 'io mapping tag plc tiaportal gxworks studio5000 siemens mitsubishi rockwell address di do ai',
+  },
+  {
+    id: 'gcode', icon: 'activity', color: ['#F43F5E', '#8B5CF6'], cat: 'industry',
+    name: { vi: 'G-Code & CNC Motion Simulator Pro', en: 'G-Code & CNC Motion Simulator Pro' },
+    desc: {
+      vi: 'Mô phỏng 2D/3D đường chạy dao CNC, máy cắt Laser & quỹ đạo Robot thời gian thực: G00, G01, G02/G03, đo hành trình và chu trình gia công.',
+      en: 'Real-time 2D/3D CNC, laser & robot trajectory simulator: G00, G01, G02/G03, distance and machining cycle time.',
+    },
+    path: 'tools/gcode/index.html', keywords: 'gcode cnc motion simulator dao cat laser robot trajectory path feedrate nc',
+  },
+  {
+    id: 'unit-converter', icon: 'sliders', color: ['#38BDF8', '#10B981'], cat: 'industry',
+    name: { vi: 'Industrial Unit Converter Pro', en: 'Industrial Unit Converter Pro' },
+    desc: {
+      vi: 'Trạm quy đổi đa đơn vị kỹ thuật công nghiệp thời gian thực: Áp suất (bar/psi/MPa), Lưu lượng (L/min/CFM/m³h), Lực & Moment (N/kgf/Nm), Công suất (kW/HP/kVA), Nhiệt độ, RPM.',
+      en: 'Real-time industrial multi-unit conversion suite: Pressure, Flow Rate, Force & Torque, Power, Temperature, and RPM.',
+    },
+    path: 'tools/unit-converter/index.html', keywords: 'unit converter pressure bar psi flow rate torque moment force power kw hp rpm temperature',
+  },
+  {
+    id: 'net-calc', icon: 'network', color: ['#06B6D4', '#3B82F6'], cat: 'industry',
+    name: { vi: 'Industrial IP & Network Architect Pro', en: 'Industrial IP & Network Architect Pro' },
+    desc: {
+      vi: 'Quy hoạch phân dải mạng công nghiệp (OT Network), tính Subnet Mask/CIDR, chống xung đột trùng IP và quản lý danh mục thiết bị nhà xưởng.',
+      en: 'Industrial OT network planning, subnet mask / CIDR calculator, duplicate IP detection, and plant device allocation table.',
+    },
+    path: 'tools/net-calc/index.html', keywords: 'ip network subnet cidr ot industrial profinet ethernet moxa switch plc hmi robot duplicate',
   },
   {
     id: 'crop', icon: 'crop', color: ['#F59E0B', '#EF4444'], cat: 'image',
@@ -33,6 +141,169 @@ const TOOLS = [
 
 // Nhật ký thay đổi hiển thị ở trang Giới thiệu (mới nhất ở trên)
 const CHANGELOG = [
+  {
+    version: '1.3.1', date: '2026-10-10',
+    items: {
+      vi: [
+        'Phân quyền chi tiết theo từng người dùng (Granular RBAC Tool Permissions): Tài khoản Quản trị viên (Admin) có thể phân quyền chính xác công cụ được phép thấy và truy cập cho từng kỹ sư; bảo vệ toàn diện qua Trang chủ, Command Palette, Lịch sử và Iframe loader.',
+        'Lời chào Trang chủ cá nhân hóa thông minh: Tự động chào theo tên hiển thị của tài khoản đang đăng nhập và điều chỉnh phụ đề tương ứng.',
+        'Tối ưu hóa UI/UX toàn diện: Chuyển toàn bộ hệ thống icon sang SVG Line Stroke thanh mảnh (1.7px), loại bỏ hoàn toàn emoji màu mè và hiệu ứng viền neon.',
+        'Thiết kế giao diện công nghiệp chuẩn hãng: Nút bấm và bảng điều khiển theo tông màu xám slate trung tính, chuyên nghiệp như Siemens TIA Portal & Schneider EcoStruxure.',
+        'Nâng cấp SCADA Vision Toolkit & Symbols View: Thư viện biểu tượng công nghiệp SVG chuẩn DIN/ISA, tối ưu hóa kích thước chống che khuất và sửa lỗi xuất báo cáo PDF.',
+      ],
+      en: [
+        'Granular RBAC Tool Permissions: Administrator can configure tool-level visibility and access control for each user across Home, Command Palette, History, and iframe loaders.',
+        'Dynamic Personalized Greeting: Home hero greets users by their active account display name with adaptive subtitles.',
+        'Comprehensive UI/UX Modernization: Replaced all emoji/neon icons with crisp 1.7px SVG line stroke icons.',
+        'Industrial Standard Design: Minimalist neutral slate aesthetic aligned with European industrial automation standards (Siemens, Schneider).',
+        'SCADA Vision & Symbols View Enhancements: High-performance DIN/ISA symbols, viewport layout optimization, and PDF export bugfix.',
+      ],
+    },
+  },
+  {
+    version: '1.2.8', date: '2026-10-08',
+    items: {
+      vi: [
+        'Mở rộng hệ sinh thái công cụ: Bổ sung 4 công cụ công nghiệp chuyên sâu mới (IO Mapping & PLC Tag Generator, G-Code & CNC Motion Simulator, Industrial Unit Converter Pro, Industrial IP & Network Architect Pro).',
+        'IO Mapping & PLC Tag Generator Pro: Sinh bảng Tag tự động xuất trực tiếp sang TIA Portal SDF, Studio 5000, GX Works; hỗ trợ 4 mẫu trạm máy công nghiệp thực tế.',
+        'G-Code & CNC Motion Simulator Pro: Trình mô phỏng đường chạy dao CNC, máy cắt Laser & Robot hàn thời gian thực với Zoom/Pan, tính toán thời gian chu trình và phân biệt G0/G1/G2/G3.',
+        'Industrial Unit Converter Pro: Trạm quy đổi đa đơn vị công nghiệp trực tiếp (Áp suất, Lưu lượng khí nén, Moment xoắn, Công suất & HP, Nhiệt độ, Vận tốc & RPM).',
+        'Industrial IP & Network Architect Pro: Thiết kế và quản lý dải mạng OT nhà xưởng, tính toán Subnet CIDR, tự động phát hiện và cảnh báo trùng lặp IP thiết bị.',
+        'Sửa triệt để cầu nối Native IPC giữa các công cụ trong iFrame và ứng dụng C# WPF.',
+      ],
+      en: [
+        'Massive Tool Suite Expansion: Added 4 comprehensive industrial tools (IO Mapping & PLC Tag Generator, G-Code Motion Simulator, Unit Converter Pro, Industrial IP Network Architect).',
+        'IO Mapping & PLC Tag Generator: Auto address sequencer and Tag exporter for TIA Portal (.sdf), Studio 5000, GX Works with machine presets.',
+        'G-Code & CNC Motion Simulator: Real-time 2D CNC/Laser/Robot trajectory plotting with cycle time calculations and G0/G1/G2/G3 color coding.',
+        'Industrial Unit Converter Pro: Multi-way instant unit conversion across Pressure, Flow Rate, Force & Torque, Power, Temperature, and RPM.',
+        'Industrial IP & Network Architect Pro: Plant OT network planning, subnet CIDR calculator, and automated duplicate IP conflict detection.',
+        'Fixed native IPC cross-frame communication between tool iframes and WPF backend.',
+      ],
+    },
+  },
+  {
+    version: '1.2.7', date: '2026-10-07',
+    items: {
+      vi: [
+        'Module mới: SCADA Graphics & Machine Vision Toolkit (C# WPF Native MVVM với CommunityToolkit.Mvvm).',
+        'ScadaDesignTab: SCADA Symbol Manager tải SVG, đọc XML đổi màu fill trạng thái Off/Run/Fault, render Svg.Skia và xuất ảnh PNG.',
+        'ISA-101 Color Palette: Định nghĩa bảng màu công nghiệp High-performance HMI, copy nhanh mã HEX và xuất cấu hình JSON.',
+        'VisionTestTab: Machine Vision Sandbox với OpenCV (OpenCvSharp4) xử lý Gray, Threshold, Canny edges realtime qua 3 thanh trượt slider.',
+        'Industrial Barcode / QR Scanner: Kết nối USB Camera (AForge.Video.DirectShow), giải mã mã vạch/QR (ZXing.Net) kèm âm thanh Beep báo hiệu.',
+      ],
+      en: [
+        'New Module: SCADA Graphics & Machine Vision Toolkit (C# WPF Native MVVM via CommunityToolkit.Mvvm).',
+        'ScadaDesignTab: SCADA Symbol Manager with SVG XML fill state recoloring (Off/Run/Fault), Svg.Skia rendering and PNG export.',
+        'ISA-101 Color Palette: Standard high-performance HMI palette with instant HEX copy and JSON export.',
+        'VisionTestTab: OpenCV Machine Vision Sandbox (OpenCvSharp4) with realtime Gray, Threshold, Canny edge sliders.',
+        'Industrial Barcode / QR Scanner: USB Camera stream (AForge) with ZXing barcode/QR decoding and audio beep signal.',
+      ],
+    },
+  },
+  {
+    version: '1.2.6', date: '2026-10-07',
+    items: {
+      vi: [
+        'Công cụ mới: PLC & Modbus Inspector Pro — Kiểm thử & giám sát truyền thông công nghiệp đa năng (lấy cảm hứng từ Modbus Examiner, OpenModScan, S7.Net Plus, NModbus, OPC Foundation).',
+        'Bổ sung chức năng Test kết nối OPC UA PLC Siemens: Bắt tay nhị phân HEL/ACK, kiểm tra cổng 4840, đo độ trễ mạng RTT, kiểm tra Endpoint Security Policies & chứng chỉ Server Certificate.',
+        'Hỗ trợ đọc/ghi biến Tag OPC UA Siemens thời gian thực (S7-1200/S7-1500) và trình duyệt cây biến PLC Siemens (OPC UA Address Space Browser).',
+        'Hỗ trợ Modbus TCP & Modbus RTU (Serial COM) chuẩn NModbus: Đọc/Ghi Coils (FC01/05), Discrete Inputs (FC02), Holding Registers (FC03/06/16), Input Registers (FC04).',
+        'Hỗ trợ Siemens S7 PLC chuẩn S7.Net Plus: Kết nối trực tiếp S7-1200, S7-1500, S7-300, S7-400, S7-200; Đọc/Ghi Data Block (DB), Memory Flags (M), Inputs (I), Outputs (Q).',
+        'Bảng giám sát Data Monitor Grid & Bit Matrix 16-bit: Hiển thị thời gian thực Hex, Binary, Int16, UInt16, Float32 (ABCD / CDAB Word Swap), hiệu ứng nhấp nháy khi giá trị đổi và lật từng bit trực quan.',
+        'Bộ soi gói tin Traffic Hex Inspector: Phân tích khung truyền nhận TX/RX Hex thời gian thực, đo độ trễ Latency và tích hợp sẵn bộ giả lập Offline Simulator sinh động.',
+      ],
+      en: [
+        'New Tool: PLC & Modbus Inspector Pro — Universal industrial fieldbus tester & monitor (inspired by Modbus Examiner, OpenModScan, S7.Net Plus, NModbus).',
+        'Full Modbus TCP & RTU Support via NModbus: Coils, Discrete Inputs, Holding Registers, and Input Registers with multi-threaded execution.',
+        'Direct Siemens S7 PLC Integration via S7.Net Plus: Connects to S7-1200, S7-1500, S7-300, S7-400, S7-200 with DB/M/I/Q read/write.',
+        'Real-time Data Monitor Grid & 16-bit LED Matrix: Hex, Binary, Int16, UInt16, Float32 ABCD/CDAB, value-changed flashes, and interactive bit toggling.',
+        'Traffic Hex Packet Inspector & Offline Simulator: Live TX/RX hex frame analysis, latency measurement, and built-in industrial simulator.',
+      ],
+    },
+  },
+  {
+    version: '1.2.5', date: '2026-10-07',
+    items: {
+      vi: [
+        'Công cụ mới: Text to AutoCAD Pro — Trình chuyển đổi văn bản và mô tả tự nhiên thành bản vẽ kỹ thuật CAD chuẩn xác (.DXF, Script .SCR tự vẽ, AutoLISP .LSP).',
+        'Bộ xem trước 2D CAD Canvas Viewer thời gian thực: Zoom trỏ chuột mượt mà, Pan, Lưới Grid tương thích, trục tọa độ X-Y (mm), hệ màu ACI chuẩn AutoCAD và đo kích thước Dimension.',
+        'Kho mẫu công nghiệp tự động sinh: Mặt bích cơ khí PCD, Tủ điện điều khiển công nghiệp, Băng tải cơ khí, Mặt bằng nhà xưởng, Khung tên tiêu chuẩn A3.',
+        'Tương thích 100% Offline: Mở trực tiếp trên AutoCAD, SolidWorks, ZWCAD hoặc kéo thả file .SCR để tự động vẽ vèo vèo.',
+      ],
+      en: [
+        'New Tool: Text to AutoCAD Pro — Transform natural text, CAD DSL, and prompts into precision engineering drawings (.DXF, AutoCAD Script .SCR, AutoLISP .LSP).',
+        'Real-time 2D CAD Canvas Viewer: Smooth mouse zoom, pan, adaptive grid, coordinate tracking (mm), ACI color standard, and dimension annotations.',
+        'Industrial Template Presets: Mechanical PCD Flange, Industrial Electrical Enclosure, Belt Conveyor, Factory Floor Plan, ISO A3 Title Block.',
+        '100% Offline & Universal: Directly opens in AutoCAD, SolidWorks, ZWCAD or drag-and-drop .SCR script to draw automatically.',
+      ],
+    },
+  },
+  {
+    version: '1.2.4', date: '2026-10-07',
+    items: {
+      vi: [
+        'Công cụ mới: Industrial Calculator Pro — Trạm tính toán kỹ thuật tự động hóa chuyên sâu (Analog 4-20mA/0-10V Scaler, Modbus IEEE-754 Word Swap, OEE & Takt Time, Chọn CB & Cáp động cơ).',
+        'Tăng cường bảo mật: Gỡ bỏ hoàn toàn tính năng đăng nhập nhanh một chạm để bảo vệ tuyệt đối mật khẩu tài khoản Admin.',
+      ],
+      en: [
+        'New Tool: Industrial Calculator Pro — Comprehensive engineering calculation suite (Analog Scaler, Modbus IEEE-754 Word Swap, OEE & Takt Time, Motor & Cable Sizing).',
+        'Enhanced Security: Removed quick 1-touch login to strictly enforce password protection on all workstations.',
+      ],
+    },
+  },
+  {
+    version: '1.2.3', date: '2026-10-07',
+    items: {
+      vi: [
+        'Mặc định mở toàn màn hình (Maximized Full Screen): App tự động phóng to tối đa ngay khi khởi động trên cả WPF và Electron.',
+        'Sửa triệt để lỗi cuộn & Topbar dính theo: Cố định thanh Topbar trong APM (position sticky) luôn chạy theo khi cuộn làm việc.',
+        'Tối ưu hóa layout cuộn mượt mà: Ngăn ngừa tràn khung hình, hỗ trợ cuộn trơn tru chống kẹt viewport.',
+        'Nút nổi cuộn lên đầu trang (Back to Top): Nút bấm 1 chạm tiện lợi tự động xuất hiện khi cuộn trang sâu.',
+      ],
+      en: [
+        'Default Maximized Full Screen: window automatically launches maximized on both WPF and Electron.',
+        'Fixed Scrolling & Sticky Topbar: APM topbar remains sticky and tracks along smoothly when scrolling content.',
+        'Smooth scroll optimization: robust container overflow containment, preventing viewport scroll lock.',
+        'Floating Back to Top button: 1-click smooth scroll to top when browsing long content.',
+      ],
+    },
+  },
+  {
+    version: '1.2.2', date: '2026-10-07',
+    items: {
+      vi: [
+        'Hệ thống Phân quyền & Đăng nhập bảo mật (RBAC): tích hợp trang Login bảo mật cao (thuật toán PBKDF2 HMAC-SHA256 chuẩn Web Crypto, 100,000 vòng lặp, salt ngẫu nhiên).',
+        'Phân quyền đa vai trò: Quản trị viên (Admin - Sếp Kha) và Kỹ sư (Engineer) với giao diện người dùng chuyên nghiệp trên Titlebar.',
+        'Bảo mật phân quyền trong APM: Khóa tab "Bảng điều khiển Admin", chỉ cho phép tài khoản Administrator xem tổng hợp dự án.',
+        'Trang quản lý tài khoản trong Cài đặt: Admin có thể tạo tài khoản nhân viên mới, phân vai trò, đổi mật khẩu và quản lý danh sách người dùng.',
+        'Tính năng Đăng nhập nhanh 1 chạm: tiện lợi tối đa khi demo hoặc thao tác nhanh.',
+      ],
+      en: [
+        'Authentication & RBAC System: secure login page powered by Web Crypto PBKDF2 HMAC-SHA256 (100,000 iterations, random salt).',
+        'Role-Based Access Control: Administrator and Engineer roles with profile menu on titlebar.',
+        'APM Role Security: Admin Dashboard is locked exclusively for Administrator accounts.',
+        'User Management in Settings: Admin can create staff accounts, assign roles, reset passwords, and manage users.',
+        '1-touch Quick Login: convenient for fast testing and demonstrations.',
+      ],
+    },
+  },
+  {
+    version: '1.2.0', date: '2026-10-07',
+    items: {
+      vi: [
+        'Tích hợp công cụ Automation Project Master (APM v4.2.1): chuẩn hóa cấu trúc dự án tự động hóa, 18 biểu mẫu V4, lộ trình 12 giai đoạn, theo dõi Issue và Cycle Time.',
+        'Tính năng Cập nhật lên (Google Drive snapshot): đồng bộ 1 click, tự động nhận diện Drive, xoay vòng lịch sử 30 bản an toàn, phát hiện xung đột.',
+        'Bảng điều khiển Admin (Chỉ xem): giám sát tổng quan dự án toàn bộ kỹ sư, so sánh phiên bản (Diff View), xuất báo cáo CSV an toàn, chống tấn công Formula Injection.',
+        'Nâng cấp nhận diện thương hiệu: cập nhật bộ logo biểu tượng mới cho Kha Studio, đồng bộ toàn hệ thống.',
+      ],
+      en: [
+        'Integrated Automation Project Master (APM v4.2.1): standardized automation project structures, 18 V4 templates, 12-stage roadmap, issue and cycle time tracking.',
+        'Publish to Google Drive: 1-click snapshot synchronization, auto Drive detection, safe 30-version history rotation, conflict detection.',
+        'Admin Dashboard (View-only): centralized overview of engineering projects, snapshot diff comparison, safe CSV export with formula injection protection.',
+        'Brand identity update: brand new logo and icon set across Kha Studio.',
+      ],
+    },
+  },
   {
     version: '1.1.0', date: '2026-10-07',
     items: {
@@ -60,3 +331,12 @@ const CHANGELOG = [
     },
   },
 ];
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { CATEGORIES, TOOLS, CHANGELOG };
+}
+if (typeof window !== 'undefined') {
+  window.CATEGORIES = CATEGORIES;
+  window.TOOLS = TOOLS;
+  window.CHANGELOG = CHANGELOG;
+}

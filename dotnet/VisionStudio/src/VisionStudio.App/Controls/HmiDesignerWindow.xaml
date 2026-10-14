@@ -1,0 +1,275 @@
+<Window x:Class="VisionStudio.App.Controls.HmiDesignerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🖥️ HMI Designer &amp; Web HMI Server - Trình Thiết Kế Màn Hình Vận Hành Nhà Máy"
+        Height="820" Width="1320"
+        MinHeight="600" MinWidth="980"
+        WindowStartupLocation="CenterScreen"
+        Background="#121620" Foreground="#E2E8F0"
+        FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <SolidColorBrush x:Key="KsBgBase" Color="#121620"/>
+        <SolidColorBrush x:Key="KsBgSurface" Color="#1A202C"/>
+        <SolidColorBrush x:Key="KsBgCard" Color="#232C3D"/>
+        <SolidColorBrush x:Key="KsBorder" Color="#334155"/>
+        <SolidColorBrush x:Key="KsAccent" Color="#00D2FF"/>
+        <SolidColorBrush x:Key="KsAccentGlow" Color="#38BDF8"/>
+        <SolidColorBrush x:Key="KsSuccess" Color="#10B981"/>
+        <SolidColorBrush x:Key="KsWarning" Color="#F59E0B"/>
+        <SolidColorBrush x:Key="KsDanger" Color="#EF4444"/>
+        <SolidColorBrush x:Key="KsTextDim" Color="#94A3B8"/>
+
+        <Style x:Key="ActionButton" TargetType="ButtonBase">
+            <Setter Property="Background" Value="{StaticResource KsBgCard}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource KsBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ButtonBase">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2D3748"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource KsAccent}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ActionToggleButton" TargetType="ToggleButton" BasedOn="{StaticResource ActionButton}">
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="{StaticResource KsAccent}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource KsAccentGlow}"/>
+                    <Setter Property="Foreground" Value="#09090B"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+            <Setter Property="Background" Value="#0284C7"/>
+            <Setter Property="BorderBrush" Value="{StaticResource KsAccent}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#0369A1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- TOP RIBBON HEADER -->
+            <RowDefinition Height="54"/>
+            <!-- SUBHEADER: PAGE TABS & STATUS -->
+            <RowDefinition Height="46"/>
+            <!-- MAIN CONTENT AREA -->
+            <RowDefinition Height="*"/>
+            <!-- STATUS FOOTER -->
+            <RowDefinition Height="34"/>
+        </Grid.RowDefinitions>
+
+        <!-- ROW 0: TOP RIBBON -->
+        <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,0,0,1" Padding="14,0">
+            <Grid VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Title & Machine ID -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="👁️ VISION HMI DESIGNER" FontWeight="Bold" FontSize="15" Foreground="{StaticResource KsAccentGlow}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <Border Background="#2D3748" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                        <TextBlock x:Name="TxtMachineId" Text="LINE-01-STATION-A" FontSize="11" Foreground="{StaticResource KsTextDim}" FontFamily="Consolas"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Center: File & Project Commands -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button Content="💾 Lưu .vshmi" Style="{StaticResource ActionButton}" Margin="4,0" Click="BtnSave_Click"/>
+                    <Button Content="📂 Mở .vshmi" Style="{StaticResource ActionButton}" Margin="4,0" Click="BtnOpen_Click"/>
+                    <Button Content="🔄 Mẫu Mặc Định" Style="{StaticResource ActionButton}" Margin="4,0" Click="BtnResetDefault_Click"/>
+                </StackPanel>
+
+                <!-- Right: Mode switch & Web Server Launch -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ToggleButton x:Name="BtnModeToggle" Content="▶️ Chế Độ Vận Hành" Style="{StaticResource ActionToggleButton}" Margin="0,0,10,0" Checked="BtnModeToggle_Checked" Unchecked="BtnModeToggle_Unchecked"/>
+                    <Button x:Name="BtnToggleWebHmi" Content="🚀 Khởi Chạy Web HMI" Style="{StaticResource PrimaryButton}" Click="BtnToggleWebHmi_Click"/>
+                    <Button x:Name="BtnOpenBrowser" Content="🌐 Mở Trình Duyệt" Style="{StaticResource ActionButton}" Margin="6,0,0,0" Visibility="Collapsed" Click="BtnOpenBrowser_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ROW 1: SUBHEADER TABS & ROLES -->
+        <Border Grid.Row="1" Background="#161B26" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,0,0,1" Padding="14,0">
+            <Grid VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Page Tabs -->
+                <StackPanel x:Name="StackPageTabs" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Dynamic Page Buttons inserted here -->
+                </StackPanel>
+
+                <!-- Role Selector & New Page -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnAddPage" Content="➕ Thêm Trang" Style="{StaticResource ActionButton}" Margin="0,0,14,0" Click="BtnAddPage_Click"/>
+                    <TextBlock Text="Xem theo vai trò:" Foreground="{StaticResource KsTextDim}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12"/>
+                    <ComboBox x:Name="ComboRole" Width="130" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" SelectionChanged="ComboRole_SelectionChanged">
+                        <ComboBoxItem Content="Operator" IsSelected="True"/>
+                        <ComboBoxItem Content="Technician"/>
+                        <ComboBoxItem Content="Engineer"/>
+                        <ComboBoxItem Content="Admin"/>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ROW 2: MAIN WORKSPACE -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <!-- LEFT TOOLBOX (Designer mode) -->
+                <ColumnDefinition x:Name="ColToolbox" Width="220" MinWidth="180"/>
+                <ColumnDefinition Width="1"/>
+                <!-- CENTER CANVAS -->
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="1"/>
+                <!-- RIGHT PROPERTIES PANEL (Designer mode) -->
+                <ColumnDefinition x:Name="ColProperties" Width="300" MinWidth="240"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT TOOLBOX -->
+            <Border Grid.Column="0" Background="{StaticResource KsBgSurface}" Padding="12">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="KHO WIDGET HMI" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,10"/>
+                        <TextBlock Text="Nhấn để thêm vào màn hình:" FontSize="11" Foreground="{StaticResource KsTextDim}" Margin="0,0,0,12"/>
+
+                        <Button Content="📷 Live Image (Camera)" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_LiveImage"/>
+                        <Button Content="🏷️ OK / NG Badge" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_OkNg"/>
+                        <Button Content="🔢 Hiển Thị Số (Numeric)" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_Numeric"/>
+                        <Button Content="⏱️ Đồng Hồ Đo (Gauge)" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_Gauge"/>
+                        <Button Content="📈 Biểu Đồ Trend Line" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_Trend"/>
+                        <Button Content="📊 Phân Bố Histogram" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_Histogram"/>
+                        <Button Content="📋 Bảng Dữ Liệu (Table)" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_Table"/>
+                        <Button Content="🔘 Nút Bấm Điều Khiển" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_Button"/>
+                        <Button Content="📝 Ô Nhập Văn Bản" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_TextInput"/>
+                        <Button Content="🏷️ Chọn Recipe" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_RecipeSelector"/>
+                        <Button Content="👤 Đăng Nhập Vai Trò" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_UserLogin"/>
+                        <Button Content="📜 Nhật Ký Hệ Thống" Style="{StaticResource ActionButton}" Margin="0,3" HorizontalContentAlignment="Left" Click="BtnAddWidget_LogViewer"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- SPLITTER 1 -->
+            <Border Grid.Column="1" Background="{StaticResource KsBorder}"/>
+
+            <!-- CENTER CANVAS -->
+            <Border Grid.Column="2" Background="{StaticResource KsBgBase}" Padding="16">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                    <Grid x:Name="CanvasGrid">
+                        <!-- Dynamic Uniform/Grid of Widgets placed here -->
+                    </Grid>
+                </ScrollViewer>
+            </Border>
+
+            <!-- SPLITTER 2 -->
+            <Border Grid.Column="3" Background="{StaticResource KsBorder}"/>
+
+            <!-- RIGHT PROPERTIES PANEL -->
+            <Border Grid.Column="4" Background="{StaticResource KsBgSurface}" Padding="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="PanelProperties">
+                        <TextBlock Text="THUỘC TÍNH WIDGET" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,12"/>
+
+                        <TextBlock Text="Tiêu đề widget:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                        <TextBox x:Name="PropTitle" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,4" Margin="0,2,0,10" TextChanged="PropTitle_TextChanged"/>
+
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Cột (Col Span):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="PropColSpan" Text="6" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,4" Margin="0,2,0,0" TextChanged="PropLayout_TextChanged"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Hàng (Row Span):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="PropRowSpan" Text="2" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,4" Margin="0,2,0,0" TextChanged="PropLayout_TextChanged"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="Quyền tối thiểu (Role):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                        <ComboBox x:Name="PropMinRole" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" Margin="0,2,0,10" SelectionChanged="PropMinRole_SelectionChanged">
+                            <ComboBoxItem Content="Operator"/>
+                            <ComboBoxItem Content="Technician"/>
+                            <ComboBoxItem Content="Engineer"/>
+                            <ComboBoxItem Content="Admin"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Nguồn dữ liệu (Binding Source):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                        <ComboBox x:Name="PropBindingSource" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" Margin="0,2,0,10" SelectionChanged="PropBinding_Changed">
+                            <ComboBoxItem Content="PipelineOutput"/>
+                            <ComboBoxItem Content="DeviceTag"/>
+                            <ComboBoxItem Content="Metric"/>
+                            <ComboBoxItem Content="System"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Đường dẫn Tag / Biến (Path):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                        <TextBox x:Name="PropBindingPath" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,4" Margin="0,2,0,10" TextChanged="PropBinding_Changed"/>
+
+                        <TextBlock Text="Định dạng số (Format string):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                        <TextBox x:Name="PropBindingFormat" Text="{}{0}" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,4" Margin="0,2,0,10" TextChanged="PropBinding_Changed"/>
+
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Ngưỡng dưới (Low):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="PropLowLimit" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,4" Margin="0,2,0,0" TextChanged="PropBinding_Changed"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Ngưỡng trên (High):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="PropHighLimit" Background="#232C3D" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,4" Margin="0,2,0,0" TextChanged="PropBinding_Changed"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Button x:Name="BtnDeleteWidget" Content="🗑️ Xoá Widget Này" Style="{StaticResource ActionButton}" Background="#7F1D1D" Foreground="#FCA5A5" Margin="0,20,0,0" Click="BtnDeleteWidget_Click"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- ROW 3: FOOTER STATUS -->
+        <Border Grid.Row="3" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,1,0,0" Padding="14,0">
+            <Grid VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="TxtFooterStatus" Text="Sẵn sàng." FontSize="12" Foreground="{StaticResource KsTextDim}" VerticalAlignment="Center"/>
+                <TextBlock x:Name="TxtWebHmiStatus" Grid.Column="1" Text="Web HMI: Đã dừng" FontSize="12" Foreground="{StaticResource KsTextDim}" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

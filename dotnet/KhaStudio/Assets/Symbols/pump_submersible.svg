@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Submersible Pump (Bơm chìm nước thải công nghiệp) -->
+  <!-- Quai móc xích nâng hạ (Lifting handle) -->
+  <path d="M80 30 C80 14, 120 14, 120 30" fill="none" stroke="#1E293B" stroke-width="6"/>
+  <!-- Cáp điện thả chìm -->
+  <path d="M125 35 Q145 20, 160 30 T175 15" fill="none" stroke="#1E293B" stroke-width="4"/>
+  <!-- Thân bơm trụ đứng inox/gang -->
+  <rect x="65" y="32" width="70" height="100" rx="10" fill="#70757A" stroke="#1E293B" stroke-width="6"/>
+  <!-- Rãnh gân làm mát thân bơm -->
+  <line x1="68" y1="60" x2="132" y2="60" stroke="#1E293B" stroke-width="3"/>
+  <line x1="68" y1="85" x2="132" y2="85" stroke="#1E293B" stroke-width="3"/>
+  <!-- Buồng bơm chân đế hút rác -->
+  <path d="M50 132 L150 132 L155 165 L45 165 Z" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <!-- Họng xả cong lên (Discharge elbow) -->
+  <path d="M135 110 L170 110 L170 80" fill="none" stroke="#70757A" stroke-width="18"/>
+  <path d="M135 110 L170 110 L170 80" fill="none" stroke="#1E293B" stroke-width="4"/>
+  <line x1="160" y1="80" x2="180" y2="80" stroke="#1E293B" stroke-width="6"/>
+  <!-- Chân kiềng 3 chạc chống lún cặn đáy -->
+  <rect x="52" y="165" width="12" height="20" fill="#1E293B"/>
+  <rect x="94" y="165" width="12" height="20" fill="#1E293B"/>
+  <rect x="136" y="165" width="12" height="20" fill="#1E293B"/>
+  <!-- Ký hiệu SUB -->
+  <text x="100" y="112" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">SUB</text>
+</svg>

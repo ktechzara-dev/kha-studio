@@ -30,7 +30,7 @@
 
   let state = {
     settings: { ...DEFAULT_SETTINGS },
-    pinned: ['pallet', 'crop'],
+    pinned: ['apm', 'pallet', 'crop'],
     recent: [], // [{ id, lastOpened }]
     openTools: [], // [id, id]
     activeView: 'home', // 'home' | 'settings' | 'about' | 'tool'
@@ -108,6 +108,13 @@
       console.log('[Native Msg]', msg);
     }
   }
+
+  // Lắng nghe thông điệp từ các iframe con để chuyển tiếp xuống C# native backend
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.cmd) {
+      postToNative(event.data);
+    }
+  });
 
   // ---------- Áp dụng Theme, Accent & Giao diện ----------
   function applyTheme() {
@@ -312,13 +319,20 @@
     frame.id = `frame-${toolId}`;
     frame.className = 'tool-frame';
     frame.src = tool.path;
-    frame.setAttribute('allow', 'clipboard-read; clipboard-write');
+    frame.setAttribute('allow', 'clipboard-read; clipboard-write; fullscreen');
+    frame.setAttribute('allowfullscreen', 'true');
 
     frame.onload = () => {
       if (loader) loader.hidden = true;
       // Inject phím tắt toàn cục vào trong iframe để ấn Ctrl+K / Ctrl+H / Ctrl+Tab vẫn hoạt động trơn tru
       try {
         frame.contentWindow.addEventListener('keydown', handleGlobalKeydown);
+      } catch (e) { }
+      // Chuyển cầu nối apm vào iframe công cụ
+      try {
+        if (window.apm && !frame.contentWindow.apm) {
+          frame.contentWindow.apm = window.apm;
+        }
       } catch (e) { }
     };
 
@@ -329,6 +343,10 @@
   function openTool(toolId) {
     const tool = getTool(toolId);
     if (!tool) return;
+    if (window.Auth && !window.Auth.canAccessTool(toolId)) {
+      notify('Truy cập bị từ chối', `Bạn chưa được cấp quyền truy cập công cụ "${getToolName(tool)}". Vui lòng liên hệ Quản trị viên để cấp quyền.`, 'error');
+      return;
+    }
     if (!tool.path) {
       notify(t('comingSoon'), t('comingSoonDesc'), 'info');
       return;
@@ -469,7 +487,7 @@
 
     // Các tool đã ghim
     if (pinSection && pinList) {
-      const validPinned = state.pinned.filter(id => getTool(id));
+      const validPinned = state.pinned.filter(id => getTool(id) && (!window.Auth || window.Auth.canAccessTool(id)));
       if (validPinned.length > 0) {
         pinSection.hidden = false;
         pinList.innerHTML = validPinned.map(id => {
@@ -505,22 +523,36 @@
     const view = document.getElementById('view-home');
     if (!view) return;
 
-    // Lời chào theo giờ
+    // Lời chào theo giờ và tên người dùng đăng nhập
     const hour = new Date().getHours();
     let greet = t('greetMorning');
     if (hour >= 11 && hour < 14) greet = t('greetNoon');
     else if (hour >= 14 && hour < 18) greet = t('greetAfternoon');
     else if (hour >= 18 || hour < 5) greet = t('greetEvening');
 
+    const currentUser = (window.Auth && window.Auth.getCurrentUser) ? window.Auth.getCurrentUser() : null;
     const heroGreeting = document.getElementById('hero-greeting');
     if (heroGreeting) {
-      heroGreeting.innerHTML = `${greet}, <em>${t('boss')}</em>!`;
+      const displayName = currentUser ? (currentUser.name || currentUser.username) : t('boss');
+      heroGreeting.innerHTML = `${greet}, <em>${escapeHtml(displayName)}</em>!`;
     }
 
-    // Thống kê nhanh
+    const heroSub = document.getElementById('hero-sub');
+    if (heroSub) {
+      if (currentUser && currentUser.role === 'admin') {
+        heroSub.textContent = 'Hôm nay sếp muốn làm gì?';
+      } else if (currentUser) {
+        heroSub.textContent = `Hôm nay ${escapeHtml(currentUser.name || currentUser.username)} muốn làm việc với công cụ nào?`;
+      } else {
+        heroSub.textContent = t('homeSub');
+      }
+    }
+
+    // Thống kê nhanh: chỉ tính công cụ được cấp quyền
+    const accessibleTools = TOOLS.filter(tool => !window.Auth || window.Auth.canAccessTool(tool.id));
     const statTools = document.getElementById('stat-tools');
     const statOpen = document.getElementById('stat-open');
-    if (statTools) statTools.textContent = TOOLS.length;
+    if (statTools) statTools.textContent = accessibleTools.length;
     if (statOpen) statOpen.textContent = state.openTools.length;
 
     // Filter category
@@ -559,7 +591,11 @@
     const section = document.getElementById('recent-section');
     if (!container || !section) return;
 
-    const items = state.recent.map(r => getTool(r.id)).filter(Boolean).slice(0, 4);
+    const items = state.recent
+      .filter(r => !window.Auth || window.Auth.canAccessTool(r.id))
+      .map(r => getTool(r.id))
+      .filter(Boolean)
+      .slice(0, 4);
     if (items.length === 0) {
       section.hidden = true;
       return;
@@ -596,6 +632,7 @@
     const cat = activeChip ? activeChip.getAttribute('data-cat') : 'all';
 
     const filtered = TOOLS.filter(tItem => {
+      if (window.Auth && !window.Auth.canAccessTool(tItem.id)) return false;
       const matchCat = cat === 'all' || tItem.cat === cat;
       const name = getToolName(tItem).toLowerCase();
       const desc = getToolDesc(tItem).toLowerCase();
@@ -720,6 +757,14 @@
       case 'latest':
         statusEl.className = 'upd-status ok';
         statusEl.innerHTML = `${icon('checkCircle', 14)} <span>${t('upToDate')}</span>`;
+        btn.disabled = false;
+        btn.className = 'btn sm';
+        btn.textContent = t('checkUpdate');
+        btn.onclick = () => checkUpdate();
+        break;
+      case 'dev_mode':
+        statusEl.className = 'upd-status';
+        statusEl.innerHTML = `${icon('info', 14)} <span>${state.updateStatus.message || 'Bản phát triển cục bộ'}</span>`;
         btn.disabled = false;
         btn.className = 'btn sm';
         btn.textContent = t('checkUpdate');
@@ -1015,8 +1060,9 @@
       { id: 'nav-about', label: t('about'), icon: 'info', action: () => switchView('about'), cat: t('palNav') }
     ];
 
-    // 2. Nhóm Công cụ
-    const toolItems = TOOLS.map(tool => ({
+    // 2. Nhóm Công cụ (chỉ hiện công cụ người dùng được cấp quyền)
+    const accessibleTools = TOOLS.filter(tool => !window.Auth || window.Auth.canAccessTool(tool.id));
+    const toolItems = accessibleTools.map(tool => ({
       id: `tool-${tool.id}`,
       label: getToolName(tool),
       desc: getToolDesc(tool),
@@ -1215,12 +1261,13 @@
       }
     }
 
-    // Ctrl + 1..9: Mở nhanh tool theo số thứ tự
+    // Ctrl + 1..9: Mở nhanh tool theo số thứ tự (chỉ áp dụng công cụ được cấp quyền)
     if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '9') {
       const idx = parseInt(e.key, 10) - 1;
-      if (TOOLS[idx]) {
+      const accessibleTools = TOOLS.filter(tool => !window.Auth || window.Auth.canAccessTool(tool.id));
+      if (accessibleTools[idx]) {
         e.preventDefault();
-        openTool(TOOLS[idx].id);
+        openTool(accessibleTools[idx].id);
         return;
       }
     }
@@ -1259,6 +1306,17 @@
   if (isWebView2) {
     window.chrome.webview.addEventListener('message', e => {
       const m = e.data || {};
+
+      // Chuyển tiếp (Broadcast) tới toàn bộ iframe công cụ con đang chạy
+      try {
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(f => {
+          try {
+            f.contentWindow?.postMessage(m, '*');
+          } catch (_) { }
+        });
+      } catch (_) { }
+
       switch (m.type) {
         case 'version':
           state.updateStatus.version = m.version;
@@ -1290,6 +1348,11 @@
           state.updateStatus.state = 'restarting';
           renderUpdateWidget();
           break;
+        case 'dev_mode':
+          state.updateStatus.state = 'dev_mode';
+          state.updateStatus.message = m.message;
+          renderUpdateWidget();
+          break;
         case 'error':
           state.updateStatus.state = 'error';
           state.updateStatus.message = m.message;
@@ -1302,8 +1365,515 @@
     postToNative({ cmd: 'hello' });
   }
 
+  // ---------- Xử lý Message từ Electron (native-reply) ----------
+  if (window.electronAPI && window.electronAPI.onMessage) {
+    window.electronAPI.onMessage(m => {
+      const msg = m || {};
+      try {
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(f => {
+          try {
+            f.contentWindow?.postMessage(msg, '*');
+          } catch (_) { }
+        });
+      } catch (_) { }
+    });
+  }
+
+  // ==========================================================================
+  // AUTHENTICATION & RBAC CONTROLLER
+  // ==========================================================================
+  function updateAuthUI() {
+    const user = window.Auth?.getCurrentUser();
+    const loginScreen = document.getElementById('login-screen');
+    const userProfileWrap = document.querySelector('.user-profile-wrap');
+    const userDropdown = document.getElementById('user-menu-dropdown');
+    const appEl = document.getElementById('app');
+
+    if (!user) {
+      // Chưa đăng nhập -> Hiện màn hình Login
+      if (loginScreen) {
+        loginScreen.hidden = false;
+        const userInput = document.getElementById('login-username');
+        if (userInput) setTimeout(() => userInput.focus(), 100);
+      }
+      if (userProfileWrap) userProfileWrap.style.display = 'none';
+      if (userDropdown) userDropdown.hidden = true;
+      broadcastUserToTools(null);
+      return;
+    }
+
+    // Đã đăng nhập -> Ẩn màn hình Login
+    if (loginScreen) loginScreen.hidden = true;
+    if (userProfileWrap) userProfileWrap.style.display = 'flex';
+
+    // Cập nhật Profile trên Titlebar
+    const avatarEl = document.getElementById('hdr-user-avatar');
+    const nameEl = document.getElementById('hdr-user-name');
+    const roleEl = document.getElementById('hdr-user-role');
+    const menuFullName = document.getElementById('menu-user-fullname');
+    const menuRoleDesc = document.getElementById('menu-user-role-desc');
+    const menuManageUsers = document.getElementById('btn-menu-manage-users');
+
+    const initial = (user.name || user.username || 'U').trim().charAt(0).toUpperCase();
+    if (avatarEl) avatarEl.textContent = initial;
+    if (nameEl) nameEl.textContent = user.name || user.username;
+    if (roleEl) {
+      if (user.role === 'admin') {
+        roleEl.textContent = 'ADMIN';
+        roleEl.className = 'user-role-badge admin';
+      } else {
+        roleEl.textContent = 'KỸ SƯ';
+        roleEl.className = 'user-role-badge';
+      }
+    }
+    if (menuFullName) menuFullName.textContent = user.name || user.username;
+    if (menuRoleDesc) {
+      menuRoleDesc.textContent = user.role === 'admin'
+        ? 'Quản trị viên hệ thống (Administrator)'
+        : 'Kỹ sư Tự động hóa (Engineer)';
+    }
+    if (menuManageUsers) {
+      menuManageUsers.hidden = user.role !== 'admin';
+    }
+
+    // Cập nhật Settings section RBAC
+    updateSettingsAuthSection(user);
+
+    // Gửi event / message tới các tool iframe
+    broadcastUserToTools(user);
+
+    // Đồng bộ lại giao diện Home và Sidebar theo quyền hạn của user
+    renderHome();
+    renderSidebar();
+  }
+
+  function broadcastUserToTools(user) {
+    document.querySelectorAll('#frames iframe').forEach(frame => {
+      try {
+        frame.contentWindow.postMessage({ type: 'ks:auth:user', user }, '*');
+      } catch (_) {}
+    });
+  }
+
+  function updateSettingsAuthSection(user) {
+    const curInfo = document.getElementById('set-current-user-info');
+    const adminMgmt = document.getElementById('set-admin-user-mgmt');
+    if (curInfo) {
+      if (user) {
+        const roleLabel = user.role === 'admin' ? 'Administrator' : 'Kỹ sư (Engineer)';
+        curInfo.textContent = `${user.name} (@${user.username}) — Vai trò: ${roleLabel}`;
+      } else {
+        curInfo.textContent = 'Chưa đăng nhập';
+      }
+    }
+    if (adminMgmt) {
+      adminMgmt.style.display = (user && user.role === 'admin') ? 'block' : 'none';
+      if (user && user.role === 'admin') {
+        renderUserManagementTable();
+      }
+    }
+  }
+
+  function renderUserManagementTable() {
+    const container = document.getElementById('user-mgmt-list');
+    if (!container || !window.Auth) return;
+
+    const users = window.Auth.getUsers();
+    const currentUser = window.Auth.getCurrentUser();
+
+    if (!users.length) {
+      container.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-3);">Chưa có tài khoản nào.</div>';
+      return;
+    }
+
+    let html = `<table class="user-table">
+      <thead>
+        <tr>
+          <th>Tên đăng nhập</th>
+          <th>Họ tên</th>
+          <th>Vai trò</th>
+          <th>Quyền công cụ</th>
+          <th>Ngày tạo</th>
+          <th style="text-align:right;">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    users.forEach(u => {
+      const isCur = currentUser && currentUser.id === u.id;
+      const roleBadge = u.role === 'admin'
+        ? '<span class="user-role-badge admin">ADMIN</span>'
+        : '<span class="user-role-badge">KỸ SƯ</span>';
+      const dateStr = u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : '—';
+
+      let permBadge = '';
+      if (u.role === 'admin') {
+        permBadge = '<span style="color:var(--accent); font-weight:600; font-size:11.5px;">Toàn quyền (Tất cả)</span>';
+      } else {
+        const allowed = Array.isArray(u.allowedTools) ? u.allowedTools : [];
+        if (allowed.includes('*')) {
+          permBadge = '<span style="color:var(--accent); font-weight:600; font-size:11.5px;">Toàn quyền (Tất cả)</span>';
+        } else {
+          permBadge = `<span style="font-weight:600; color:var(--text); font-size:11.5px;">${allowed.length} / ${TOOLS.length}</span> <small style="color:var(--text-3);">công cụ</small>`;
+        }
+      }
+
+      html += `<tr>
+        <td><strong>@${escapeHtml(u.username)}</strong> ${isCur ? '<small style="color:var(--accent); font-weight:600;">(Đang dùng)</small>' : ''}</td>
+        <td>${escapeHtml(u.name)}</td>
+        <td>${roleBadge}</td>
+        <td>${permBadge}</td>
+        <td><small style="color:var(--text-3);">${dateStr}</small></td>
+        <td style="text-align:right;">
+          <div class="actions" style="justify-content:flex-end;">
+            <button class="btn sm" data-action="edit-user" data-id="${u.id}" title="Chỉnh sửa / Phân quyền công cụ">Sửa & Phân quyền</button>
+            ${!isCur ? `<button class="btn sm danger" data-action="del-user" data-id="${u.id}" title="Xóa tài khoản">Xóa</button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+
+    // Gắn sự kiện sửa / xóa
+    container.querySelectorAll('[data-action="edit-user"]').forEach(btn => {
+      btn.onclick = () => openUserModal(btn.getAttribute('data-id'));
+    });
+    container.querySelectorAll('[data-action="del-user"]').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.getAttribute('data-id');
+        const u = window.Auth.getUsers().find(x => x.id === id);
+        if (!u) return;
+        if (confirm(`Sếp có chắc chắn muốn xóa tài khoản "@${u.username}" (${u.name}) không?`)) {
+          try {
+            window.Auth.deleteUser(id);
+            renderUserManagementTable();
+            notify('Đã xóa tài khoản', `Đã xóa người dùng @${u.username}`, 'info');
+          } catch (err) {
+            notify('Lỗi xóa tài khoản', err.message, 'error');
+          }
+        }
+      };
+    });
+  }
+
+  function initAuthEvents() {
+    // 1. Form đăng nhập
+    const loginForm = document.getElementById('login-form');
+    const loginErr = document.getElementById('login-error-msg');
+    const loginSubmitBtn = document.getElementById('btn-login-submit');
+
+    if (loginForm) {
+      loginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const userInput = document.getElementById('login-username');
+        const passInput = document.getElementById('login-password');
+        const rememberInput = document.getElementById('login-remember');
+
+        const username = userInput ? userInput.value : '';
+        const password = passInput ? passInput.value : '';
+        const remember = rememberInput ? rememberInput.checked : false;
+
+        if (loginErr) loginErr.hidden = true;
+        if (loginSubmitBtn) {
+          loginSubmitBtn.disabled = true;
+          loginSubmitBtn.innerHTML = '<span>Đang xác thực bảo mật…</span>';
+        }
+
+        try {
+          const session = await window.Auth.login(username, password, remember);
+          if (loginForm) loginForm.reset();
+          notify('Đăng nhập thành công', `Chào mừng ${session.name} quay trở lại Kha Studio!`, 'success');
+        } catch (err) {
+          if (loginErr) {
+            loginErr.textContent = err.message || 'Tên đăng nhập hoặc mật khẩu không chính xác';
+            loginErr.hidden = false;
+          }
+        } finally {
+          if (loginSubmitBtn) {
+            loginSubmitBtn.disabled = false;
+            loginSubmitBtn.innerHTML = `<span>Đăng nhập hệ thống</span>${icon('chevronRight', 16)}`;
+          }
+        }
+      };
+    }
+
+    // 2. Ẩn/hiện mật khẩu
+    const btnTogglePwd = document.getElementById('btn-toggle-pwd');
+    if (btnTogglePwd) {
+      btnTogglePwd.onclick = () => {
+        const pwdInput = document.getElementById('login-password');
+        if (!pwdInput) return;
+        const isText = pwdInput.type === 'text';
+        pwdInput.type = isText ? 'password' : 'text';
+        btnTogglePwd.title = isText ? 'Hiện mật khẩu' : 'Ẩn mật khẩu';
+      };
+    }
+
+    // 4. Dropdown Header Profile
+    const profileBtn = document.getElementById('btn-user-profile');
+    const userDropdown = document.getElementById('user-menu-dropdown');
+    if (profileBtn && userDropdown) {
+      profileBtn.onclick = (e) => {
+        e.stopPropagation();
+        userDropdown.hidden = !userDropdown.hidden;
+      };
+      document.addEventListener('click', (e) => {
+        if (!userDropdown.contains(e.target) && !profileBtn.contains(e.target)) {
+          userDropdown.hidden = true;
+        }
+      });
+    }
+
+    // 5. Đăng xuất / Khóa màn hình
+    const btnLogout = document.getElementById('btn-menu-logout');
+    if (btnLogout) {
+      btnLogout.onclick = () => {
+        if (confirm('Sếp có muốn đăng xuất khỏi Kha Studio không?')) {
+          window.Auth.logout();
+          notify('Đã đăng xuất', 'Màn hình làm việc đã được khóa bảo vệ an toàn.', 'info');
+        }
+      };
+    }
+
+    // 6. Đổi mật khẩu
+    const modalChangePwd = document.getElementById('modal-change-pwd');
+    const formChangePwd = document.getElementById('form-change-pwd');
+    const pwdErr = document.getElementById('pwd-error-msg');
+    const btnClosePwd = document.getElementById('btn-close-pwd-modal');
+    const btnCancelPwd = document.getElementById('btn-cancel-pwd');
+    const btnMenuChangePwd = document.getElementById('btn-menu-change-pwd');
+    const btnSetChangePwd = document.getElementById('btn-set-change-pwd');
+
+    function openChangePwdModal() {
+      if (modalChangePwd) {
+        modalChangePwd.hidden = false;
+        if (formChangePwd) formChangePwd.reset();
+        if (pwdErr) pwdErr.hidden = true;
+        const curInput = document.getElementById('pwd-current');
+        if (curInput) curInput.focus();
+      }
+    }
+    function closeChangePwdModal() {
+      if (modalChangePwd) modalChangePwd.hidden = true;
+    }
+
+    if (btnMenuChangePwd) btnMenuChangePwd.onclick = () => { if (userDropdown) userDropdown.hidden = true; openChangePwdModal(); };
+    if (btnSetChangePwd) btnSetChangePwd.onclick = openChangePwdModal;
+    if (btnClosePwd) btnClosePwd.onclick = closeChangePwdModal;
+    if (btnCancelPwd) btnCancelPwd.onclick = closeChangePwdModal;
+
+    if (formChangePwd) {
+      formChangePwd.onsubmit = async (e) => {
+        e.preventDefault();
+        const cur = document.getElementById('pwd-current').value;
+        const n1 = document.getElementById('pwd-new').value;
+        const n2 = document.getElementById('pwd-confirm').value;
+
+        if (n1 !== n2) {
+          if (pwdErr) { pwdErr.textContent = 'Mật khẩu mới và xác nhận mật khẩu không khớp'; pwdErr.hidden = false; }
+          return;
+        }
+
+        try {
+          await window.Auth.changePassword(cur, n1);
+          closeChangePwdModal();
+          notify('Đổi mật khẩu thành công', 'Mật khẩu tài khoản đã được cập nhật an toàn.', 'success');
+        } catch (err) {
+          if (pwdErr) { pwdErr.textContent = err.message || 'Lỗi đổi mật khẩu'; pwdErr.hidden = false; }
+        }
+      };
+    }
+
+    // 7. Modal Quản lý Người dùng (Admin)
+    const modalUser = document.getElementById('modal-user-form');
+    const formUser = document.getElementById('form-user-edit');
+    const userErr = document.getElementById('usr-error-msg');
+    const btnCloseUserModal = document.getElementById('btn-close-user-modal');
+    const btnCancelUserModal = document.getElementById('btn-cancel-user-modal');
+    const btnOpenAddUser = document.getElementById('btn-open-add-user');
+    const btnMenuManageUsers = document.getElementById('btn-menu-manage-users');
+
+    window.openUserModal = function (userId = null) {
+      if (!modalUser) return;
+      modalUser.hidden = false;
+      if (formUser) formUser.reset();
+      if (userErr) userErr.hidden = true;
+
+      const titleEl = document.getElementById('user-modal-title');
+      const idInput = document.getElementById('usr-edit-id');
+      const userInput = document.getElementById('usr-edit-username');
+      const nameInput = document.getElementById('usr-edit-name');
+      const roleSelect = document.getElementById('usr-edit-role');
+      const pwdInput = document.getElementById('usr-edit-pwd');
+      const pwdHint = document.getElementById('usr-pwd-hint');
+      const checklistContainer = document.getElementById('usr-tools-checklist');
+      const adminNotice = document.getElementById('usr-admin-perm-notice');
+      const permActions = document.getElementById('usr-perm-actions');
+
+      let currentAllowedTools = [];
+
+      if (userId) {
+        // Chế độ sửa
+        const u = window.Auth.getUsers().find(x => x.id === userId);
+        if (!u) return;
+        currentAllowedTools = Array.isArray(u.allowedTools) ? [...u.allowedTools] : (u.role === 'admin' ? ['*'] : []);
+        if (titleEl) titleEl.querySelector('span').textContent = `Chỉnh sửa & phân quyền: @${u.username}`;
+        if (idInput) idInput.value = u.id;
+        if (userInput) { userInput.value = u.username; userInput.disabled = true; }
+        if (nameInput) nameInput.value = u.name;
+        if (roleSelect) roleSelect.value = u.role;
+        if (pwdInput) { pwdInput.required = false; pwdInput.value = ''; }
+        if (pwdHint) pwdHint.style.display = 'block';
+      } else {
+        // Chế độ tạo mới: mặc định chọn tất cả công cụ
+        currentAllowedTools = TOOLS.map(t => t.id);
+        if (titleEl) titleEl.querySelector('span').textContent = 'Thêm người dùng mới';
+        if (idInput) idInput.value = '';
+        if (userInput) { userInput.value = ''; userInput.disabled = false; }
+        if (nameInput) nameInput.value = '';
+        if (roleSelect) roleSelect.value = 'engineer';
+        if (pwdInput) { pwdInput.required = true; pwdInput.value = ''; }
+        if (pwdHint) pwdHint.style.display = 'none';
+      }
+
+      function updatePermissionUI() {
+        const isAdmin = roleSelect.value === 'admin';
+        if (adminNotice) adminNotice.style.display = isAdmin ? 'block' : 'none';
+        if (permActions) permActions.style.display = isAdmin ? 'none' : 'flex';
+        if (checklistContainer) {
+          checklistContainer.style.opacity = isAdmin ? '0.45' : '1';
+          checklistContainer.style.pointerEvents = isAdmin ? 'none' : 'auto';
+          checklistContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            if (isAdmin) {
+              cb.checked = true;
+              cb.disabled = true;
+              cb.closest('.perm-tool-item')?.classList.add('checked');
+            } else {
+              cb.disabled = false;
+            }
+          });
+        }
+      }
+
+      if (checklistContainer) {
+        checklistContainer.innerHTML = TOOLS.map(tool => {
+          const isChecked = currentAllowedTools.includes('*') || currentAllowedTools.includes(tool.id);
+          const tName = getToolName(tool);
+          return `
+            <label class="perm-tool-item ${isChecked ? 'checked' : ''}" data-tool-id="${tool.id}">
+              <input type="checkbox" name="usr-tool-perm" value="${tool.id}" ${isChecked ? 'checked' : ''}>
+              <span class="perm-tool-ico">${icon(tool.icon, 14)}</span>
+              <span class="perm-tool-name" title="${escapeHtml(tName)}">${escapeHtml(tName)}</span>
+            </label>
+          `;
+        }).join('');
+
+        checklistContainer.querySelectorAll('.perm-tool-item').forEach(item => {
+          const cb = item.querySelector('input[type="checkbox"]');
+          cb.onchange = () => {
+            item.classList.toggle('checked', cb.checked);
+          };
+        });
+      }
+
+      roleSelect.onchange = updatePermissionUI;
+      updatePermissionUI();
+    };
+
+    function closeUserModal() {
+      if (modalUser) modalUser.hidden = true;
+    }
+
+    if (btnCloseUserModal) btnCloseUserModal.onclick = closeUserModal;
+    if (btnCancelUserModal) btnCancelUserModal.onclick = closeUserModal;
+    if (btnOpenAddUser) btnOpenAddUser.onclick = () => window.openUserModal();
+    if (btnMenuManageUsers) {
+      btnMenuManageUsers.onclick = () => {
+        if (userDropdown) userDropdown.hidden = true;
+        switchView('settings');
+        const sec = document.getElementById('sec-users');
+        if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+      };
+    }
+
+    const btnSelectAll = document.getElementById('btn-perm-select-all');
+    if (btnSelectAll) {
+      btnSelectAll.onclick = () => {
+        document.querySelectorAll('#usr-tools-checklist .perm-tool-item').forEach(item => {
+          const cb = item.querySelector('input[type="checkbox"]');
+          if (cb && !cb.disabled) {
+            cb.checked = true;
+            item.classList.add('checked');
+          }
+        });
+      };
+    }
+    const btnDeselectAll = document.getElementById('btn-perm-deselect-all');
+    if (btnDeselectAll) {
+      btnDeselectAll.onclick = () => {
+        document.querySelectorAll('#usr-tools-checklist .perm-tool-item').forEach(item => {
+          const cb = item.querySelector('input[type="checkbox"]');
+          if (cb && !cb.disabled) {
+            cb.checked = false;
+            item.classList.remove('checked');
+          }
+        });
+      };
+    }
+
+    if (formUser) {
+      formUser.onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('usr-edit-id').value;
+        const username = document.getElementById('usr-edit-username').value;
+        const name = document.getElementById('usr-edit-name').value;
+        const role = document.getElementById('usr-edit-role').value;
+        const pwd = document.getElementById('usr-edit-pwd').value;
+
+        const allowedTools = role === 'admin'
+          ? ['*']
+          : Array.from(document.querySelectorAll('input[name="usr-tool-perm"]:checked')).map(cb => cb.value);
+
+        try {
+          if (id) {
+            // Cập nhật
+            await window.Auth.updateUser(id, { name, role, allowedTools, password: pwd });
+            notify('Cập nhật thành công', `Đã cập nhật thông tin & phân quyền tài khoản @${username}`, 'success');
+          } else {
+            // Tạo mới
+            await window.Auth.createUser({ username, name, role, allowedTools, password: pwd });
+            notify('Thêm tài khoản thành công', `Đã tạo người dùng mới @${username}`, 'success');
+          }
+          closeUserModal();
+          renderUserManagementTable();
+          updateAuthUI();
+        } catch (err) {
+          if (userErr) { userErr.textContent = err.message || 'Lỗi lưu tài khoản'; userErr.hidden = false; }
+        }
+      };
+    }
+
+    // Lắng nghe auth change
+    window.addEventListener('ks:auth:change', () => {
+      updateAuthUI();
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
   // ---------- Gắn kết DOM và Khởi chạy ứng dụng ----------
   window.addEventListener('DOMContentLoaded', () => {
+    // 0. Khởi tạo Authentication & Phân quyền
+    initAuthEvents();
+    updateAuthUI();
+
     // 1. Áp dụng theme
     applyTheme();
 
@@ -1322,6 +1892,47 @@
 
     const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
     if (btnToggleSidebar) btnToggleSidebar.onclick = toggleSidebar;
+
+    const btnSidebarCollapse = document.getElementById('btn-sidebar-collapse');
+    if (btnSidebarCollapse) btnSidebarCollapse.onclick = toggleSidebar;
+
+    const sbFloatingRestore = document.getElementById('sb-floating-restore');
+    if (sbFloatingRestore) sbFloatingRestore.onclick = toggleSidebar;
+
+    // Kéo rê chuột chỉnh độ rộng Sidebar (Drag to Resize)
+    const sbResizer = document.getElementById('sb-resizer');
+    if (sbResizer) {
+      let isResizing = false;
+      sbResizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        sbResizer.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const newWidth = Math.max(64, Math.min(420, e.clientX));
+        if (newWidth <= 90) {
+          state.settings.sidebarCollapsed = true;
+          document.body.classList.add('sb-collapsed');
+        } else {
+          state.settings.sidebarCollapsed = false;
+          document.body.classList.remove('sb-collapsed');
+          document.documentElement.style.setProperty('--sb-w', `${newWidth}px`);
+        }
+        const sbCollapseTxt = document.querySelector('.sb-collapse-txt');
+        if (sbCollapseTxt) sbCollapseTxt.innerText = state.settings.sidebarCollapsed ? 'Mở rộng' : 'Thu nhỏ';
+      });
+      window.addEventListener('mouseup', () => {
+        if (isResizing) {
+          isResizing = false;
+          sbResizer.classList.remove('resizing');
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          saveState();
+        }
+      });
+    }
 
     const btnThemeToggle = document.getElementById('btn-theme-toggle');
     if (btnThemeToggle) btnThemeToggle.onclick = toggleTheme;
@@ -1391,6 +2002,20 @@
     if (wcMax) wcMax.onclick = () => postToNative({ cmd: 'window.maximize' });
     if (wcClose) wcClose.onclick = () => postToNative({ cmd: 'window.close' });
 
+    const titlebarEl = document.getElementById('titlebar');
+    if (titlebarEl) {
+      titlebarEl.addEventListener('mousedown', (e) => {
+        if (e.target.closest('button, input, select, a, #winctl, .user-profile-wrap, .searchbar')) return;
+        if (e.button === 0) {
+          postToNative({ cmd: 'window.drag' });
+        }
+      });
+      titlebarEl.addEventListener('dblclick', (e) => {
+        if (e.target.closest('button, input, select, a, #winctl, .user-profile-wrap, .searchbar')) return;
+        postToNative({ cmd: 'window.maximize' });
+      });
+    }
+
     // Mẹo khác
     const btnNextTip = document.getElementById('btn-next-tip');
     if (btnNextTip) btnNextTip.onclick = nextTip;
@@ -1435,6 +2060,33 @@
     // Tự kiểm tra cập nhật khi khởi động
     if (state.settings.autoCheckUpdate && isWebView2) {
       setTimeout(checkUpdate, 2000);
+    }
+
+    // Xử lý nút cuộn lên đầu trang (Back to top)
+    const backToTopBtn = document.getElementById('btn-back-to-top');
+    if (backToTopBtn) {
+      const updateBackToTop = (el) => {
+        if (el && el.scrollTop > 180) {
+          backToTopBtn.classList.add('show');
+        } else {
+          backToTopBtn.classList.remove('show');
+        }
+      };
+
+      document.querySelectorAll('.view').forEach(viewEl => {
+        viewEl.addEventListener('scroll', () => {
+          if (viewEl.classList.contains('active')) {
+            updateBackToTop(viewEl);
+          }
+        }, { passive: true });
+      });
+
+      backToTopBtn.onclick = () => {
+        const activeView = document.querySelector('.view.active');
+        if (activeView) {
+          activeView.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      };
     }
   });
 

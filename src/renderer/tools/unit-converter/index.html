@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Industrial Unit Converter Pro — Kha Studio</title>
+  <link rel="stylesheet" href="css/unit-converter.css">
+</head>
+<body>
+  <div class="conv-app">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        </div>
+        <div>
+          <h1>Industrial Unit Converter Pro</h1>
+          <p class="subtitle">Trạm quy đổi đơn vị đo lường công nghiệp đa thông số thời gian thực</p>
+        </div>
+      </div>
+
+      <div class="category-tabs">
+        <button class="cat-tab active" data-cat="pressure">💨 Áp suất</button>
+        <button class="cat-tab" data-cat="flow">🌊 Lưu lượng</button>
+        <button class="cat-tab" data-cat="torque">⚙️ Lực &amp; Moment</button>
+        <button class="cat-tab" data-cat="power">⚡ Công suất</button>
+        <button class="cat-tab" data-cat="temp">🌡️ Nhiệt độ</button>
+        <button class="cat-tab" data-cat="speed">🔄 Tốc độ &amp; RPM</button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Active Converter Card -->
+      <section class="converter-box">
+        <div class="box-header">
+          <span class="box-title" id="catTitle">Áp suất công nghiệp (Pressure Units)</span>
+          <span class="box-hint">Nhập giá trị vào bất kỳ ô nào để tự động quy đổi tất cả đơn vị</span>
+        </div>
+
+        <div class="unit-grid" id="unitGrid">
+          <!-- Dynamically generated unit inputs -->
+        </div>
+
+        <!-- Formula reference / Rule of thumb card -->
+        <div class="formula-card">
+          <span class="formula-title">💡 Ghi nhớ nhanh thực tế công xưởng (Rule of Thumb):</span>
+          <p id="formulaDesc">1 bar = 100 kPa = 0.1 MPa ≈ 14.504 psi ≈ 1.0197 kgf/cm² ≈ 10.197 mH2O</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer Toast -->
+    <div id="toast" class="toast">Đã sao chép vào bộ nhớ tạm!</div>
+  </div>
+
+  <script type="module" src="js/unit-converter.js"></script>
+</body>
+</html>

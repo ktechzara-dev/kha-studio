@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- 3-Way Control / Diverting Valve (Van 3 ngả chuyển hướng) -->
+  <!-- Cổng A bên trái -->
+  <polygon points="25,75 100,105 25,135" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <line x1="25" y1="65" x2="25" y2="145" stroke="#1E293B" stroke-width="6"/>
+  <!-- Cổng B bên phải -->
+  <polygon points="175,75 100,105 175,135" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <line x1="175" y1="65" x2="175" y2="145" stroke="#1E293B" stroke-width="6"/>
+  <!-- Cổng AB phía dưới -->
+  <polygon points="70,180 100,105 130,180" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <line x1="60" y1="180" x2="140" y2="180" stroke="#1E293B" stroke-width="6"/>
+  <!-- Tâm bi van -->
+  <circle cx="100" cy="105" r="16" fill="#1E293B"/>
+  <circle cx="100" cy="105" r="8" fill="#FFFFFF"/>
+  <!-- Động cơ chấp hành trên nóc (Actuator) -->
+  <line x1="100" y1="89" x2="100" y2="55" stroke="#1E293B" stroke-width="6"/>
+  <rect x="75" y="18" width="50" height="38" rx="6" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <text x="100" y="44" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">3W</text>
+</svg>

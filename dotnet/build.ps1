@@ -20,24 +20,36 @@ if (-not (Test-Path (Join-Path $root "..\src\renderer\lib\jszip.min.js"))) {
 if (-not $RepoUrl) { $RepoUrl = ([xml](Get-Content $proj -Raw)).Project.PropertyGroup.UpdateUrl | Where-Object { $_ } | Select-Object -First 1 }
 $isGh = $RepoUrl -match "github\.com"
 
+# Token GitHub
+$token = $env:GITHUB_TOKEN
+$tokenFile = Join-Path $root "github-token.txt"
+if (-not $token -and (Test-Path $tokenFile)) { $token = (Get-Content $tokenFile -Raw).Trim() }
+
 # Lấy bản cũ từ GitHub để vpk tạo gói delta (cập nhật nhỏ gọn)
 if ($Publish -and $isGh) {
-  vpk download github --repoUrl $RepoUrl --token $env:GITHUB_TOKEN --outputDir $rel
+  if ($token) {
+    vpk download github --repoUrl $RepoUrl --token $token --outputDir $rel
+  } else {
+    vpk download github --repoUrl $RepoUrl --outputDir $rel
+  }
 }
 
 if (Test-Path $pub) { Remove-Item $pub -Recurse -Force }
 dotnet publish $proj -c Release -r win-x64 --self-contained -p:Version=$Version -p:UpdateUrl=$RepoUrl -o $pub
 if ($LASTEXITCODE) { throw "dotnet publish lỗi" }
 
-vpk pack --packId KhaStudio --packVersion $Version --packDir $pub --mainExe KhaStudio.exe `
-  --packTitle "Kha Studio" --packAuthors "Kha.nm" --outputDir $rel
+$iconFile = Join-Path $root "KhaStudio\app.ico"
+if (Test-Path $iconFile) {
+  vpk pack --packId KhaStudio --packVersion $Version --packDir $pub --mainExe KhaStudio.exe `
+    --packTitle "Kha Studio" --packAuthors "Kha.nm" --icon $iconFile --outputDir $rel
+} else {
+  vpk pack --packId KhaStudio --packVersion $Version --packDir $pub --mainExe KhaStudio.exe `
+    --packTitle "Kha Studio" --packAuthors "Kha.nm" --outputDir $rel
+}
 if ($LASTEXITCODE) { throw "vpk pack lỗi" }
 
 if ($Publish) {
   if (-not $isGh) { throw "-Publish hiện chỉ hỗ trợ GitHub. Với thư mục mạng: copy nội dung $rel lên đó." }
-  $token = $env:GITHUB_TOKEN
-  $tokenFile = Join-Path $root "github-token.txt"
-  if (-not $token -and (Test-Path $tokenFile)) { $token = (Get-Content $tokenFile -Raw).Trim() }
   if (-not $token) { throw "Chưa đặt `$env:GITHUB_TOKEN hoặc file dotnet\github-token.txt" }
   vpk upload github --repoUrl $RepoUrl --token $token --publish --merge --releaseName "Kha Studio $Version" --tag "v$Version" --outputDir $rel
   if ($LASTEXITCODE) { throw "vpk upload lỗi" }

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G-Code & CNC Motion Simulator Pro — Kha Studio</title>
+  <link rel="stylesheet" href="css/gcode.css">
+</head>
+<body>
+  <div class="gcode-app">
+    <!-- Top Bar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <h1>G-Code &amp; CNC Motion Simulator Pro</h1>
+          <p class="subtitle">Mô phỏng đường chạy dao CNC, máy cắt Laser &amp; quỹ đạo Robot gia công 2D/3D</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button id="btnPlay" class="btn btn-primary">▶ Chạy mô phỏng</button>
+        <button id="btnReset" class="btn btn-secondary">⏹ Về gốc (0,0)</button>
+        <button id="btnFit" class="btn btn-secondary">⛶ Vừa màn hình</button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Left Editor & Controls -->
+      <aside class="sidebar">
+        <!-- Preset selector -->
+        <div class="card">
+          <div class="card-title">Mẫu gia công có sẵn</div>
+          <div class="preset-buttons">
+            <button class="btn-preset active" data-preset="flange">⚙️ Mặt bích cơ khí</button>
+            <button class="btn-preset" data-preset="circle">⭕ Phay hốc tròn (G02/03)</button>
+            <button class="btn-preset" data-preset="text">🖋️ Khắc chữ "KHA"</button>
+            <button class="btn-preset" data-preset="welding">🤖 Quỹ đạo hàn Robot</button>
+          </div>
+        </div>
+
+        <!-- G-Code Input Area -->
+        <div class="card flex-1">
+          <div class="card-title-bar">
+            <span class="card-title">Mã lệnh G-Code</span>
+            <label class="btn-file">
+              📂 Mở file .nc
+              <input type="file" id="fileInput" accept=".nc,.gcode,.tap,.txt" hidden>
+            </label>
+          </div>
+          <textarea id="gcodeEditor" spellcheck="false" class="gcode-textarea"></textarea>
+        </div>
+
+        <!-- Metrics & Stats -->
+        <div class="card">
+          <div class="card-title">Thống kê chu trình (Cycle Stats)</div>
+          <div class="stat-grid">
+            <div class="stat-item">
+              <span class="stat-label">Thời gian ước tính:</span>
+              <span class="stat-val" id="statTime">00:00:00</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Cắt gọt (G1/2/3):</span>
+              <span class="stat-val" id="statCutDist">0 mm</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Chạy nhanh (G0):</span>
+              <span class="stat-val" id="statRapidDist">0 mm</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Vùng bao (BBox):</span>
+              <span class="stat-val" id="statBbox">0 x 0 mm</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right CNC Canvas Plotter -->
+      <section class="canvas-container">
+        <!-- Canvas Toolbar Overlay -->
+        <div class="canvas-overlay-bar">
+          <span class="legend-item"><span class="dot dot-g0"></span> G00 Chạy nhanh (Rapid)</span>
+          <span class="legend-item"><span class="dot dot-g1"></span> G01 Cắt thẳng (Feed)</span>
+          <span class="legend-item"><span class="dot dot-g2"></span> G02/03 Cung tròn (Arc)</span>
+          <div class="pos-tracker">
+            <span>X: <b id="posX">0.00</b> mm</span>
+            <span>Y: <b id="posY">0.00</b> mm</span>
+            <span>F: <b id="feedVal">1000</b> mm/min</span>
+          </div>
+        </div>
+
+        <canvas id="cncCanvas"></canvas>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/gcode.js"></script>
+</body>
+</html>

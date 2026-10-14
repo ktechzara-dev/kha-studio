@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Solenoid Valve (Van điện từ đóng mở chuẩn ISA) -->
+  <!-- Thân van 2 tam giác đối đỉnh -->
+  <polygon points="35,115 100,140 35,165" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <polygon points="165,115 100,140 165,165" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <line x1="35" y1="105" x2="35" y2="175" stroke="#1E293B" stroke-width="6"/>
+  <line x1="165" y1="105" x2="165" y2="175" stroke="#1E293B" stroke-width="6"/>
+  <!-- Ty van nối cuộn coil -->
+  <line x1="100" y1="140" x2="100" y2="92" stroke="#1E293B" stroke-width="5"/>
+  <!-- Cuộn điện từ Solenoid Coil vuông trên nắp -->
+  <rect x="75" y="32" width="50" height="60" rx="4" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <!-- Chữ S đại diện cho Solenoid -->
+  <text x="100" y="74" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#FFFFFF" text-anchor="middle">S</text>
+  <!-- Dây nguồn điện cấp -->
+  <line x1="125" y1="45" x2="155" y2="45" stroke="#1E293B" stroke-width="4"/>
+  <circle cx="155" cy="45" r="4" fill="#EF4444"/>
+</svg>

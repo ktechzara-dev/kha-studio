@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "tia-portal": {
+      "command": "d:\\BUITAPP\\kha-studio-app\\pallet-studio-app\\dotnet\\KhaStudio\\bin\\Debug\\net8.0-windows\\win-x64\\TiaWorker\\KhaStudio.TiaWorker.exe",
+      "args": [
+        "--mcp"
+      ]
+    }
+  }
+}

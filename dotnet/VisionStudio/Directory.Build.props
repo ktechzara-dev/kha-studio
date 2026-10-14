@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Company>Kha Studio</Company>
+    <Authors>Kha Studio</Authors>
+    <Product>VisionStudio Industrial Machine Vision Research Studio</Product>
+    <Copyright>Copyright © 2026 Kha Studio</Copyright>
+    <Version>1.0.0</Version>
+
+    <!-- Optional GenICam Vendor SDK paths (Unset by default; populated when hardware SDKs are installed) -->
+    <BaslerPylonSdkPath Condition="'$(BaslerPylonSdkPath)' == ''"></BaslerPylonSdkPath>
+    <HikMvsSdkPath Condition="'$(HikMvsSdkPath)' == ''"></HikMvsSdkPath>
+    <DahengGxSdkPath Condition="'$(DahengGxSdkPath)' == ''"></DahengGxSdkPath>
+    <FlirSpinnakerSdkPath Condition="'$(FlirSpinnakerSdkPath)' == ''"></FlirSpinnakerSdkPath>
+    <IdsPeakSdkPath Condition="'$(IdsPeakSdkPath)' == ''"></IdsPeakSdkPath>
+  </PropertyGroup>
+
+  <!-- Strict quality checks for Core and Imaging libraries -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'VisionStudio.Core' Or '$(MSBuildProjectName)' == 'VisionStudio.Imaging'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,247 @@
+<UserControl x:Class="KhaStudio.Modules.ScadaVision.Views.ScadaDesignView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:vm="clr-namespace:KhaStudio.Modules.ScadaVision.ViewModels"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance vm:ScadaDesignViewModel}"
+             Background="#0B132B" Foreground="#F1F5F9">
+
+    <UserControl.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#1C2541"/>
+            <Setter Property="Foreground" Value="#F1F5F9"/>
+            <Setter Property="BorderBrush" Value="#3A506B"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1" CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3A506B"/>
+                    <Setter Property="BorderBrush" Value="#48CAE4"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CaretBrush" Value="#38BDF8"/>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="360"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="340"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- CỘT 1: THƯ VIỆN SYMBOL & TÌM KIẾM THEO DANH MỤC -->
+        <Border Grid.Column="0" Background="#111B33" BorderBrush="#1F2E4D" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,10,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="🏭 Thư Viện Biểu Tượng HMI/SCADA" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,10"/>
+                
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="📁 Mở Thư Mục" Command="{Binding OpenSvgFolderCommand}" Margin="0,0,6,0"/>
+                    <Button Content="➕ Thêm File SVG" Command="{Binding OpenSvgFileDialogCommand}"/>
+                </StackPanel>
+
+                <!-- Bộ lọc danh mục & Tìm kiếm -->
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <TextBlock Text="Danh mục thiết bị:" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,3"/>
+                    <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" Margin="0,0,0,6"/>
+
+                    <TextBlock Text="Tìm kiếm nhanh:" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,3"/>
+                    <TextBox Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <TextBlock DockPanel.Dock="Top" Text="Danh sách biểu tượng:" Foreground="#94A3B8" FontSize="11" Margin="0,4,0,4"/>
+
+                <!-- Danh sách Symbol -->
+                <ListBox ItemsSource="{Binding FilteredSymbols}" SelectedItem="{Binding SelectedSymbol}" 
+                         Background="#070D1F" BorderBrush="#1F2E4D" Foreground="#E2E8F0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="6,5" BorderBrush="#1E293B" BorderThickness="0,0,0,1">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" Foreground="#F8FAFC" FontSize="12"/>
+                                    <DockPanel Margin="0,2,0,0">
+                                        <TextBlock Text="{Binding Category}" Foreground="#38BDF8" FontSize="10"/>
+                                        <TextBlock Text="{Binding FileName}" Foreground="#64748B" FontSize="10" HorizontalAlignment="Right"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- CỘT 2: PREVIEW BIỂU TƯỢNG, TRANSFORM VÀ BATCH EXPORT -->
+        <Border Grid.Column="1" Background="#111B33" BorderBrush="#1F2E4D" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,10,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- THANH CÔNG CỤ TRÊN: TRẠNG THÁI & MÀU SẮC -->
+                <WrapPanel Grid.Row="0" Margin="0,0,0,10" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,14,6">
+                        <TextBlock Text="Trạng thái:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding StateOptions}" SelectedItem="{Binding SelectedState}" Width="120"/>
+                    </StackPanel>
+
+                    <!-- Màu tùy chỉnh khi chọn Custom -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,14,6">
+                        <TextBlock Text="Mã HEX:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox Text="{Binding CustomHexColor, UpdateSourceTrigger=PropertyChanged}" Width="75" FontFamily="Consolas"/>
+                    </StackPanel>
+
+                    <!-- Độ phân giải xuất ảnh -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,14,6">
+                        <TextBlock Text="Size Export:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding ResolutionOptions}" SelectedItem="{Binding ExportResolution}" Width="80"/>
+                    </StackPanel>
+                </WrapPanel>
+
+                <!-- VÙNG PREVIEW VECTOR CHÍNH -->
+                <Border Grid.Row="1" Background="#070D1F" BorderBrush="#1F2E4D" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <Grid>
+                        <!-- Grid ô ly caro kỹ thuật nhẹ phía sau -->
+                        <Border Opacity="0.1" Background="#38BDF8"/>
+                        
+                        <Image Source="{Binding SvgPreviewImage}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="Chưa chọn biểu tượng nào trong danh sách" Foreground="#475569" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SvgPreviewImage}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+
+                <!-- THANH ĐIỀU KHIỂN BIẾN ĐỔI: XOAY, LẬT & TAG THIẾT BỊ -->
+                <Border Grid.Row="2" Background="#182442" BorderBrush="#2A3D66" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,10,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Hàng 1: Xoay & Lật -->
+                        <WrapPanel Grid.Row="0" VerticalAlignment="Center" Margin="0,0,0,8">
+                            <TextBlock Text="Biến đổi:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#38BDF8" Margin="0,0,8,0"/>
+                            <Button Content="↺ Xoay Trái (-90°)" Command="{Binding RotateLeftCommand}" Margin="0,0,6,4"/>
+                            <Button Content="↻ Xoay Phải (+90°)" Command="{Binding RotateRightCommand}" Margin="0,0,12,4"/>
+                            <Button Content="⇄ Lật Ngang (Flip H)" Command="{Binding ToggleFlipHCommand}" Margin="0,0,6,4"/>
+                            <Button Content="⇅ Lật Dọc (Flip V)" Command="{Binding ToggleFlipVCommand}" Margin="0,0,12,4"/>
+                            <TextBlock VerticalAlignment="Center" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,4">
+                                <Run Text="Góc hiện tại: "/>
+                                <Run Text="{Binding RotationAngle}" FontWeight="Bold" Foreground="#F59E0B"/>
+                                <Run Text="°"/>
+                            </TextBlock>
+                        </WrapPanel>
+
+                        <!-- Hàng 2: Device Tag & Overlay -->
+                        <WrapPanel Grid.Row="1" VerticalAlignment="Center">
+                            <TextBlock Text="Device Tag:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox Text="{Binding DeviceTag, UpdateSourceTrigger=PropertyChanged}" Width="110" FontWeight="Bold" Margin="0,0,12,0"/>
+
+                            <CheckBox Content="Hiển thị Tag Badge trên ảnh" IsChecked="{Binding ShowTagOverlay}" 
+                                      VerticalAlignment="Center" Foreground="#E2E8F0" Margin="0,0,12,0"/>
+                        </WrapPanel>
+                    </Grid>
+                </Border>
+
+                <!-- CÁC NÚT HÀNH ĐỘNG XUẤT ẢNH & MÃ NGUỒN -->
+                <DockPanel Grid.Row="3" Margin="0,10,0,0">
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Content="💾 Xuất PNG Đơn Lẻ" Command="{Binding ExportToPngCommand}" Background="#0284C7" BorderBrush="#38BDF8" FontWeight="SemiBold" Margin="0,0,6,6"/>
+                        <Button Content="⚡ Batch Export (5 Ảnh)" Command="{Binding BatchExportAllStatesCommand}" Background="#059669" BorderBrush="#34D399" FontWeight="Bold" Margin="0,0,6,6"/>
+                        <Button Content="📦 Gói Weintek EasyBuilder" Command="{Binding ExportWeintekPackageCommand}" Background="#0284C7" BorderBrush="#38BDF8" FontWeight="Bold" Margin="0,0,6,6"/>
+                        <Button Content="📦 Gói Siemens TIA WinCC" Command="{Binding ExportSiemensPackageCommand}" Background="#00646E" BorderBrush="#2DD4BF" FontWeight="Bold" Margin="0,0,6,6"/>
+                        <Button Content="🎨 Xuất SVG Đổi Màu" Command="{Binding ExportColoredSvgCommand}" Margin="0,0,6,6"/>
+                        <Button Content="📋 Copy XAML Vector" Command="{Binding CopyXamlCanvasCommand}" Margin="0,0,0,6"/>
+                    </WrapPanel>
+                </DockPanel>
+            </Grid>
+        </Border>
+
+        <!-- CỘT 3: BẢNG MÀU CHUẨN ISA-101 HMI -->
+        <Border Grid.Column="2" Background="#111B33" BorderBrush="#1F2E4D" BorderThickness="1" CornerRadius="8" Padding="12">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock Text="🎨 Bảng Màu ISA-101 HMI" FontWeight="Bold" FontSize="14" Foreground="#F59E0B" VerticalAlignment="Center"/>
+                    <Button Content="Export JSON" Command="{Binding ExportPaletteJsonCommand}" HorizontalAlignment="Right"/>
+                </DockPanel>
+
+                <TextBlock DockPanel.Dock="Top" Text="Click vào mã màu để áp dụng trực tiếp:" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,6"/>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding PaletteColors}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#182442" BorderBrush="#2A3D66" BorderThickness="1" CornerRadius="6" Margin="0,0,0,6" Padding="8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="38"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Khối màu trực quan -->
+                                        <Border Grid.Column="0" Width="30" Height="30" CornerRadius="4" BorderBrush="#64748B" BorderThickness="1"
+                                                Background="{Binding HexCode}" Margin="0,0,8,0"/>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#F8FAFC"/>
+                                            <TextBlock Text="{Binding Description}" FontSize="10" Foreground="#94A3B8" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="2" Content="{Binding HexCode}" 
+                                                Command="{Binding DataContext.CopyHexCodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding HexCode}"
+                                                FontFamily="Consolas" FontSize="10" Padding="6,4"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

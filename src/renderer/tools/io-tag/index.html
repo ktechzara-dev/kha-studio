@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IO Mapping & PLC Tag Generator Pro — Kha Studio</title>
+  <link rel="stylesheet" href="css/io-tag.css">
+</head>
+<body>
+  <div class="io-app">
+    <!-- Top Bar -->
+    <header class="io-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </div>
+        <div>
+          <h1>IO Mapping &amp; PLC Tag Generator Pro</h1>
+          <p class="subtitle">Trạm sinh bảng địa chỉ I/O &amp; Tag tự động cho TIA Portal, Studio 5000, GX Works</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <select id="plcBrand" class="cfg-select">
+          <option value="siemens" selected>Siemens S7 (TIA Portal %I/%Q)</option>
+          <option value="mitsubishi">Mitsubishi Melsec (GX Works X/Y)</option>
+          <option value="rockwell">Rockwell Allen-Bradley (Studio 5000)</option>
+          <option value="omron">Omron Sysmac (CIO Bit/Word)</option>
+          <option value="modbus">Modbus Discrete &amp; Holding (0x/1x/4x)</option>
+        </select>
+        <button id="btnExportCsv" class="btn btn-secondary">📥 Xuất CSV</button>
+        <button id="btnExportTia" class="btn btn-primary">⚡ Xuất TIA Portal SDF</button>
+        <button id="btnCopyClipboard" class="btn btn-secondary">📋 Sao chép</button>
+      </div>
+    </header>
+
+    <!-- Toolbar & Preset Templates -->
+    <section class="toolbar">
+      <div class="template-group">
+        <span class="label">Mẫu trạm mẫu:</span>
+        <button class="chip" data-tpl="casepacker">📦 Trạm đóng thùng (Casepacker)</button>
+        <button class="chip" data-tpl="palletizer">🤖 Trạm gắp Robot (Palletizer)</button>
+        <button class="chip" data-tpl="conveyor">🏭 Băng tải phân loại (Sorter)</button>
+        <button class="chip" data-tpl="tank">🛢️ Hệ thống Bồn bể &amp; Bơm (Pump)</button>
+      </div>
+
+      <div class="quick-add">
+        <button id="btnAddDI" class="btn btn-sm btn-green">+ Thêm Input (DI)</button>
+        <button id="btnAddDO" class="btn btn-sm btn-blue">+ Thêm Output (DO)</button>
+        <button id="btnAddAI" class="btn btn-sm btn-amber">+ Thêm Analog (AI)</button>
+        <button id="btnClearAll" class="btn btn-sm btn-danger" style="margin-left: auto;">Xóa bảng</button>
+      </div>
+    </section>
+
+    <!-- Address Offset Config -->
+    <section class="offset-bar">
+      <div class="offset-item">
+        <span>Bắt đầu DI Byte:</span>
+        <input type="number" id="diStartByte" value="0" min="0" class="input-sm">
+      </div>
+      <div class="offset-item">
+        <span>Bắt đầu DO Byte:</span>
+        <input type="number" id="doStartByte" value="0" min="0" class="input-sm">
+      </div>
+      <div class="offset-item">
+        <span>Bắt đầu AI Word:</span>
+        <input type="number" id="aiStartWord" value="64" min="0" class="input-sm">
+      </div>
+      <div class="offset-item">
+        <span>Quy chuẩn đặt tên:</span>
+        <select id="namingConvention" class="cfg-select-sm">
+          <option value="PascalCase" selected>PascalCase (SensorBoxIn)</option>
+          <option value="UPPER_SNAKE">UPPER_SNAKE (SENSOR_BOX_IN)</option>
+          <option value="camelCase">camelCase (sensorBoxIn)</option>
+        </select>
+      </div>
+      <div class="offset-stats">
+        <span>Tổng điểm: <b id="totalPoints">0</b> (<span id="countDi" style="color:#10b981;">0 DI</span>, <span id="countDo" style="color:#38bdf8;">0 DO</span>, <span id="countAi" style="color:#f59e0b;">0 AI</span>)</span>
+      </div>
+    </section>
+
+    <!-- Main Table Grid -->
+    <main class="table-container">
+      <table class="io-table">
+        <thead>
+          <tr>
+            <th width="40">STT</th>
+            <th width="80">Loại</th>
+            <th width="120">Địa chỉ PLC</th>
+            <th width="220">Tên Tag (Symbol Name)</th>
+            <th width="90">Kiểu dữ liệu</th>
+            <th width="240">Mô tả thiết bị / Ghi chú</th>
+            <th width="120">Vị trí / Tủ điện</th>
+            <th width="60" style="text-align: center;">Xóa</th>
+          </tr>
+        </thead>
+        <tbody id="ioTableBody">
+          <!-- Dynamically generated rows -->
+        </tbody>
+      </table>
+    </main>
+
+    <!-- Footer Status -->
+    <footer class="io-footer">
+      <span id="statusMsg">Sẵn sàng sinh bảng địa chỉ I/O công nghiệp.</span>
+      <span style="margin-left: auto; color: var(--text-dim); font-size: 11px;">Tương thích TIA Portal v14-v19, RSLogix 5000, GX Works 2/3</span>
+    </footer>
+  </div>
+
+  <script type="module" src="js/io-tag.js"></script>
+</body>
+</html>

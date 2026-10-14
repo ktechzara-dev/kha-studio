@@ -1,0 +1,1395 @@
+{
+ "schemaVersion": 2,
+ "version": "2.0.0",
+ "modules": [
+  {
+   "id": "management",
+   "name": "Quản lý dự án",
+   "folder": "000_PROJECT_MANAGEMENT",
+   "children": [
+    "00_Contract_PO",
+    "01_RFQ",
+    "02_Customer_Requirement",
+    "03_Meeting_Minutes",
+    "04_Project_Schedule",
+    "05_Project_Plan",
+    "06_Project_Risk",
+    "07_Responsibility_Matrix",
+    "08_Document_Register"
+   ],
+   "description": "Hồ sơ quản lý dự án thuộc phạm vi dự án."
+  },
+  {
+   "id": "tender",
+   "name": "Tender & giải pháp",
+   "folder": "001_TENDER_SOLUTION",
+   "children": [
+    "00_Technical_Solution",
+    "01_Proposal",
+    "02_Cost_Estimation",
+    "03_Supplier_Quotation",
+    "04_Tender_Clarification",
+    "05_Commercial_Assumption"
+   ],
+   "description": "Hồ sơ tender & giải pháp thuộc phạm vi dự án."
+  },
+  {
+   "id": "material",
+   "name": "Thiết kế & vật tư",
+   "folder": "002_PROCUREMENT_MATERIAL",
+   "children": [
+    "00_Purchase_Requirement",
+    "01_Material_Request",
+    "02_Consolidated_BOM",
+    "03_PR_PO",
+    "04_Material_Tracking",
+    "05_Approved_Material_List",
+    "06_Submittal"
+   ],
+   "description": "Hồ sơ thiết kế & vật tư thuộc phạm vi dự án."
+  },
+  {
+   "id": "concept",
+   "name": "Concept hệ thống",
+   "folder": "003_CONCEPT",
+   "children": [
+    "00_System_Concept",
+    "01_Safety_Concept",
+    "02_Electrical_Concept",
+    "03_Pneumatic_Concept",
+    "04_Communication_Concept",
+    "05_Operation_Concept",
+    "06_Maintenance_Concept",
+    "07_Concept_Review",
+    "08_Control_Functional_Specification"
+   ],
+   "description": "Hồ sơ concept hệ thống thuộc phạm vi dự án."
+  },
+  {
+   "id": "simulation",
+   "name": "Mô phỏng",
+   "folder": "004_SIMULATION",
+   "children": [
+    "00_Input_Resources",
+    "01_Simulation_Requirement",
+    "02_Result_Reports",
+    "03_Program_Revision_References"
+   ],
+   "description": "Hồ sơ mô phỏng thuộc phạm vi dự án."
+  },
+  {
+   "id": "layout",
+   "name": "Layout",
+   "folder": "005_LAYOUT",
+   "children": [
+    "00_Equipment_Layout",
+    "01_Export",
+    "02_2D_Layout",
+    "03_3D_Layout",
+    "04_Safety",
+    "05_Layout_Review",
+    "99_Release"
+   ],
+   "description": "Hồ sơ layout thuộc phạm vi dự án."
+  },
+  {
+   "id": "mechanical",
+   "name": "Thiết kế cơ khí",
+   "folder": "006_MECHANICAL",
+   "children": [
+    "00_Documents",
+    "01_Pneumatic",
+    "02_2D_Drawing",
+    "03_3D_Design",
+    "04_Mechanical_BOM",
+    "05_DXF_Laser_Cut",
+    "06_STP_Export",
+    "99_Release"
+   ],
+   "description": "Hồ sơ thiết kế cơ khí thuộc phạm vi dự án."
+  },
+  {
+   "id": "electrical",
+   "name": "Thiết kế điện",
+   "folder": "007_ELECTRICAL",
+   "children": [
+    "00_Documents",
+    "01_Input_Data",
+    "02_PDF_Export",
+    "03_Panel_Layout",
+    "04_Physical_IO_List",
+    "05_Device_List",
+    "06_Cable_List",
+    "07_Power_Calculation",
+    "08_Electrical_BOM",
+    "09_Nameplate_Label",
+    "10_Terminal_Plan",
+    "99_Release"
+   ],
+   "description": "Hồ sơ thiết kế điện thuộc phạm vi dự án."
+  },
+  {
+   "id": "plc",
+   "name": "PLC / PAC",
+   "folder": "008_PLC",
+   "children": [],
+   "description": "Hồ sơ plc / pac thuộc phạm vi dự án."
+  },
+  {
+   "id": "hmi",
+   "name": "HMI / SCADA / IPC",
+   "folder": "009_HMI_SCADA",
+   "children": [],
+   "description": "Hồ sơ hmi / scada / ipc thuộc phạm vi dự án."
+  },
+  {
+   "id": "robot",
+   "name": "Robot",
+   "folder": "010_ROBOT",
+   "children": [],
+   "description": "Hồ sơ robot thuộc phạm vi dự án."
+  },
+  {
+   "id": "vision",
+   "name": "Vision / Barcode",
+   "folder": "011_VISION",
+   "children": [],
+   "description": "Hồ sơ vision / barcode thuộc phạm vi dự án."
+  },
+  {
+   "id": "communication",
+   "name": "Mạng & truyền thông",
+   "folder": "012_NETWORK_COMMUNICATION",
+   "children": [
+    "00_Network_Topology",
+    "01_IP_List",
+    "02_Device_Description_Files",
+    "03_Switch_Configuration",
+    "04_Interface_Mapping",
+    "05_Communication_Test",
+    "06_Protocol_References"
+   ],
+   "description": "Hồ sơ mạng & truyền thông thuộc phạm vi dự án."
+  },
+  {
+   "id": "followup",
+   "name": "Theo dõi hệ thống",
+   "folder": "013_ISSUE_CHANGE_CONTROL",
+   "children": [
+    "00_Master_Issue_Register",
+    "01_Customer_Change_Request",
+    "02_ECR_ECN",
+    "03_Approved_Modifications",
+    "04_Change_History",
+    "05_Lessons_Learned"
+   ],
+   "description": "Hồ sơ theo dõi hệ thống thuộc phạm vi dự án."
+  },
+  {
+   "id": "site",
+   "name": "Báo cáo công trường",
+   "folder": "014_SITE_REPORT",
+   "children": [
+    "00_Daily_Report",
+    "01_Photo",
+    "02_Video",
+    "03_Issue_Evidence",
+    "04_Customer_Confirmation",
+    "05_Attendance",
+    "06_Work_Permit",
+    "07_Activity_Log"
+   ],
+   "description": "Hồ sơ báo cáo công trường thuộc phạm vi dự án."
+  },
+  {
+   "id": "commissioning",
+   "name": "Commissioning",
+   "folder": "015_COMMISSIONING",
+   "children": [
+    "00_Pre_Commissioning",
+    "01_IO_Check",
+    "02_Safety_Check",
+    "03_Dry_Run",
+    "04_Auto_Run",
+    "05_FAT",
+    "06_SAT",
+    "07_Cycle_Time_Test",
+    "08_Commissioning_Report",
+    "09_Issued_Punch_List"
+   ],
+   "description": "Hồ sơ commissioning thuộc phạm vi dự án."
+  },
+  {
+   "id": "handover",
+   "name": "Bàn giao",
+   "folder": "016_HANDOVER",
+   "children": [
+    "00_As_Built_Package",
+    "01_Final_Program_Package",
+    "02_Manual",
+    "03_Training",
+    "04_Acceptance_Records",
+    "05_Spare_Part_List",
+    "06_Warranty",
+    "07_Signed_Handover",
+    "08_Package_Manifest"
+   ],
+   "description": "Hồ sơ bàn giao thuộc phạm vi dự án."
+  },
+  {
+   "id": "templates",
+   "name": "Biểu mẫu dùng chung",
+   "folder": "017_DOCUMENT_TEMPLATE",
+   "children": [
+    "00_Template_Register",
+    "01_Standards_Reference",
+    "02_Library_Reference"
+   ],
+   "description": "Hồ sơ biểu mẫu dùng chung thuộc phạm vi dự án."
+  },
+  {
+   "id": "drive",
+   "name": "Drive / Motion / Servo",
+   "folder": "018_DRIVE_MOTION",
+   "children": [],
+   "description": "Hồ sơ drive / motion / servo thuộc phạm vi dự án."
+  },
+  {
+   "id": "safety",
+   "name": "Functional Safety",
+   "folder": "019_FUNCTIONAL_SAFETY",
+   "children": [
+    "00_Risk_Assessment",
+    "01_Safety_Function_List",
+    "02_Calculation_References",
+    "03_Safety_Configuration_Export",
+    "04_Validation_Plan",
+    "05_Validation_Record",
+    "06_Certificate_Manual",
+    "99_Release"
+   ],
+   "description": "Hồ sơ functional safety thuộc phạm vi dự án."
+  },
+  {
+   "id": "data",
+   "name": "IIoT / MES / Database",
+   "folder": "020_IIOT_MES_DATA",
+   "children": [
+    "00_Requirement",
+    "01_Architecture",
+    "02_Tags_Data_Model",
+    "03_Source_Code",
+    "04_Database",
+    "05_API_Interface",
+    "06_Dashboard_Report",
+    "07_Test",
+    "08_Deployment",
+    "99_Release",
+    "_Backup"
+   ],
+   "description": "Hồ sơ iiot / mes / database thuộc phạm vi dự án."
+  },
+  {
+   "id": "quality",
+   "name": "Quality & Compliance",
+   "folder": "021_QUALITY_COMPLIANCE",
+   "children": [
+    "00_Applicable_Standard",
+    "01_Design_Review",
+    "02_Inspection_Test_Plan",
+    "03_NCR_CAPA",
+    "04_Certificate",
+    "05_Audit",
+    "06_Traceability"
+   ],
+   "description": "Hồ sơ quality & compliance thuộc phạm vi dự án."
+  },
+  {
+   "id": "archive",
+   "name": "Backup & archive",
+   "folder": "099_BACKUP_ARCHIVE",
+   "children": [
+    "00_Superseded_Versions",
+    "01_Project_Snapshots",
+    "02_Restore_Points"
+   ],
+   "description": "Hồ sơ backup & archive thuộc phạm vi dự án."
+  },
+  {
+   "id": "recipe",
+   "name": "Product / Recipe / SKU",
+   "folder": "022_PRODUCT_RECIPE",
+   "description": "Module tùy chọn cho hệ có sản phẩm, model hoặc recipe.",
+   "children": [
+    "00_Product_Specification",
+    "01_Recipe_Register",
+    "02_Pattern_Drawing",
+    "03_Tool_Model_Assignment",
+    "04_Master_Reference",
+    "05_Approved_Data",
+    "99_Release"
+   ]
+  },
+  {
+   "id": "service",
+   "name": "Service / After sales",
+   "folder": "023_SERVICE_SUPPORT",
+   "description": "Module tùy chọn cho bảo hành, bảo trì và hỗ trợ sau bàn giao.",
+   "children": [
+    "00_Service_Request",
+    "01_Service_Report",
+    "02_Maintenance_Record",
+    "03_Warranty_Claim",
+    "04_Modification_Reference"
+   ]
+  },
+  {
+   "id": "process",
+   "name": "Process equipment",
+   "folder": "024_PROCESS_EQUIPMENT",
+   "description": "Module tùy chọn cho thiết bị hàn, siết, cấp keo và thiết bị công nghệ.",
+   "children": [
+    "00_Process_Requirement",
+    "01_Process_Parameter_Register",
+    "02_Quality_Test",
+    "03_Calibration_Record"
+   ]
+  }
+ ],
+ "softwareGroups": [
+  {
+   "module": "plc",
+   "label": "PLC / PAC",
+   "items": [
+    {
+     "id": "siemens",
+     "label": "Siemens — TIA Portal / STEP 7",
+     "folder": "00_Siemens",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "rockwell",
+     "label": "Rockwell — Studio 5000 / RSLogix",
+     "folder": "01_Rockwell",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "mitsubishi",
+     "label": "Mitsubishi — GX Works",
+     "folder": "02_Mitsubishi",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "omron",
+     "label": "Omron — Sysmac Studio / CX-One",
+     "folder": "03_Omron",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "beckhoff",
+     "label": "Beckhoff — TwinCAT",
+     "folder": "04_Beckhoff",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "codesys",
+     "label": "CODESYS",
+     "folder": "05_CODESYS",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "schneider",
+     "label": "Schneider — EcoStruxure / Control Expert",
+     "folder": "06_Schneider",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "keyence",
+     "label": "Keyence — KV Studio",
+     "folder": "07_Keyence",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "delta",
+     "label": "Delta — ISPSoft / DIAStudio",
+     "folder": "08_Delta",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "ls",
+     "label": "LS Electric — XG5000",
+     "folder": "09_LS_Electric",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "inovance",
+     "label": "Inovance — AutoShop / InoPro",
+     "folder": "10_Inovance",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "panasonic_plc",
+     "label": "Panasonic PLC",
+     "folder": "11_Panasonic",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "other_plc",
+     "label": "Hãng PLC khác",
+     "folder": "99_Other",
+     "children": [
+      "00_Native_Project",
+      "01_Hardware_Export",
+      "02_Source_Export",
+      "03_Library_References",
+      "04_Tag_IO_Mapping",
+      "05_Test_Record",
+      "06_Controller_Backup",
+      "99_Release"
+     ]
+    }
+   ],
+   "perDevice": true,
+   "fallbackSoftware": "other_plc"
+  },
+  {
+   "module": "hmi",
+   "label": "HMI / SCADA / IPC",
+   "items": [
+    {
+     "id": "wincc",
+     "label": "Siemens WinCC",
+     "folder": "00_Siemens_WinCC",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "factorytalk",
+     "label": "FactoryTalk View",
+     "folder": "01_FactoryTalk",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "ignition",
+     "label": "Ignition SCADA",
+     "folder": "02_Ignition",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "wonderware",
+     "label": "AVEVA / Wonderware",
+     "folder": "03_AVEVA_Wonderware",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "weintek",
+     "label": "Weintek EasyBuilder Pro",
+     "folder": "04_Weintek",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "proface",
+     "label": "Pro-face GP-Pro EX",
+     "folder": "05_Proface",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "kepware",
+     "label": "Kepware / OPC",
+     "folder": "06_OPC_Kepware",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "got",
+     "label": "Mitsubishi GOT — GT Designer",
+     "folder": "07_Mitsubishi_GOT",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "nb_ns",
+     "label": "Omron NB / NS / NA",
+     "folder": "08_Omron",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "ls_hmi",
+     "label": "LS Electric HMI",
+     "folder": "09_LS_Electric",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "other_hmi",
+     "label": "HMI/SCADA khác",
+     "folder": "99_Other",
+     "children": [
+      "00_Native_Project",
+      "01_Graphics_Export",
+      "02_Tag_Alarm",
+      "03_Recipe_Export",
+      "04_Script_Export",
+      "05_Test_Record",
+      "06_Device_Backup",
+      "99_Release"
+     ]
+    }
+   ],
+   "perDevice": true,
+   "fallbackSoftware": "other_hmi"
+  },
+  {
+   "module": "robot",
+   "label": "Robot",
+   "items": [
+    {
+     "id": "abb",
+     "label": "ABB — RobotStudio / RAPID",
+     "folder": "00_ABB",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "fanuc",
+     "label": "FANUC — ROBOGUIDE",
+     "folder": "01_FANUC",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "kuka",
+     "label": "KUKA — WorkVisual / KUKA.Sim",
+     "folder": "02_KUKA",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "yaskawa",
+     "label": "Yaskawa — MotoSim",
+     "folder": "03_Yaskawa",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "universal",
+     "label": "Universal Robots — PolyScope",
+     "folder": "04_Universal_Robots",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "denso",
+     "label": "DENSO",
+     "folder": "05_DENSO",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "epson",
+     "label": "Epson",
+     "folder": "06_Epson",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "qkm",
+     "label": "QKM",
+     "folder": "07_QKM",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "kawasaki",
+     "label": "Kawasaki",
+     "folder": "08_Kawasaki",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "other_robot",
+     "label": "Robot khác",
+     "folder": "99_Other",
+     "children": [
+      "00_Controller_Info",
+      "01_Working_Program",
+      "02_Configuration_Export",
+      "03_Tool_Load_Calibration",
+      "04_Controller_Backup",
+      "05_Test_Record",
+      "99_Release"
+     ]
+    }
+   ],
+   "perDevice": true,
+   "fallbackSoftware": "other_robot"
+  },
+  {
+   "module": "vision",
+   "label": "Vision / Barcode",
+   "items": [
+    {
+     "id": "cognex",
+     "label": "Cognex — In-Sight / VisionPro",
+     "folder": "00_Cognex",
+     "children": [
+      "00_Native_Project",
+      "01_Image_Sample",
+      "02_Calibration",
+      "03_Interface_Config",
+      "04_Test_Result",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "keyence_vision",
+     "label": "Keyence — XG/CV/IV",
+     "folder": "01_Keyence",
+     "children": [
+      "00_Native_Project",
+      "01_Image_Sample",
+      "02_Calibration",
+      "03_Interface_Config",
+      "04_Test_Result",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "omron_vision",
+     "label": "Omron Vision",
+     "folder": "02_Omron",
+     "children": [
+      "00_Native_Project",
+      "01_Image_Sample",
+      "02_Calibration",
+      "03_Interface_Config",
+      "04_Test_Result",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "halcon",
+     "label": "MVTec HALCON",
+     "folder": "03_HALCON",
+     "children": [
+      "00_Native_Project",
+      "01_Image_Sample",
+      "02_Calibration",
+      "03_Interface_Config",
+      "04_Test_Result",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "barcode",
+     "label": "Barcode / RFID",
+     "folder": "04_Barcode_RFID",
+     "children": [
+      "00_Native_Project",
+      "01_Image_Sample",
+      "02_Calibration",
+      "03_Interface_Config",
+      "04_Test_Result",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "hik_vision",
+     "label": "HIKROBOT Vision",
+     "folder": "05_HIKROBOT",
+     "children": [
+      "00_Native_Project",
+      "01_Image_Sample",
+      "02_Calibration",
+      "03_Interface_Config",
+      "04_Test_Result",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "sick_vision",
+     "label": "SICK Vision / Barcode",
+     "folder": "06_SICK",
+     "children": [
+      "00_Native_Project",
+      "01_Image_Sample",
+      "02_Calibration",
+      "03_Interface_Config",
+      "04_Test_Result",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "other_vision",
+     "label": "Vision khác",
+     "folder": "99_Other",
+     "children": [
+      "00_Native_Project",
+      "01_Image_Sample",
+      "02_Calibration",
+      "03_Interface_Config",
+      "04_Test_Result",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    }
+   ],
+   "perDevice": true,
+   "fallbackSoftware": "other_vision"
+  },
+  {
+   "module": "simulation",
+   "label": "Simulation",
+   "items": [
+    {
+     "id": "process_simulate",
+     "label": "Siemens Process Simulate",
+     "folder": "00_Process_Simulate",
+     "children": [
+      "00_Project",
+      "01_Resource",
+      "02_Layout",
+      "03_Robot",
+      "04_Process",
+      "05_Reach_Check",
+      "06_Collision_Check",
+      "07_Cycle_Time",
+      "08_Output",
+      "RobotsMachineDataFiles",
+      "99_Release",
+      "_Backup",
+      "_In"
+     ]
+    },
+    {
+     "id": "robotstudio",
+     "label": "ABB RobotStudio",
+     "folder": "01_RobotStudio",
+     "children": [
+      "00_Station",
+      "01_Library",
+      "02_Layout",
+      "03_Simulation",
+      "04_Output",
+      "99_Release",
+      "_Backup"
+     ]
+    },
+    {
+     "id": "roboguide",
+     "label": "FANUC ROBOGUIDE",
+     "folder": "02_ROBOGUIDE",
+     "children": [
+      "00_Cell",
+      "01_Models",
+      "02_Layout",
+      "03_Simulation",
+      "04_Output",
+      "99_Release",
+      "_Backup"
+     ]
+    },
+    {
+     "id": "delmia",
+     "label": "DELMIA",
+     "folder": "03_DELMIA",
+     "children": [
+      "00_Project",
+      "01_Resource",
+      "02_Process",
+      "03_Simulation",
+      "04_Output",
+      "99_Release",
+      "_Backup"
+     ]
+    },
+    {
+     "id": "other_sim",
+     "label": "Mô phỏng khác",
+     "folder": "99_Other",
+     "children": [
+      "00_Project",
+      "01_Input",
+      "02_Output",
+      "99_Release",
+      "_Backup"
+     ]
+    }
+   ],
+   "perDevice": false,
+   "fallbackSoftware": "other_sim"
+  },
+  {
+   "module": "drive",
+   "label": "Drive / Motion / Servo",
+   "items": [
+    {
+     "id": "sinamics",
+     "label": "Siemens SINAMICS / Startdrive",
+     "folder": "00_Siemens_SINAMICS",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "rockwell_motion",
+     "label": "Rockwell Kinetix / PowerFlex",
+     "folder": "01_Rockwell",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "mitsubishi_motion",
+     "label": "Mitsubishi Servo / Motion",
+     "folder": "02_Mitsubishi",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "yaskawa_drive",
+     "label": "Yaskawa Servo / Drive",
+     "folder": "03_Yaskawa",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "sew",
+     "label": "SEW Drive / Motion",
+     "folder": "04_SEW",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "inovance_drive",
+     "label": "Inovance Drive / Servo",
+     "folder": "05_Inovance",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "schneider_drive",
+     "label": "Schneider Altivar / Lexium",
+     "folder": "06_Schneider",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "delta_drive",
+     "label": "Delta Drive / Servo",
+     "folder": "07_Delta",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "ls_drive",
+     "label": "LS Electric Drive",
+     "folder": "08_LS_Electric",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "omron_drive",
+     "label": "Omron Drive / Servo",
+     "folder": "09_Omron",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "other_drive",
+     "label": "Drive/Motion khác",
+     "folder": "99_Other",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Safety_Configuration",
+      "04_Commissioning",
+      "05_Device_Backup",
+      "99_Release"
+     ]
+    }
+   ],
+   "perDevice": true,
+   "fallbackSoftware": "other_drive"
+  },
+  {
+   "module": "electrical",
+   "label": "Phần mềm thiết kế điện",
+   "perDevice": false,
+   "fallbackSoftware": "other_electrical",
+   "items": [
+    {
+     "id": "eplan",
+     "label": "EPLAN Electric P8 / Pro Panel",
+     "folder": "20_EPLAN",
+     "children": [
+      "00_Native_Project",
+      "01_Macro_Library_References",
+      "02_Export",
+      "03_Design_Review",
+      "99_Release",
+      "_Backup"
+     ]
+    },
+    {
+     "id": "autocad_electrical",
+     "label": "AutoCAD Electrical",
+     "folder": "21_AutoCAD_Electrical",
+     "children": [
+      "00_Native_Project",
+      "01_Macro_Library_References",
+      "02_Export",
+      "03_Design_Review",
+      "99_Release",
+      "_Backup"
+     ]
+    },
+    {
+     "id": "solidworks_electrical",
+     "label": "SolidWorks Electrical",
+     "folder": "22_SolidWorks_Electrical",
+     "children": [
+      "00_Native_Project",
+      "01_Macro_Library_References",
+      "02_Export",
+      "03_Design_Review",
+      "99_Release",
+      "_Backup"
+     ]
+    },
+    {
+     "id": "other_electrical",
+     "label": "Phần mềm điện khác / chưa xác định",
+     "folder": "99_Other",
+     "children": [
+      "00_Native_Project",
+      "01_Macro_Library_References",
+      "02_Export",
+      "03_Design_Review",
+      "99_Release",
+      "_Backup"
+     ]
+    }
+   ]
+  },
+  {
+   "module": "process",
+   "label": "Thiết bị công nghệ",
+   "perDevice": true,
+   "fallbackSoftware": "other_process",
+   "items": [
+    {
+     "id": "bosch_weld",
+     "label": "Bosch Welding",
+     "folder": "00_Bosch",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Quality_Test",
+      "04_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "fronius",
+     "label": "Fronius Welding",
+     "folder": "01_Fronius",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Quality_Test",
+      "04_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "weld_other",
+     "label": "Bộ điều khiển hàn khác",
+     "folder": "02_Welding_Other",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Quality_Test",
+      "04_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "fastening",
+     "label": "Bộ điều khiển siết",
+     "folder": "03_Fastening",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Quality_Test",
+      "04_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "dispensing",
+     "label": "Bộ điều khiển cấp keo",
+     "folder": "04_Dispensing",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Quality_Test",
+      "04_Device_Backup",
+      "99_Release"
+     ]
+    },
+    {
+     "id": "other_process",
+     "label": "Thiết bị công nghệ khác / chưa xác định",
+     "folder": "99_Other",
+     "children": [
+      "00_Device_Info",
+      "01_Configuration",
+      "02_Parameter",
+      "03_Quality_Test",
+      "04_Device_Backup",
+      "99_Release"
+     ]
+    }
+   ]
+  }
+ ]
+}

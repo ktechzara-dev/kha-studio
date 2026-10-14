@@ -1,11 +1,12 @@
 {
   "name": "pallet-studio",
   "productName": "Kha Studio",
-  "version": "1.1.0",
+  "version": "1.3.1",
   "description": "Bộ công cụ cá nhân - Kha.nm",
   "main": "src/main.js",
   "scripts": {
     "postinstall": "node scripts/copy-libs.js",
+    "test": "node tests/fs-safe.test.js && node tests/core.test.js && node tests/e2e-p1.test.js && node tests/publish.test.js && node tests/e2e-p2.test.js && node tests/admin.test.js && node tests/e2e-p3.test.js && node tests/auth.test.js",
     "start": "electron .",
     "dist": "electron-builder --win",
     "dist:mac": "electron-builder --mac"
@@ -20,8 +21,16 @@
   "build": {
     "appId": "com.kha.studio",
     "productName": "Kha Studio",
-    "files": ["src/**/*", "package.json"],
-    "win": { "target": "nsis" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

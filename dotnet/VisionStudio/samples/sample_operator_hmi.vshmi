@@ -1,0 +1,312 @@
+{
+  "version": "1.0.0",
+  "title": "Dây Chuyền Đóng Gói & Kiểm Tra Vision",
+  "machineId": "LINE-01-STATION-A",
+  "theme": "dark",
+  "logoText": "KHA STUDIO INDUSTRIAL HMI",
+  "refreshRateMs": 100,
+  "defaultPageId": "page-overview",
+  "createdAtUtc": "2026-10-13T14:00:00Z",
+  "updatedAtUtc": "2026-10-13T14:00:00Z",
+  "pages": [
+    {
+      "id": "page-overview",
+      "title": "Vận Hành Kiểm Tra",
+      "icon": "🖥️",
+      "order": 0,
+      "minimumRole": "operator",
+      "gridColumns": 12,
+      "gridRows": 8,
+      "widgets": [
+        {
+          "id": "w-live-img",
+          "type": "liveImage",
+          "title": "Camera Trực Tiếp (Live Stream & Overlays)",
+          "column": 0,
+          "row": 0,
+          "colSpan": 6,
+          "rowSpan": 6,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "pipelineOutput",
+            "path": "Station1.Image",
+            "format": "{0}",
+            "invertBoolean": false
+          },
+          "properties": {}
+        },
+        {
+          "id": "w-verdict",
+          "type": "okNgBadge",
+          "title": "Kết Quả Kiểm Tra (Pass/Fail)",
+          "column": 6,
+          "row": 0,
+          "colSpan": 6,
+          "rowSpan": 2,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "pipelineOutput",
+            "path": "Station1.Verdict",
+            "format": "{0}",
+            "invertBoolean": false
+          },
+          "properties": {}
+        },
+        {
+          "id": "w-cycle-time",
+          "type": "numericDisplay",
+          "title": "Chu Kỳ Chụp (Cycle Time)",
+          "column": 6,
+          "row": 2,
+          "colSpan": 3,
+          "rowSpan": 2,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "pipelineOutput",
+            "path": "Station1.CycleTimeMs",
+            "format": "{0:F1} ms",
+            "invertBoolean": false
+          },
+          "properties": {}
+        },
+        {
+          "id": "w-gauge-dia",
+          "type": "gauge",
+          "title": "Kích Thước Đường Kính",
+          "column": 9,
+          "row": 2,
+          "colSpan": 3,
+          "rowSpan": 2,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "pipelineOutput",
+            "path": "Measurements.Diameter",
+            "format": "{0:F2} mm",
+            "lowLimit": 24.5,
+            "highLimit": 25.5,
+            "targetValue": 25.0,
+            "invertBoolean": false
+          },
+          "properties": {
+            "Min": "20",
+            "Max": "30",
+            "Unit": "mm"
+          }
+        },
+        {
+          "id": "w-recipe-sel",
+          "type": "recipeSelector",
+          "title": "Chuyển Đổi Recipe / Mã Hàng",
+          "column": 6,
+          "row": 4,
+          "colSpan": 3,
+          "rowSpan": 1,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "system",
+            "path": "ActiveRecipe",
+            "format": "{0}",
+            "invertBoolean": false
+          },
+          "properties": {}
+        },
+        {
+          "id": "w-btn-trigger",
+          "type": "button",
+          "title": "Kích Hoạt Chụp (Trigger)",
+          "column": 9,
+          "row": 4,
+          "colSpan": 3,
+          "rowSpan": 1,
+          "minimumRole": "operator",
+          "binding": null,
+          "properties": {
+            "Action": "TriggerStation",
+            "ButtonClass": "primary",
+            "Label": "KÍCH HOẠT CHỤP ⚡"
+          }
+        },
+        {
+          "id": "w-trend",
+          "type": "trendChart",
+          "title": "Biểu Đồ Xu Hướng Kích Thước (Trend Line)",
+          "column": 6,
+          "row": 5,
+          "colSpan": 6,
+          "rowSpan": 3,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "pipelineOutput",
+            "path": "Measurements.Diameter",
+            "format": "{0}",
+            "lowLimit": 24.5,
+            "highLimit": 25.5,
+            "invertBoolean": false
+          },
+          "properties": {
+            "MaxPoints": "40"
+          }
+        },
+        {
+          "id": "w-logs",
+          "type": "logViewer",
+          "title": "Nhật Ký Hệ Thống Thời Gian Thực",
+          "column": 0,
+          "row": 6,
+          "colSpan": 6,
+          "rowSpan": 2,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "system",
+            "path": "Logs",
+            "format": "{0}",
+            "invertBoolean": false
+          },
+          "properties": {}
+        }
+      ]
+    },
+    {
+      "id": "page-spc",
+      "title": "Thống Kê & Chất Lượng SPC",
+      "icon": "📈",
+      "order": 1,
+      "minimumRole": "operator",
+      "gridColumns": 12,
+      "gridRows": 8,
+      "widgets": [
+        {
+          "id": "w-hist",
+          "type": "histogram",
+          "title": "Phân Bố Sai Lệch Kích Thước (Histogram)",
+          "column": 0,
+          "row": 0,
+          "colSpan": 6,
+          "rowSpan": 4,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "metric",
+            "path": "SPC.Histogram",
+            "format": "{0}",
+            "invertBoolean": false
+          },
+          "properties": {}
+        },
+        {
+          "id": "w-table",
+          "type": "table",
+          "title": "Bảng Nhật Ký 10 Sản Phẩm Gần Nhất",
+          "column": 6,
+          "row": 0,
+          "colSpan": 6,
+          "rowSpan": 4,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "metric",
+            "path": "SPC.RecentRecords",
+            "format": "{0}",
+            "invertBoolean": false
+          },
+          "properties": {}
+        },
+        {
+          "id": "w-gauge-yield",
+          "type": "gauge",
+          "title": "Tỉ Lệ Đạt (Yield %)",
+          "column": 0,
+          "row": 4,
+          "colSpan": 6,
+          "rowSpan": 4,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "metric",
+            "path": "SPC.YieldPercent",
+            "format": "{0:F1} %",
+            "lowLimit": 95.0,
+            "highLimit": 100.0,
+            "targetValue": 99.0,
+            "invertBoolean": false
+          },
+          "properties": {
+            "Min": "80",
+            "Max": "100",
+            "Unit": "%"
+          }
+        },
+        {
+          "id": "w-num-total",
+          "type": "numericDisplay",
+          "title": "Tổng Sản Lượng Đã Kiểm",
+          "column": 6,
+          "row": 4,
+          "colSpan": 6,
+          "rowSpan": 4,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "metric",
+            "path": "SPC.TotalParts",
+            "format": "{0:N0} cái",
+            "invertBoolean": false
+          },
+          "properties": {}
+        }
+      ]
+    },
+    {
+      "id": "page-settings",
+      "title": "Cấu Hình Kỹ Thuật",
+      "icon": "⚙️",
+      "order": 2,
+      "minimumRole": "engineer",
+      "gridColumns": 12,
+      "gridRows": 8,
+      "widgets": [
+        {
+          "id": "w-login",
+          "type": "userLogin",
+          "title": "Xác Thực Phân Quyền HMI",
+          "column": 0,
+          "row": 0,
+          "colSpan": 4,
+          "rowSpan": 3,
+          "minimumRole": "operator",
+          "binding": null,
+          "properties": {}
+        },
+        {
+          "id": "w-txt-speed",
+          "type": "textInput",
+          "title": "Tốc Độ Băng Tải (m/phút)",
+          "column": 4,
+          "row": 0,
+          "colSpan": 4,
+          "rowSpan": 3,
+          "minimumRole": "operator",
+          "binding": {
+            "source": "deviceTag",
+            "path": "PLC.ConveyorSpeed",
+            "format": "{0}",
+            "invertBoolean": false
+          },
+          "properties": {}
+        },
+        {
+          "id": "w-btn-reset",
+          "type": "button",
+          "title": "Đặt Lại Bộ Đếm Sản Lượng",
+          "column": 8,
+          "row": 0,
+          "colSpan": 4,
+          "rowSpan": 3,
+          "minimumRole": "admin",
+          "binding": null,
+          "properties": {
+            "Action": "ResetCounters",
+            "ButtonClass": "danger",
+            "Label": "RESET COUNTER ⚠️"
+          }
+        }
+      ]
+    }
+  ]
+}

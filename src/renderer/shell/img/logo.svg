@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+
+    <!-- Overlay Gloss Gradient -->
+    <linearGradient id="glossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25" />
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.2" />
+    </linearGradient>
+
+    <!-- Metallic Stem Gradient -->
+    <linearGradient id="stemGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E0E7FF" />
+    </linearGradient>
+
+    <!-- Upper Arm Gradient -->
+    <linearGradient id="armUpGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="60%" stop-color="#93C5FD" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+
+    <!-- Lower Arm Gradient -->
+    <linearGradient id="armDownGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="70%" stop-color="#60A5FA" />
+      <stop offset="100%" stop-color="#BFDBFE" />
+    </linearGradient>
+
+    <!-- Shadow Filter -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#0F172A" flood-opacity="0.45" />
+    </filter>
+    
+    <filter id="markShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0F172A" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Base Rounded Squircle with Shadow -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bgGrad)" filter="url(#dropShadow)" />
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#glossGrad)" />
+
+  <!-- Subtle Inner Border Highlight -->
+  <rect x="33" y="33" width="446" height="446" rx="111" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2.5" />
+
+  <!-- Geometric Monogram "K" for Kha Studio -->
+  <g filter="url(#markShadow)">
+    <!-- Vertical Spine (Precision Pill) -->
+    <rect x="136" y="128" width="56" height="256" rx="28" fill="url(#stemGrad)" />
+
+    <!-- Upper Branch (Chevron / Wing) -->
+    <path d="M216 264 L308 152 C318 140 336 138 348 148 L354 154 C366 164 366 182 354 196 L272 292 Z" fill="url(#armUpGrad)" />
+
+    <!-- Lower Branch (Dynamic Automation Wedge) -->
+    <path d="M228 248 L350 366 C362 378 362 396 350 408 L344 414 C332 426 314 424 302 412 L198 300 Z" fill="url(#armDownGrad)" />
+
+    <!-- Precision Core Node (Tech Cube / Dot) -->
+    <circle cx="216" cy="276" r="26" fill="#FFFFFF" />
+    <circle cx="216" cy="276" r="16" fill="#2563EB" />
+  </g>
+</svg>

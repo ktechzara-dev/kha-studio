@@ -1,0 +1,628 @@
+<Window x:Class="VisionStudio.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:VisionStudio.App.ViewModels"
+        xmlns:controls="clr-namespace:VisionStudio.App.Controls"
+        xmlns:conv="clr-namespace:VisionStudio.App.Converters"
+        xmlns:services="clr-namespace:VisionStudio.App.Services"
+        mc:Ignorable="d"
+        Title="{Binding Loc[App_Title]}" Height="900" Width="1500"
+        MinHeight="700" MinWidth="1100"
+        Background="{StaticResource KsBgBase}" Foreground="{StaticResource KsText}"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <Style x:Key="HeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource KsButton}">
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="PlayButtonStyle" TargetType="Button" BasedOn="{StaticResource KsSuccessButton}">
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="HelpButtonStyle" TargetType="Button" BasedOn="{StaticResource KsButton}">
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="BorderBrush" Value="{StaticResource KsBorderAccent}"/>
+        </Style>
+
+        <!-- Modern Workspace Tab Pill RadioButton Style -->
+        <Style x:Key="TabPillStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource KsTextMuted}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="TabBorder"
+                                Background="{StaticResource KsBgCard}"
+                                BorderBrush="{StaticResource KsBorder}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12,6"
+                                Margin="0,0,6,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="{StaticResource KsBgCardHover}"/>
+                                <Setter Property="Foreground" Value="#ffffff"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="{StaticResource KsAccent}"/>
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="{StaticResource KsBorderAccent}"/>
+                                <Setter Property="Foreground" Value="#ffffff"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Key="K" Modifiers="Control" Command="{Binding OpenCommandPaletteCommand}"/>
+        <KeyBinding Key="F1" Command="{Binding OpenToolGuideCommand}"/>
+    </Window.InputBindings>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Top App Bar (Header & Pipeline Execution) -->
+            <RowDefinition Height="46"/>
+            <!-- Industrial Modules Ribbon Bar (HMI, AI, Devices, Wizards) -->
+            <RowDefinition Height="40"/>
+            <!-- Main Content Area -->
+            <RowDefinition Height="*"/>
+            <!-- Bottom Log Panel -->
+            <RowDefinition Height="130"/>
+            <!-- Status Bar -->
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP APP BAR -->
+        <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,0,0,1" Padding="14,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Brand & Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{StaticResource KsAccent}" CornerRadius="6" Width="28" Height="28" Margin="0,0,8,0">
+                        <TextBlock Text="VS" FontWeight="Bold" Foreground="White" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="VisionStudio" FontWeight="Bold" FontSize="15" Foreground="{StaticResource KsAccentGlow}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Loc[App_BrandSubtitle]}" FontSize="11.5" Foreground="{StaticResource KsTextMuted}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                </StackPanel>
+
+                <!-- Center Mode Switcher & Pipeline Toolbar -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <!-- Mode Buttons -->
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding SwitchModeCommand}"
+                            CommandParameter="{x:Static vm:ApplicationMode.Design}"
+                            Content="{Binding Loc[Mode_Design]}" Margin="0,0,4,0"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding SwitchModeCommand}"
+                            CommandParameter="{x:Static vm:ApplicationMode.Run}"
+                            Content="{Binding Loc[Mode_Run]}" Margin="0,0,10,0"/>
+
+                    <Border Width="1" Height="20" Background="{StaticResource KsBorder}" Margin="0,0,10,0"/>
+
+                    <!-- IMPORT TEST IMAGE BUTTON -->
+                    <Button Style="{StaticResource KsPrimaryButton}"
+                            Command="{Binding ImportTestImageCommand}"
+                            Content="📂 Nạp ảnh" Margin="0,0,6,0" Padding="10,4" FontSize="11.5"
+                            ToolTip="Nạp tệp ảnh (PNG, JPG, BMP) từ máy tính để kiểm thử Pipeline"/>
+
+                    <!-- SAMPLE PIPELINE BUTTON -->
+                    <Button Style="{StaticResource PlayButtonStyle}"
+                            Command="{Binding LoadSamplePipelineCommand}"
+                            Content="⭐ Chương Trình Mẫu" Margin="0,0,8,0" Padding="10,4" FontSize="11.5"
+                            ToolTip="Nạp ngay chương trình thị giác mẫu hoàn chỉnh: Phôi cơ khí, Nhị phân, Thước đo Caliper Sub-pixel và SPC"/>
+
+                    <!-- Pipeline Execution Controls (Design Mode) -->
+                    <Button Style="{StaticResource PlayButtonStyle}"
+                            Command="{Binding DesignVm.RunPipelineCommand}"
+                            Content="{Binding Loc[Btn_Run]}" Margin="0,0,4,0" ToolTip="Execute whole pipeline (F5)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding DesignVm.StepPipelineCommand}"
+                            Content="{Binding Loc[Btn_Step]}" Margin="0,0,4,0" ToolTip="Execute next single node (F10)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding DesignVm.RunToBreakpointCommand}"
+                            Content="{Binding Loc[Btn_Breakpoint]}" Margin="0,0,4,0" ToolTip="Run until next breakpoint"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding DesignVm.ResetPipelineCommand}"
+                            Content="{Binding Loc[Btn_Reset]}" Margin="0,0,8,0" ToolTip="Reset pipeline execution states"/>
+
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding DesignVm.UndoCommand}"
+                            IsEnabled="{Binding DesignVm.CanUndo}"
+                            Content="{Binding Loc[Btn_Undo]}" Margin="0,0,4,0" ToolTip="Undo canvas edit (Ctrl+Z)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding DesignVm.RedoCommand}"
+                            IsEnabled="{Binding DesignVm.CanRedo}"
+                            Content="{Binding Loc[Btn_Redo]}" Margin="0,0,8,0" ToolTip="Redo canvas edit (Ctrl+Y)"/>
+
+                    <!-- DELETE ACTION BUTTON -->
+                    <Button Style="{StaticResource KsDangerButton}"
+                            Command="{Binding DesignVm.DeleteSelectedCommand}"
+                            Content="🗑 Xóa (Del)" Margin="0,0,10,0" Padding="8,4" FontSize="11"
+                            ToolTip="Xóa công cụ hoặc đường nối đang được chọn"/>
+
+                    <CheckBox IsChecked="{Binding DesignVm.IsAutoRunEnabled}" Content="{Binding Loc[Chk_AutoRun]}"
+                              Foreground="{StaticResource KsTextMuted}" VerticalAlignment="Center" FontSize="11" Cursor="Hand"
+                              ToolTip="Automatically re-run pipeline when sliders or parameters are changed"/>
+                </StackPanel>
+
+                <!-- Right Quick Stats & Language / Help / Palette Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- COMMAND PALETTE BUTTON -->
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenCommandPaletteCommand}"
+                            Content="⚡ Lệnh (Ctrl+K)"
+                            FontWeight="SemiBold"
+                            Foreground="{StaticResource KsAccentGlow}"
+                            Margin="0,0,6,0" ToolTip="Command Palette: Tìm kiếm nhanh công cụ, tags, nodes &amp; chức năng (Ctrl+K)"/>
+
+                    <!-- LANGUAGE TOGGLE BUTTON -->
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding ToggleLanguageCommand}"
+                            Content="{Binding Loc.SwitchLanguageButtonText}"
+                            Margin="0,0,6,0" ToolTip="Chuyển đổi ngôn ngữ / Switch Language (Tiếng Việt &lt;-&gt; English)"/>
+
+                    <!-- USER GUIDE & HELP BUTTON -->
+                    <Button Style="{StaticResource HelpButtonStyle}"
+                            Command="{Binding OpenToolGuideCommand}"
+                            Content="📖 Cẩm Nang (F1)"
+                            Margin="0,0,8,0" ToolTip="Mở cẩm nang hướng dẫn sử dụng chi tiết từng chức năng hệ thống và tất cả công cụ thị giác (F1)"/>
+
+                    <Border Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="8,4">
+                        <TextBlock Text="{Binding CurrentMode, StringFormat='Mode: {0}'}" Foreground="{StaticResource KsAccentGlow}" FontWeight="SemiBold" FontSize="11"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- INDUSTRIAL MODULES RIBBON BAR -->
+        <Border Grid.Row="1" Background="#111114" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,0,0,1" Padding="12,0">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Focusable="False">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- NHÓM 1: VẬN HÀNH & GIAO DIỆN -->
+                    <TextBlock Text="VẬN HÀNH:" Foreground="{StaticResource KsTextDim}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="2,0,6,0"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenHmiDesignerCommand}"
+                            Content="🖥️ Màn Hình HMI"
+                            Margin="0,0,4,0" ToolTip="Thiết kế giao diện vận hành nhà máy &amp; Máy chủ Web HMI Kestrel/SignalR"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenRecipeManagerCommand}"
+                            Content="📋 Recipes"
+                            Margin="0,0,4,0" ToolTip="Trình quản lý công thức sản phẩm (Jobs) &amp; Thay đổi tham số runtime"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenTraceabilityHistoryCommand}"
+                            Content="📜 Lịch Sử Audit"
+                            Margin="0,0,6,0" ToolTip="Tra cứu lịch sử kiểm tra, chuỗi băm chống giả mạo &amp; Chạy lại Replay ngoại tuyến"/>
+
+                    <Border Width="1" Height="18" Background="{StaticResource KsBorder}" Margin="6,0,10,0"/>
+
+                    <!-- NHÓM 2: AI & HÌNH HỌC -->
+                    <TextBlock Text="AI &amp; HÌNH HỌC:" Foreground="{StaticResource KsTextDim}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="2,0,6,0"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenDeepLearningWorkspaceCommand}"
+                            Content="🧠 Deep Learning"
+                            Margin="0,0,4,0" ToolTip="Không gian huấn luyện AI công nghiệp: Dataset Manager, Labeling, PatchCore / Classifier Trainer &amp; Model Registry"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenModelEditorCommand}"
+                            Content="🎯 Mẫu Hình Học"
+                            Margin="0,0,4,0" ToolTip="Mở trình thiết kế mẫu hình học công nghiệp (Geometric Pattern Model Editor)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenCoordinateFramesCommand}"
+                            Content="📐 Không Gian Toạ Độ"
+                            Margin="0,0,4,0" ToolTip="Quản lý cây phân cấp không gian toạ độ &amp; Gá đặt tự động (Spaces &amp; Fixturing)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenAutoTuneCommand}"
+                            Content="🎛️ Auto-Tune"
+                            Margin="0,0,6,0" ToolTip="Tự động tối ưu hóa tham số công cụ bằng ảnh mẫu Good/Bad"/>
+
+                    <Border Width="1" Height="18" Background="{StaticResource KsBorder}" Margin="6,0,10,0"/>
+
+                    <!-- NHÓM 3: THIẾT BỊ & TỰ ĐỘNG HÓA -->
+                    <TextBlock Text="TỰ ĐỘNG HÓA:" Foreground="{StaticResource KsTextDim}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="2,0,6,0"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenCameraManagerCommand}"
+                            Content="📷 Camera Manager"
+                            Margin="0,0,4,0" ToolTip="Quản lý Camera &amp; Bộ giả lập đa nguồn (Webcam Laptop / GigE / File / Synthetic)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenStateMachineCommand}"
+                            Content="⚙️ State Machine"
+                            Margin="0,0,4,0" ToolTip="Trình thiết kế &amp; Mô phỏng máy trạng thái công nghiệp (State Machine Editor)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenMacroLibraryCommand}"
+                            Content="📦 Khối Macro"
+                            Margin="0,0,4,0" ToolTip="Quản lý và sử dụng Thư viện khối Macro (Sub-pipelines)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenIndustrialConnectivityCommand}"
+                            Content="🌐 Kết Nối IIoT"
+                            Margin="0,0,6,0" ToolTip="Cổng kết nối công nghiệp: OPC UA, MQTT Sparkplug B, SQL Logging &amp; Lighting Controller"/>
+
+                    <Border Width="1" Height="18" Background="{StaticResource KsBorder}" Margin="6,0,10,0"/>
+
+                    <!-- NHÓM 4: CÔNG CỤ NHANH -->
+                    <TextBlock Text="TIỆN ÍCH:" Foreground="{StaticResource KsTextDim}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="2,0,6,0"/>
+                    <Button Style="{StaticResource PlayButtonStyle}"
+                            Command="{Binding LoadSamplePipelineCommand}"
+                            Content="⭐ Nạp Mẫu Demo"
+                            Margin="0,0,4,0" ToolTip="Nạp chương trình mẫu kiểm tra phôi công nghiệp hoàn chỉnh (Caliper + SPC)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenQuickBuildWizardCommand}"
+                            Content="⚡ Quick Build"
+                            Margin="0,0,4,0" ToolTip="Khởi tạo nhanh 5 kịch bản Pipeline mẫu công nghiệp"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenToolCompareCommand}"
+                            Content="⚖️ So Sánh A/B"
+                            Margin="0,0,6,0" ToolTip="So sánh tham số thuật toán A/B song song trên cùng ảnh kiểm"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- MAIN WORKSPACE -->
+        <Grid Grid.Row="2" Margin="8">
+            <Grid.ColumnDefinitions>
+                <!-- Column 0: Toolbox -->
+                <ColumnDefinition Width="260" MinWidth="200"/>
+                <ColumnDefinition Width="6"/>
+                <!-- Column 1: Central Work Area with TABS -->
+                <ColumnDefinition Width="*" MinWidth="400"/>
+                <ColumnDefinition Width="6"/>
+                <!-- Column 2: Properties & Results Panel -->
+                <ColumnDefinition Width="340" MinWidth="260"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT PANEL: TOOLBOX CATALOG -->
+            <Border Grid.Column="0" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="{Binding Loc[Toolbox_Header]}" FontWeight="Bold" Foreground="{StaticResource KsTextMuted}" FontSize="11" Margin="0,0,0,8"/>
+
+                    <!-- Search Filter Box -->
+                    <Border Grid.Row="1" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="8,5" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="🔍" FontSize="11" Foreground="{StaticResource KsTextDim}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding DesignVm.ToolSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="Transparent" Foreground="{StaticResource KsText}" BorderThickness="0" FontSize="12" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Filtered Tools List -->
+                    <ListBox Grid.Row="2" ItemsSource="{Binding DesignVm.FilteredTools}"
+                             SelectedItem="{Binding DesignVm.SelectedToolItem}"
+                             Background="{StaticResource KsBgBase}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:ToolItemViewModel}">
+                                <Border Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,2">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource KsText}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Category}" FontSize="10" Foreground="{StaticResource KsAccentGlow}" Margin="0,2,0,0"/>
+                                            <TextBlock Text="{Binding Description}" FontSize="10" Foreground="{StaticResource KsTextDim}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="+"
+                                                Command="{Binding DataContext.DesignVm.AddNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Thêm công cụ này vào sơ đồ"
+                                                Background="{StaticResource KsAccent}" Foreground="White" BorderThickness="0" Padding="8,4"
+                                                FontWeight="Bold" FontSize="12" VerticalAlignment="Center" Cursor="Hand"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- Column Splitter 1 -->
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Cursor="SizeWE"/>
+
+            <!-- CENTER PANEL: TABBED WORKSPACE (SOLVES THE CRAMPED VIEWPORT PROBLEM) -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <!-- Tabs Navigation Header Bar -->
+                    <RowDefinition Height="42"/>
+                    <!-- Tabs Content Viewport -->
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- WORKSPACE TAB SELECTOR BAR -->
+                <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1,1,1,0" CornerRadius="8,8,0,0" Padding="8,4">
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- TAB 1: PIPELINE DAG CANVAS -->
+                            <RadioButton Content="📐 Sơ đồ Pipeline (DAG)"
+                                         Style="{StaticResource TabPillStyle}"
+                                         IsChecked="{Binding ActiveTab, Converter={x:Static conv:EnumToBooleanConverter.Instance}, ConverterParameter={x:Static vm:WorkspaceTab.PipelineCanvas}}"
+                                         Command="{Binding SetTabCommand}"
+                                         CommandParameter="{x:Static vm:WorkspaceTab.PipelineCanvas}"
+                                         ToolTip="Xem toàn màn hình Sơ đồ quy trình xử lý ảnh trực quan (DAG)"/>
+
+                            <!-- TAB 2: HIGH-RES IMAGE & INSPECTION STRIP -->
+                            <RadioButton Content="🖼 Màn hình Ảnh &amp; Đo kiểm"
+                                         Style="{StaticResource TabPillStyle}"
+                                         IsChecked="{Binding ActiveTab, Converter={x:Static conv:EnumToBooleanConverter.Instance}, ConverterParameter={x:Static vm:WorkspaceTab.ImageViewer}}"
+                                         Command="{Binding SetTabCommand}"
+                                         CommandParameter="{x:Static vm:WorkspaceTab.ImageViewer}"
+                                         ToolTip="Xem toàn màn hình Ảnh phân giải cao, thước đo Caliper, vết Blob và thanh duyệt ảnh"/>
+
+                            <!-- TAB 3: SPLIT VIEW (CANVAS + IMAGE) -->
+                            <RadioButton Content="◫ Chế độ Song song"
+                                         Style="{StaticResource TabPillStyle}"
+                                         IsChecked="{Binding ActiveTab, Converter={x:Static conv:EnumToBooleanConverter.Instance}, ConverterParameter={x:Static vm:WorkspaceTab.SplitView}}"
+                                         Command="{Binding SetTabCommand}"
+                                         CommandParameter="{x:Static vm:WorkspaceTab.SplitView}"
+                                         ToolTip="Chia đôi màn hình: Xem đồng thời Sơ đồ Pipeline phía trên và Màn hình Ảnh phía dưới"/>
+
+                            <!-- TAB 4: RUN MODE TELEMETRY & HARDWARE -->
+                            <RadioButton Content="📊 Thiết bị &amp; Giám sát (PLC/Robot)"
+                                         Style="{StaticResource TabPillStyle}"
+                                         IsChecked="{Binding ActiveTab, Converter={x:Static conv:EnumToBooleanConverter.Instance}, ConverterParameter={x:Static vm:WorkspaceTab.TelemetryAndDevices}}"
+                                         Command="{Binding SetTabCommand}"
+                                         CommandParameter="{x:Static vm:WorkspaceTab.TelemetryAndDevices}"
+                                         ToolTip="Bảng điều khiển giám sát truyền thông PLC, Robot, Thống kê OK/NG và Lưu ảnh"/>
+                        </StackPanel>
+
+                        <!-- Quick Action Button in Tab Bar -->
+                        <Button HorizontalAlignment="Right" Style="{StaticResource KsPrimaryButton}"
+                                Command="{Binding ImportTestImageCommand}"
+                                Content="📂 Nạp ảnh..." Padding="10,4" FontSize="11"
+                                ToolTip="Nạp ảnh từ máy tính để thử nghiệm Pipeline"/>
+                    </Grid>
+                </Border>
+
+                <!-- TAB CONTENTS CONTAINER -->
+                <Border Grid.Row="1" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="0,0,8,8" ClipToBounds="True">
+                    <Grid>
+                        <!-- ==================================================================== -->
+                        <!-- VIEW 1: PIPELINE DAG CANVAS (FULL HEIGHT & FULL WIDTH)                -->
+                        <!-- ==================================================================== -->
+                        <Grid Visibility="{Binding ActiveTab, Converter={x:Static conv:EnumToVisibilityConverter.Instance}, ConverterParameter=PipelineCanvas}">
+                            <controls:PipelineCanvasControl DataContext="{Binding DesignVm}"/>
+                        </Grid>
+
+                        <!-- ==================================================================== -->
+                        <!-- VIEW 2: IMAGE VIEWER & INSPECTION STRIP (FULL HEIGHT & FULL WIDTH)    -->
+                        <!-- ==================================================================== -->
+                        <Grid Visibility="{Binding ActiveTab, Converter={x:Static conv:EnumToVisibilityConverter.Instance}, ConverterParameter=ImageViewer}">
+                            <Grid.RowDefinitions>
+                                <!-- Inspection Strip -->
+                                <RowDefinition Height="114"/>
+                                <!-- Huge Image Viewer -->
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <controls:InspectionStripControl Grid.Row="0" DataContext="{Binding DesignVm}"/>
+                            <controls:ImageViewerControl Grid.Row="1" DataContext="{Binding DesignVm}"/>
+                        </Grid>
+
+                        <!-- ==================================================================== -->
+                        <!-- VIEW 3: SPLIT VIEW (STACKED WITH GRID SPLITTER)                      -->
+                        <!-- ==================================================================== -->
+                        <Grid Visibility="{Binding ActiveTab, Converter={x:Static conv:EnumToVisibilityConverter.Instance}, ConverterParameter=SplitView}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="3*" MinHeight="180"/>
+                                <RowDefinition Height="5"/>
+                                <RowDefinition Height="4*" MinHeight="220"/>
+                            </Grid.RowDefinitions>
+
+                            <controls:PipelineCanvasControl Grid.Row="0" DataContext="{Binding DesignVm}"/>
+                            <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" Background="{StaticResource KsBorder}" Cursor="SizeNS"/>
+                            
+                            <Grid Grid.Row="2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="114"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <controls:InspectionStripControl Grid.Row="0" DataContext="{Binding DesignVm}"/>
+                                <controls:ImageViewerControl Grid.Row="1" DataContext="{Binding DesignVm}"/>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ==================================================================== -->
+                        <!-- VIEW 4: TELEMETRY & HARDWARE CONNECTIVITY DASHBOARD                  -->
+                        <!-- ==================================================================== -->
+                        <Grid Visibility="{Binding ActiveTab, Converter={x:Static conv:EnumToVisibilityConverter.Instance}, ConverterParameter=TelemetryAndDevices}" Margin="16">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <!-- Header -->
+                                    <Border Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                                        <Grid>
+                                            <StackPanel>
+                                                <TextBlock Text="🏭 BẢNG GIÁM SÁT VẬN HÀNH &amp; TRUYỀN THÔNG CÔNG NGHIỆP" FontWeight="Bold" FontSize="15" Foreground="{StaticResource KsAccentGlow}"/>
+                                                <TextBlock Text="Theo dõi thống kê chất lượng sản phẩm (OK/NG), chu kỳ đo (Cycle Time) và truyền thông Siemens S7, Modbus, Robot TCP" Foreground="{StaticResource KsTextMuted}" FontSize="11.5" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                            <Button HorizontalAlignment="Right" Style="{StaticResource KsPrimaryButton}"
+                                                    Command="{Binding OpenCameraManagerCommand}"
+                                                    Content="📷 Quản lý Camera Studio" Padding="12,6"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Telemetry Metrics Cards Grid -->
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Card 1: Total Inspected -->
+                                        <Border Grid.Column="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                                            <StackPanel>
+                                                <TextBlock Text="TỔNG SẢN PHẨM (TOTAL)" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource KsTextMuted}"/>
+                                                <TextBlock Text="1,482" FontSize="26" FontWeight="Bold" Foreground="{StaticResource KsText}" Margin="0,6,0,0"/>
+                                                <TextBlock Text="Tốc độ: 12 phôi / phút" FontSize="10.5" Foreground="{StaticResource KsTextDim}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Card 2: OK Count -->
+                                        <Border Grid.Column="2" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                                            <StackPanel>
+                                                <TextBlock Text="ĐẠT CHUẨN (OK)" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource KsSuccess}"/>
+                                                <TextBlock Text="1,458" FontSize="26" FontWeight="Bold" Foreground="{StaticResource KsSuccess}" Margin="0,6,0,0"/>
+                                                <TextBlock Text="Tỉ lệ đạt: 98.38%" FontSize="10.5" Foreground="{StaticResource KsTextDim}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Card 3: NG Count -->
+                                        <Border Grid.Column="4" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                                            <StackPanel>
+                                                <TextBlock Text="LỖI PHẾ PHẨM (NG)" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource KsDanger}"/>
+                                                <TextBlock Text="24" FontSize="26" FontWeight="Bold" Foreground="{StaticResource KsDanger}" Margin="0,6,0,0"/>
+                                                <TextBlock Text="Đã lưu ảnh vào thư mục NG" FontSize="10.5" Foreground="{StaticResource KsTextDim}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Card 4: Cycle Time -->
+                                        <Border Grid.Column="6" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                                            <StackPanel>
+                                                <TextBlock Text="CHU KỲ XỬ LÝ (CYCLE TIME)" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource KsWarning}"/>
+                                                <TextBlock Text="24.8 ms" FontSize="26" FontWeight="Bold" Foreground="{StaticResource KsWarning}" Margin="0,6,0,0"/>
+                                                <TextBlock Text="Mục tiêu Takt: &lt; 50 ms" FontSize="10.5" Foreground="{StaticResource KsTextDim}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Hardware Interfaces Section -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="12"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- PLC Connection Monitor -->
+                                        <Border Grid.Column="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                            <StackPanel>
+                                                <Grid Margin="0,0,0,12">
+                                                    <TextBlock Text="🔌 KẾT NỐI PLC (SIEMENS S7 &amp; MODBUS TCP)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}"/>
+                                                    <Border HorizontalAlignment="Right" Background="#16a34a" CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="CONNECTED (SIM)" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                                    </Border>
+                                                </Grid>
+
+                                                <TextBlock Text="IP: 192.168.1.10:102 | Rack: 0 | Slot: 1" FontSize="11" Foreground="{StaticResource KsTextMuted}" Margin="0,0,0,8"/>
+                                                <TextBlock Text="• Trạng thái gửi cờ OK/NG: DB1.DBX0.0 (Bit Trigger)" FontSize="11" Foreground="{StaticResource KsText}" Margin="0,0,0,4"/>
+                                                <TextBlock Text="• Tọa độ gắp phôi (Offset X, Y, Angle): DB1.DBD2..10 (Real)" FontSize="11" Foreground="{StaticResource KsText}" Margin="0,0,0,4"/>
+                                                <TextBlock Text="• Heartbeat phản hồi: 50 ms (Bình thường)" FontSize="11" Foreground="{StaticResource KsSuccess}"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Robot Connection Monitor -->
+                                        <Border Grid.Column="2" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                            <StackPanel>
+                                                <Grid Margin="0,0,0,12">
+                                                    <TextBlock Text="🤖 KẾT NỐI ROBOT (TCP SOCKET STREAM)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}"/>
+                                                    <Border HorizontalAlignment="Right" Background="#0284c7" CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="LISTENING :5000" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                                    </Border>
+                                                </Grid>
+
+                                                <TextBlock Text="Host: 127.0.0.1:5000 | Định dạng: ASCII CSV [X,Y,Theta,Status]" FontSize="11" Foreground="{StaticResource KsTextMuted}" Margin="0,0,0,8"/>
+                                                <TextBlock Text="• Dữ liệu gửi gần nhất: 'POS,320.45,240.12,4.85,OK'" FontSize="11" Foreground="{StaticResource KsAccentGlow}" FontFamily="Consolas" Margin="0,0,0,4"/>
+                                                <TextBlock Text="• Gói tin trễ: 1.2 ms | Trạng thái bắt tay (Handshake): Sẵn sàng" FontSize="11" Foreground="{StaticResource KsText}" Margin="0,0,0,4"/>
+                                                <TextBlock Text="• Thư mục lưu ảnh NG: C:\VisionStudio\SavedImages\NG\" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Column Splitter 2 -->
+            <GridSplitter Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Cursor="SizeWE"/>
+
+            <!-- RIGHT PANEL: AUTO-GENERATED PROPERTIES & RESULTS WITH INTEGRATED TOOL GUIDE -->
+            <Border Grid.Column="4" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                <controls:PropertyPanelControl DataContext="{Binding DesignVm}"/>
+            </Border>
+        </Grid>
+
+        <!-- BOTTOM LOG PANEL -->
+        <Border Grid.Row="3" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,1,0,0" Padding="14,6">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,4">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Loc[Logs_Header]}" FontWeight="Bold" Foreground="{StaticResource KsTextMuted}" FontSize="11"/>
+                        <TextBlock Text="{Binding LogCount, StringFormat=' ({0})'}" Foreground="{StaticResource KsTextDim}" FontSize="11" Margin="4,0,0,0"/>
+                    </StackPanel>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            HorizontalAlignment="Right"
+                            Command="{Binding ClearLogsCommand}"
+                            Content="{Binding Loc[Logs_Clear]}" Padding="10,2" FontSize="10.5"/>
+                </Grid>
+
+                <ListBox Grid.Row="1" ItemsSource="{Binding Logs}" Background="{StaticResource KsBgBase}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="130"/>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}" Foreground="{StaticResource KsTextDim}" FontFamily="Consolas" FontSize="10.5"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Level}" Foreground="{StaticResource KsAccentGlow}" FontWeight="SemiBold" FontFamily="Consolas" FontSize="10.5" Margin="4,0"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Source}" Foreground="#c084fc" FontFamily="Consolas" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="3" Text="{Binding Message}" Foreground="{StaticResource KsText}" FontFamily="Consolas" FontSize="10.5" Margin="6,0,0,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- STATUS BAR -->
+        <Border Grid.Row="4" Background="{StaticResource KsBgBase}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,1,0,0" Padding="14,2">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" Foreground="{StaticResource KsTextMuted}" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="{Binding Loc[Status_Version]}" Foreground="{StaticResource KsTextDim}" FontSize="11" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Emergency Stop Button (Nút dừng khẩn cấp E-STOP hình nấm đỏ) -->
+  <!-- Hộp nút bấm màu vàng cảnh báo (Enclosure yellow box) -->
+  <rect x="25" y="25" width="150" height="150" rx="20" fill="#FACC15" stroke="#1E293B" stroke-width="6"/>
+  <!-- Vòng tròn nền ghi EMERGENCY STOP -->
+  <circle cx="100" cy="100" r="62" fill="#FDE047" stroke="#1E293B" stroke-width="3"/>
+  <text x="100" y="52" font-family="Arial, sans-serif" font-size="10" font-weight="900" fill="#1E293B" text-anchor="middle">EMERGENCY</text>
+  <text x="100" y="156" font-family="Arial, sans-serif" font-size="10" font-weight="900" fill="#1E293B" text-anchor="middle">STOP</text>
+  <!-- Nấm đỏ E-stop trung tâm (Red Mushroom head) -->
+  <circle cx="100" cy="100" r="42" fill="#EF4444" stroke="#7F1D1D" stroke-width="5"/>
+  <circle cx="100" cy="100" r="32" fill="#DC2626"/>
+  <!-- Mũi tên xoay nhả reset (Turn to reset arrows) -->
+  <path d="M85 82 A 20 20 0 0 1 115 82" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <polygon points="115,77 122,83 115,88" fill="#FFFFFF"/>
+  <path d="M115 118 A 20 20 0 0 1 85 118" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <polygon points="85,123 78,117 85,112" fill="#FFFFFF"/>
+</svg>

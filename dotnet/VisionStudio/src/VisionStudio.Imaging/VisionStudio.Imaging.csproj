@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VisionStudio.Core\VisionStudio.Core.csproj" />
+    <ProjectReference Include="..\VisionStudio.Devices.Abstractions\VisionStudio.Devices.Abstractions.csproj" />
+    <ProjectReference Include="..\VisionStudio.Devices.Cameras\VisionStudio.Devices.Cameras.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
+    <PackageReference Include="ZXing.Net" Version="0.16.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+
+</Project>

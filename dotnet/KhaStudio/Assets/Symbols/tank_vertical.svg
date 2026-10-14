@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Vertical Storage Tank (Bồn chứa chất lỏng đứng chuẩn ISA P&ID) -->
+  <!-- Nắp chỏm cầu trên & đáy chỏm cầu dưới -->
+  <path d="M45 55 C45 28, 155 28, 155 55 L155 145 C155 172, 45 172, 45 145 Z" fill="#70757A" stroke="#1E293B" stroke-width="6"/>
+  <!-- Kính thủy báo mức (Level Sight Glass / Transmitter) -->
+  <line x1="168" y1="60" x2="168" y2="140" stroke="#1E293B" stroke-width="5"/>
+  <circle cx="168" cy="60" r="4" fill="#3B82F6"/>
+  <circle cx="168" cy="140" r="4" fill="#3B82F6"/>
+  <line x1="155" y1="60" x2="168" y2="60" stroke="#1E293B" stroke-width="3"/>
+  <line x1="155" y1="140" x2="168" y2="140" stroke="#1E293B" stroke-width="3"/>
+  <!-- Mức chất lỏng bên trong minh họa (Liquid level line) -->
+  <path d="M48 115 Q100 120, 152 115" stroke="#FFFFFF" stroke-width="3" stroke-dasharray="6,4"/>
+  <!-- Chân đỡ bồn (Legs) -->
+  <rect x="52" y="160" width="10" height="28" fill="#1E293B"/>
+  <rect x="138" y="160" width="10" height="28" fill="#1E293B"/>
+  <!-- Cửa thăm người (Manhole) -->
+  <circle cx="100" cy="85" r="14" fill="#1E293B"/>
+  <text x="100" y="145" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">TANK</text>
+</svg>

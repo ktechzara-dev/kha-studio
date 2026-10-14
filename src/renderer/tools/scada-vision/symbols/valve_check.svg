@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Check Valve / Non-Return Valve (Van 1 chiều chống chảy ngược) -->
+  <polygon points="35,65 100,100 35,135" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <polygon points="165,65 100,100 165,135" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <line x1="35" y1="55" x2="35" y2="145" stroke="#1E293B" stroke-width="6"/>
+  <line x1="165" y1="55" x2="165" y2="145" stroke="#1E293B" stroke-width="6"/>
+  <!-- Đĩa chặn một chiều bên trong (Hạn chế dòng ngược lại) -->
+  <line x1="100" y1="75" x2="100" y2="125" stroke="#FFFFFF" stroke-width="5"/>
+  <polygon points="90,100 120,88 120,112" fill="#FFFFFF"/>
+</svg>

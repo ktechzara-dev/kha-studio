@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Safety Relief Valve (Van an toàn / xả áp quá dòng) -->
+  <!-- Thân van góc vuông -->
+  <polygon points="45,115 95,140 45,165" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <polygon points="145,115 95,140 145,165" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <line x1="45" y1="105" x2="45" y2="175" stroke="#1E293B" stroke-width="6"/>
+  <line x1="145" y1="105" x2="145" y2="175" stroke="#1E293B" stroke-width="6"/>
+  <!-- Họng xả khẩn cấp lên trên hoặc ra ngoài -->
+  <rect x="85" y="55" width="22" height="85" rx="3" fill="#70757A" stroke="#1E293B" stroke-width="4"/>
+  <!-- Lò xo nén áp lực (Spring bonnet) -->
+  <path d="M88 60 L104 68 L88 76 L104 84 L88 92 L104 100 L88 108" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <!-- Tay giật xả thử van an toàn (Test lever) -->
+  <path d="M96 55 L96 25 L140 18" fill="none" stroke="#EF4444" stroke-width="5"/>
+  <circle cx="140" cy="18" r="6" fill="#EF4444"/>
+  <text x="140" y="70" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#EF4444">PSV</text>
+</svg>

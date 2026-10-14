@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PLC & Modbus Inspector Pro — Kha Studio</title>
+  <link rel="stylesheet" href="css/plc-modbus.css">
+</head>
+<body>
+
+  <!-- Top Header & Connection Bar -->
+  <header class="plc-header">
+    <div class="top-nav">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2"/>
+            <rect x="9" y="9" width="6" height="6"/>
+            <path d="M15 2v2M9 2v2M20 15h2M20 9h2M15 20v2M9 20v2M2 15h2M2 9h2"/>
+          </svg>
+        </div>
+        <div class="brand-title">
+          PLC & Modbus Inspector Pro
+          <span class="brand-badge">v1.2.6</span>
+        </div>
+      </div>
+
+      <!-- Protocol Selection Tabs -->
+      <div class="protocol-tabs">
+        <button class="proto-btn active" data-proto="tcp">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+          Modbus TCP
+        </button>
+        <button class="proto-btn" data-proto="rtu">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 12h4m4 0h4"/></svg>
+          Modbus RTU (Serial)
+        </button>
+        <button class="proto-btn" data-proto="s7">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Siemens S7 PLC
+        </button>
+        <button class="proto-btn" data-proto="opcua">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10M12 12l4-4M12 12v6"/></svg>
+          Siemens OPC UA
+        </button>
+        <button class="proto-btn" data-proto="sim">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>
+          Mô phỏng ảo (Simulator)
+        </button>
+      </div>
+
+      <div class="status-indicator">
+        <div id="statusDot" class="status-dot"></div>
+        <span id="statusText">Ngắt kết nối</span>
+      </div>
+    </div>
+
+    <!-- Dynamic Connection Parameters Bar -->
+    <div class="connection-bar">
+      <!-- Network Adapter / Card Mạng Selector (cho TCP, S7 & OPC UA) -->
+      <div id="cfgNic" class="cfg-group" style="display: flex; align-items: center; gap: 6px; border-right: 1px solid var(--border-color); padding-right: 10px; margin-right: 4px;">
+        <span class="cfg-label" title="Chọn card mạng vật lý kết nối trực tiếp với PLC">Card mạng:</span>
+        <select id="selectNic" class="cfg-select" style="min-width: 175px; max-width: 230px;" title="Chọn card mạng Ethernet hoặc Wi-Fi">
+          <option value="auto">⚡ Tự động (Windows Routing)</option>
+        </select>
+        <button id="btnRefreshNic" class="btn btn-secondary" title="Quét lại các card mạng" style="padding: 4px 8px;">⟳</button>
+      </div>
+
+      <!-- Modbus TCP Params -->
+      <div id="cfgTcp" class="cfg-group">
+        <span class="cfg-label">IP Host:</span>
+        <input type="text" id="tcpHost" class="cfg-input w-lg" value="127.0.0.1">
+        <span class="cfg-label">Port:</span>
+        <input type="number" id="tcpPort" class="cfg-input w-sm" value="502">
+        <span class="cfg-label">Slave ID:</span>
+        <input type="number" id="tcpSlaveId" class="cfg-input w-sm" value="1" min="1" max="255">
+      </div>
+
+      <!-- Modbus RTU Params (Hidden by default) -->
+      <div id="cfgRtu" class="cfg-group" style="display: none;">
+        <span class="cfg-label">Cổng COM:</span>
+        <select id="rtuPort" class="cfg-select w-md"></select>
+        <button id="btnRefreshPorts" class="btn btn-secondary" title="Làm mới danh sách COM" style="padding: 4px 8px;">⟳</button>
+        <span class="cfg-label">Baudrate:</span>
+        <select id="rtuBaud" class="cfg-select w-md">
+          <option value="9600" selected>9600</option>
+          <option value="19200">19200</option>
+          <option value="38400">38400</option>
+          <option value="57600">57600</option>
+          <option value="115200">115200</option>
+        </select>
+        <span class="cfg-label">Parity:</span>
+        <select id="rtuParity" class="cfg-select w-sm">
+          <option value="None" selected>None</option>
+          <option value="Even">Even</option>
+          <option value="Odd">Odd</option>
+        </select>
+        <span class="cfg-label">Slave ID:</span>
+        <input type="number" id="rtuSlaveId" class="cfg-input w-sm" value="1" min="1" max="255">
+      </div>
+
+      <!-- Siemens S7 Params (Hidden by default) -->
+      <div id="cfgS7" class="cfg-group" style="display: none;">
+        <span class="cfg-label">CPU:</span>
+        <select id="s7Cpu" class="cfg-select w-md">
+          <option value="S71200" selected>S7-1200</option>
+          <option value="S71500">S7-1500</option>
+          <option value="S7300">S7-300</option>
+          <option value="S7400">S7-400</option>
+          <option value="S7200">S7-200</option>
+        </select>
+        <span class="cfg-label">IP:</span>
+        <input type="text" id="s7Host" class="cfg-input w-lg" value="192.168.0.10">
+        <span class="cfg-label">Rack:</span>
+        <input type="number" id="s7Rack" class="cfg-input w-sm" value="0">
+        <span class="cfg-label">Slot:</span>
+        <input type="number" id="s7Slot" class="cfg-input w-sm" value="1">
+      </div>
+
+      <!-- Siemens OPC UA Params (Hidden by default) -->
+      <div id="cfgOpcUa" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+        <span class="cfg-label">Endpoint:</span>
+        <input type="text" id="opcUaEndpoint" class="cfg-input" value="opc.tcp://192.168.0.10:4840" placeholder="opc.tcp://192.168.0.10:4840" style="width: 220px;">
+        <span class="cfg-label">Bảo mật:</span>
+        <select id="opcUaSecurity" class="cfg-select" style="width: 140px;">
+          <option value="None" selected>None (Không mã hoá)</option>
+          <option value="Basic256Sha256">Basic256Sha256</option>
+        </select>
+        <span class="cfg-label">Xác thực:</span>
+        <select id="opcUaAuth" class="cfg-select" style="width: 110px;">
+          <option value="Anonymous" selected>Anonymous</option>
+          <option value="User">Tài khoản</option>
+        </select>
+        <div id="opcUaCreds" style="display: none; align-items: center; gap: 4px;">
+          <input type="text" id="opcUaUser" class="cfg-input w-sm" placeholder="User">
+          <input type="password" id="opcUaPass" class="cfg-input w-sm" placeholder="Pass">
+        </div>
+        <button id="btnTestOpcUa" class="btn btn-warning" title="Kiểm tra kết nối và bắt tay Binary HEL/ACK với PLC Siemens">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span id="btnTestOpcUaText">Test kết nối OPC UA</span>
+        </button>
+      </div>
+
+      <!-- Simulation Badge -->
+      <div id="cfgSim" class="cfg-group" style="display: none;">
+        <span style="font-size: 11px; color: var(--accent-green); font-weight: 600;">
+          ⚡ Chế độ mô phỏng ảo: Giả lập Modbus Slave & S7 PLC sinh động (Nhiệt độ Sin-wave, Tốc độ RPM, Counter sản phẩm).
+        </span>
+      </div>
+
+      <!-- Actions -->
+      <div class="action-controls">
+        <button id="btnConnect" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <span id="btnConnectText">Bắt đầu quét</span>
+        </button>
+        <button id="btnPollOnce" class="btn btn-secondary" title="Đọc 1 lần (F5)">
+          Đọc 1 lần
+        </button>
+        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+          <input type="checkbox" id="chkAutoPoll" checked>
+          Tự động quét:
+        </label>
+        <select id="pollInterval" class="cfg-select w-sm">
+          <option value="100">100ms</option>
+          <option value="250">250ms</option>
+          <option value="500" selected>500ms</option>
+          <option value="1000">1000ms</option>
+          <option value="2000">2000ms</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="workspace">
+    <!-- Center / Monitor Pane -->
+    <section class="main-monitor-pane">
+      <!-- Query / Register setup bar -->
+      <div class="query-bar">
+        <div id="modbusQuery" class="cfg-group">
+          <span class="cfg-label">Mã hàm (FC):</span>
+          <select id="modbusFc" class="cfg-select" style="width: 210px;">
+            <option value="3" selected>03: Read Holding Registers (4x)</option>
+            <option value="4">04: Read Input Registers (3x)</option>
+            <option value="1">01: Read Coils (0x)</option>
+            <option value="2">02: Read Discrete Inputs (1x)</option>
+          </select>
+          <span class="cfg-label">Địa chỉ bắt đầu:</span>
+          <input type="number" id="modbusAddress" class="cfg-input w-sm" value="0" min="0">
+          <span class="cfg-label">Số lượng:</span>
+          <input type="number" id="modbusCount" class="cfg-input w-sm" value="10" min="1" max="125">
+        </div>
+
+        <div id="s7Query" class="cfg-group" style="display: none;">
+          <span class="cfg-label">Vùng nhớ:</span>
+          <select id="s7Area" class="cfg-select w-md">
+            <option value="DB" selected>DB (Data Block)</option>
+            <option value="M">M (Memory Flags)</option>
+            <option value="I">I (Digital Inputs)</option>
+            <option value="Q">Q (Digital Outputs)</option>
+          </select>
+          <span class="cfg-label">DB số:</span>
+          <input type="number" id="s7DbNumber" class="cfg-input w-sm" value="1" min="1">
+          <span class="cfg-label">Offset Byte:</span>
+          <input type="number" id="s7StartByte" class="cfg-input w-sm" value="0" min="0">
+          <span class="cfg-label">Số byte:</span>
+          <input type="number" id="s7ByteCount" class="cfg-input w-sm" value="20" min="2" max="256">
+        </div>
+
+        <div id="opcUaQuery" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+          <span class="cfg-label">Biến PLC Siemens:</span>
+          <select id="opcUaPreset" class="cfg-select" style="width: 270px;">
+            <option value='all' selected>⚡ Tất cả biến PLC thực tế & Hệ thống</option>
+            <option value='ns=4;i=13'>🔘 ns=4;i=13: bool (OPC_Data)</option>
+            <option value='ns=4;i=14'>🌡️ ns=4;i=14: real (OPC_Data)</option>
+            <option value='ns=4;i=15'>⚡ ns=4;i=15: int (OPC_Data)</option>
+            <option value='ns=3;s=Model'>🏷️ ns=3;s=Model: PLC Model (CPU 1214C)</option>
+            <option value='ns=3;s=SerialNumber'>🔢 ns=3;s=SerialNumber: Số Serial PLC</option>
+            <option value="i=2258">🕒 i=2258: Server CurrentTime</option>
+            <option value="i=2259">ℹ️ i=2259: ServerStatus (Info)</option>
+            <option value="s7_sample">📦 Mẫu S7 DB_Sensor/Motor (ns=3;s="DB"...)</option>
+            <option value="custom">✏️ Nhập NodeId tuỳ chỉnh...</option>
+          </select>
+          <span class="cfg-label">NodeId:</span>
+          <input type="text" id="opcUaNodeId" class="cfg-input" style="width: 220px;" value='ns=4;i=13' placeholder='vd: ns=4;i=13 hoặc i=2258'>
+          <button id="btnBrowseOpcUa" class="btn btn-secondary" title="Duyệt cây địa chỉ PLC Siemens (Address Space Browser)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            Duyệt cây biến
+          </button>
+        </div>
+
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+          <span class="cfg-label">Hiển thị:</span>
+          <select id="viewFormat" class="cfg-select w-md">
+            <option value="all" selected>Tất cả định dạng</option>
+            <option value="hex">Ưu tiên HEX</option>
+            <option value="dec">Ưu tiên Decimal</option>
+            <option value="float">Float 32-bit</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Data Monitor Grid -->
+      <div class="grid-container">
+        <table class="data-table" id="dataTable">
+          <thead>
+            <tr>
+              <th style="width: 80px;">Địa chỉ</th>
+              <th style="width: 170px;">Tên Tag / Mô tả</th>
+              <th style="width: 100px;">Hex (16-bit)</th>
+              <th style="width: 180px;">Nhị phân (Binary)</th>
+              <th style="width: 100px;">Unsigned 16</th>
+              <th style="width: 100px;">Signed 16</th>
+              <th style="width: 130px;">Float 32 (ABCD)</th>
+              <th style="width: 90px; text-align: center;">Ghi nhanh</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Traffic & Hex Packet Inspector Panel -->
+      <div class="traffic-panel">
+        <div class="traffic-header">
+          <span style="font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            Nhật ký gói tin truyền thông (Traffic Packet Inspector)
+          </span>
+          <div style="display: flex; gap: 8px;">
+            <button id="btnClearTraffic" class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;">Xóa log</button>
+            <button id="btnCopyTraffic" class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;">Sao chép</button>
+          </div>
+        </div>
+        <div class="traffic-log" id="trafficLog">
+          <div class="log-entry"><span class="log-time">[Hệ thống]</span> <span class="log-tx">Sẵn sàng kết nối thiết bị. Chọn giao thức và bấm 'Bắt đầu quét'.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Side Inspector & Bit Manipulator Pane -->
+    <aside class="side-inspector">
+      <div class="inspector-header">
+        <span>Giải mã chi tiết thanh ghi</span>
+        <span id="inspectTarget" style="font-family: var(--font-mono); color: var(--accent-cyan);">CHƯA CHỌN</span>
+      </div>
+
+      <div class="inspector-body">
+        <!-- 16-Bit Manipulator Matrix -->
+        <div class="inspector-card">
+          <div class="card-title">
+            <span>Trạng thái 16-bit (Bits 15..0)</span>
+            <span style="color: var(--accent-green); cursor: pointer;" id="btnToggleBitDoc">Click bit để lật</span>
+          </div>
+          <div class="bit-matrix" id="bitMatrix">
+            <!-- 16 bit chips rendered here -->
+          </div>
+        </div>
+
+        <!-- Format Breakdown -->
+        <div class="inspector-card">
+          <div class="card-title">Định dạng giải mã đa tầng</div>
+          <div class="breakdown-row">
+            <span class="breakdown-type">Hex (16-bit):</span>
+            <span class="breakdown-val" id="bdHex">0x0000</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-type">Unsigned Int 16:</span>
+            <span class="breakdown-val" id="bdUint16">0</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-type">Signed Int 16:</span>
+            <span class="breakdown-val" id="bdInt16">0</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-type">Float 32 (Big-Endian ABCD):</span>
+            <span class="breakdown-val" id="bdFloatAbcd">0.0</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-type">Float 32 (Word Swap CDAB):</span>
+            <span class="breakdown-val" id="bdFloatCdab">0.0</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-type">Signed Int 32 (ABCD):</span>
+            <span class="breakdown-val" id="bdInt32">0</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-type">Ký tự ASCII:</span>
+            <span class="breakdown-val" id="bdAscii">--</span>
+          </div>
+        </div>
+
+        <!-- Direct Register Writer -->
+        <div class="inspector-card">
+          <div class="card-title">Ghi giá trị xuống thiết bị</div>
+          <div class="cfg-group" style="flex-direction: column; align-items: stretch; gap: 6px;">
+            <label style="font-size: 11px; color: var(--text-dim);">Nhập giá trị mới (Decimal hoặc 0xHEX):</label>
+            <div class="write-box">
+              <input type="text" id="writeValInput" class="cfg-input" style="flex: 1;" placeholder="vd: 1250 hoặc 0x04E2">
+              <button id="btnExecuteWrite" class="btn btn-primary" style="padding: 6px 12px;">Ghi</button>
+            </div>
+            <div style="display: flex; gap: 6px; margin-top: 4px;">
+              <button class="btn btn-secondary" style="flex: 1; padding: 4px;" id="btnWrite0">Ghi 0</button>
+              <button class="btn btn-secondary" style="flex: 1; padding: 4px;" id="btnWrite1">Ghi 1</button>
+              <button class="btn btn-secondary" style="flex: 1; padding: 4px;" id="btnWrite1000">Ghi 1000</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connection Diagnostics Info -->
+        <div class="inspector-card" style="font-size: 11px; color: var(--text-dim); line-height: 1.5;">
+          <div class="card-title">Thông số chu kỳ quét</div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Độ trễ phản hồi (Latency):</span>
+            <span id="diagLatency" style="color: var(--accent-green); font-family: var(--font-mono);">0 ms</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Tốc độ quét (Pkt/sec):</span>
+            <span id="diagSpeed" style="color: var(--text-main); font-family: var(--font-mono);">0 p/s</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Lỗi truyền thông (Errors):</span>
+            <span id="diagErrors" style="color: var(--accent-red); font-family: var(--font-mono);">0</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modal: Kết quả Test kết nối OPC UA PLC Siemens -->
+  <div class="modal-overlay" id="modalOpcUaResult">
+    <div class="modal-card modal-opcua-card">
+      <div class="modal-card-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="modal-header-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10M12 12l4-4M12 12v6"/></svg>
+          </span>
+          <div>
+            <div style="font-weight: 700; font-size: 15px; color: #fff;">Chẩn đoán kết nối OPC UA PLC Siemens</div>
+            <div style="font-size: 11px; color: var(--text-dim);" id="modalOpcUaEndpointText">opc.tcp://192.168.0.1:4840</div>
+          </div>
+        </div>
+        <button class="btn-modal-close" id="btnCloseOpcUaModal">✕</button>
+      </div>
+
+      <div class="modal-card-body" id="modalOpcUaBody">
+        <!-- Dynamic diagnostic report rendered here -->
+      </div>
+
+      <div class="modal-card-footer">
+        <button class="btn btn-secondary" id="btnCopyOpcUaReport">📋 Sao chép báo cáo</button>
+        <button class="btn btn-primary" id="btnDoneOpcUaModal">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Duyệt cây biến OPC UA Address Space -->
+  <div class="modal-overlay" id="modalOpcUaBrowse">
+    <div class="modal-card modal-opcua-card" style="width: 580px; max-height: 80vh;">
+      <div class="modal-card-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="modal-header-icon" style="color: var(--accent-cyan);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <div>
+            <div style="font-weight: 700; font-size: 15px; color: #fff;">Duyệt cây biến PLC Siemens (OPC UA Hierarchy)</div>
+            <div style="font-size: 11px; color: var(--text-dim);" id="modalBrowsePath">Root / Objects</div>
+          </div>
+        </div>
+        <button class="btn-modal-close" id="btnCloseBrowseModal">✕</button>
+      </div>
+
+      <div class="modal-card-body" style="padding: 12px; max-height: 400px; overflow-y: auto;">
+        <div id="browseNodeList" class="browse-node-list">
+          <!-- Tree nodes rendered here -->
+        </div>
+      </div>
+
+      <div class="modal-card-footer">
+        <span style="font-size: 11px; color: var(--text-muted); margin-right: auto;">Click vào biến để nạp vào bảng giám sát.</span>
+        <button class="btn btn-secondary" id="btnDoneBrowseModal">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/plc-modbus.js"></script>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<UserControl x:Class="VisionStudio.App.Controls.PipelineCanvasControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:conv="clr-namespace:VisionStudio.App.Converters"
+             xmlns:vm="clr-namespace:VisionStudio.App.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800"
+             Background="{StaticResource KsBgBase}"
+             Focusable="True"
+             KeyDown="OnCanvasKeyDown">
+
+    <UserControl.Resources>
+        <conv:ConnectionToBezierConverter x:Key="BezierConverter"/>
+        <conv:StatusToBrushConverter x:Key="StatusBrushConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
+
+        <!-- Port Pin Style -->
+        <Style x:Key="PortPinStyle" TargetType="Ellipse">
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="Fill" Value="{StaticResource KsBorderAccent}"/>
+            <Setter Property="Stroke" Value="{StaticResource KsBgBase}"/>
+            <Setter Property="StrokeThickness" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Fill" Value="{StaticResource KsWarning}"/>
+                    <Setter Property="Width" Value="14"/>
+                    <Setter Property="Height" Value="14"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid ClipToBounds="True">
+        <!-- Interactive Zoom/Pan Canvas Viewport -->
+        <Border x:Name="CanvasViewport" Background="{StaticResource KsBgBase}"
+                MouseDown="OnViewportMouseDown"
+                MouseMove="OnViewportMouseMove"
+                MouseUp="OnViewportMouseUp"
+                MouseWheel="OnViewportMouseWheel">
+
+            <Canvas x:Name="MainCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <Canvas.RenderTransform>
+                    <MatrixTransform x:Name="CanvasTransform"/>
+                </Canvas.RenderTransform>
+
+                <!-- GRID BACKGROUND PATTERN -->
+                <Canvas.Background>
+                    <DrawingBrush TileMode="Tile" Viewport="0,0,24,24" ViewportUnits="Absolute">
+                        <DrawingBrush.Drawing>
+                            <DrawingGroup>
+                                <GeometryDrawing Brush="{StaticResource KsBgBase}">
+                                    <GeometryDrawing.Geometry>
+                                        <RectangleGeometry Rect="0,0,24,24"/>
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                                <GeometryDrawing Brush="{StaticResource KsBorder}">
+                                    <GeometryDrawing.Geometry>
+                                        <EllipseGeometry Center="12,12" RadiusX="1" RadiusY="1"/>
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                            </DrawingGroup>
+                        </DrawingBrush.Drawing>
+                    </DrawingBrush>
+                </Canvas.Background>
+
+                <!-- CONNECTIONS (WIRES) LAYER -->
+                <ItemsControl ItemsSource="{Binding Connections}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ConnectionViewModel}">
+                            <Path StrokeThickness="2.5" Cursor="Hand" MouseDown="OnConnectionMouseDown">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Setter Property="Stroke" Value="{StaticResource KsAccentGlow}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="Stroke" Value="{StaticResource KsWarning}"/>
+                                                <Setter Property="StrokeThickness" Value="3.5"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Stroke" Value="#ffffff"/>
+                                                <Setter Property="StrokeThickness" Value="3"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                                <Path.Data>
+                                    <MultiBinding Converter="{StaticResource BezierConverter}">
+                                        <Binding Path="StartPoint"/>
+                                        <Binding Path="EndPoint"/>
+                                    </MultiBinding>
+                                </Path.Data>
+                            </Path>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- ACTIVE DRAGGING WIRE (NOT HIT TEST VISIBLE SO IT DOES NOT BLOCK PORT DROP) -->
+                <Path x:Name="TempConnectionPath" Stroke="{StaticResource KsWarning}" StrokeThickness="2.5" StrokeDashArray="4 2" Visibility="Collapsed" IsHitTestVisible="False"/>
+
+                <!-- NODES LAYER -->
+                <ItemsControl ItemsSource="{Binding Nodes}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:NodeViewModel}">
+                            <!-- Node Card Container -->
+                            <Border Width="220" Background="{StaticResource KsBgCard}" BorderThickness="1.5" CornerRadius="8"
+                                    MouseDown="OnNodeMouseDown"
+                                    Cursor="Arrow">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush" Value="{Binding Status, Converter={StaticResource StatusBrushConverter}}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="BorderBrush" Value="{StaticResource KsBorderAccent}"/>
+                                                <Setter Property="Effect">
+                                                    <Setter.Value>
+                                                        <DropShadowEffect Color="#38bdf8" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <!-- Header -->
+                                        <RowDefinition Height="36"/>
+                                        <!-- Ports & Thumbnail Body -->
+                                        <RowDefinition Height="*"/>
+                                        <!-- Footer / Timing -->
+                                        <RowDefinition Height="24"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- NODE HEADER (DRAGGABLE) -->
+                                    <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" CornerRadius="6,6,0,0" Padding="8,0"
+                                            MouseDown="OnNodeHeaderMouseDown">
+                                        <Border.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="🗑 Xóa công cụ này (Delete)" Click="OnDeleteNodeMenuItemClick"/>
+                                                <MenuItem Header="🔴 Bật / Tắt điểm dừng (F9)" Click="OnToggleBreakpointClick"/>
+                                            </ContextMenu>
+                                        </Border.ContextMenu>
+                                        <Grid VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Breakpoint Toggle Circle -->
+                                            <Button Grid.Column="0" ToolTip="Toggle Breakpoint (F9)" Click="OnToggleBreakpointClick"
+                                                    Background="Transparent" BorderThickness="0" Padding="0" Margin="0,0,6,0" Cursor="Hand">
+                                                <Ellipse Width="10" Height="10" Stroke="{StaticResource KsTextDim}" StrokeThickness="1.5">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Fill" Value="Transparent"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasBreakpoint}" Value="True">
+                                                                    <Setter Property="Fill" Value="{StaticResource KsDanger}"/>
+                                                                    <Setter Property="Stroke" Value="{StaticResource KsDanger}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                            </Button>
+
+                                            <!-- Node Title -->
+                                            <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource KsText}"
+                                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+
+                                            <!-- Category / Status Indicator Dot -->
+                                            <Ellipse Grid.Column="2" Width="8" Height="8"
+                                                     Fill="{Binding Status, Converter={StaticResource StatusBrushConverter}}"
+                                                     ToolTip="{Binding Status}" Margin="4,0,4,0"/>
+
+                                            <!-- Delete Node Button "✕" -->
+                                            <Button Grid.Column="3" Content="✕" ToolTip="Xóa công cụ này khỏi sơ đồ (Delete)"
+                                                    Click="OnDeleteNodeButtonClick"
+                                                    Background="Transparent" Foreground="{StaticResource KsTextDim}" BorderThickness="0"
+                                                    Padding="6,2" FontSize="12" FontWeight="Bold" Cursor="Hand">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource KsDanger}"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- NODE BODY (PORTS & MINI PREVIEW) -->
+                                    <Grid Grid.Row="1" Margin="8,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- INPUT PORTS (LEFT) -->
+                                        <ItemsControl Grid.Column="0" ItemsSource="{Binding InputPorts}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:PortViewModel}">
+                                                    <StackPanel Orientation="Horizontal" Margin="0,4" HorizontalAlignment="Left"
+                                                                Background="Transparent" Cursor="Hand"
+                                                                MouseDown="OnPortPinMouseDown"
+                                                                MouseUp="OnPortPinMouseUp"
+                                                                ToolTip="{Binding PortType}">
+                                                        <Ellipse Style="{StaticResource PortPinStyle}"
+                                                                 Margin="-12,0,4,0"/>
+                                                        <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{StaticResource KsTextMuted}" TextTrimming="CharacterEllipsis" MaxWidth="75"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <!-- MINI THUMBNAIL (CENTER) -->
+                                        <Border Grid.Column="1" Width="44" Height="44" Background="{StaticResource KsBgSurface}" CornerRadius="4" BorderBrush="{StaticResource KsBorder}" BorderThickness="1"
+                                                Visibility="{Binding Thumbnail, Converter={StaticResource BoolToVisConverter}}" Margin="2,0" VerticalAlignment="Center">
+                                            <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
+                                        </Border>
+
+                                        <!-- OUTPUT PORTS (RIGHT) -->
+                                        <ItemsControl Grid.Column="2" ItemsSource="{Binding OutputPorts}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:PortViewModel}">
+                                                    <StackPanel Orientation="Horizontal" Margin="0,4" HorizontalAlignment="Right"
+                                                                Background="Transparent" Cursor="Hand"
+                                                                MouseDown="OnPortPinMouseDown"
+                                                                MouseUp="OnPortPinMouseUp"
+                                                                ToolTip="{Binding PortType}">
+                                                        <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{StaticResource KsTextMuted}" TextTrimming="CharacterEllipsis" MaxWidth="75" Margin="0,0,4,0"/>
+                                                        <Ellipse Style="{StaticResource PortPinStyle}"
+                                                                 Margin="0,0,-12,0"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+
+                                    <!-- FOOTER / EXECUTION TIMING -->
+                                    <Border Grid.Row="2" Background="{StaticResource KsBgSurface}" CornerRadius="0,0,6,6" Padding="8,0">
+                                        <Grid VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ExecutionTimeMs, StringFormat='⏱ {0:F1} ms'}" FontSize="10" Foreground="{StaticResource KsTextDim}" HorizontalAlignment="Left"/>
+                                            <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="{Binding Status, Converter={StaticResource StatusBrushConverter}}" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Canvas>
+        </Border>
+
+        <!-- TOP RIGHT CANVAS CONTROLS -->
+        <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                Background="#e618181b" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6"
+                Padding="8,5" Margin="14">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.4" Color="#000000"/>
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Content="Grid Snap" IsChecked="{Binding IsGridSnapEnabled}" Foreground="{StaticResource KsTextMuted}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Button Content="Reset View" Click="OnResetCanvasViewClick" Style="{StaticResource KsButton}" Padding="8,3" FontSize="11"/>
+            </StackPanel>
+        </Border>
+
+        <!-- MINIMAP (BOTTOM RIGHT) -->
+        <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                Width="140" Height="90" Background="#e618181b" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6"
+                Margin="14" ClipToBounds="True">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.4" Color="#000000"/>
+            </Border.Effect>
+            <Canvas x:Name="MinimapCanvas" Background="{StaticResource KsBgBase}"/>
+        </Border>
+    </Grid>
+</UserControl>

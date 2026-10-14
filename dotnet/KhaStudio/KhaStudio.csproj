@@ -9,10 +9,12 @@
     <AssemblyName>KhaStudio</AssemblyName>
     <Product>Kha Studio</Product>
     <Company>Kha.nm</Company>
-    <Version>1.1.0</Version>
+    <Version>1.3.1</Version>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <StartupObject>KhaStudio.Program</StartupObject>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
     <!-- Nguồn cập nhật nhúng vào app, vd: https://github.com/<user>/kha-studio -->
     <UpdateUrl>https://github.com/ktechzara-dev/kha-studio</UpdateUrl>
   </PropertyGroup>
@@ -22,13 +24,34 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AForge.Video" Version="2.2.5" />
+    <PackageReference Include="AForge.Video.DirectShow" Version="2.2.5" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+    <PackageReference Include="NModbus" Version="3.0.83" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client" Version="1.5.378.182" />
+    <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260627" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260627" />
+    <PackageReference Include="S7netplus" Version="0.20.0" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.12" />
+    <PackageReference Include="System.IO.Ports" Version="10.0.12" />
     <PackageReference Include="Velopack" Version="1.2.161" />
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
+    <PackageReference Include="ZXing.Net.Bindings.Windows.Compatibility" Version="0.16.16" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Modules\TiaOpenness\TiaWorker\**" />
+    <None Remove="Modules\TiaOpenness\TiaWorker\**" />
   </ItemGroup>
 
   <!-- Giao diện HTML/JS dùng chung với bản Electron: ../../src/renderer -> wwwroot cạnh exe -->
   <ItemGroup>
+    <Content Include="app.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\src\renderer\**\*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Modules\TiaOpenness\TiaWorker\bin\Release\net48\**\*" LinkBase="TiaWorker" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

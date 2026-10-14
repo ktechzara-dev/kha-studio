@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Siemens TIA Portal Openness Hub — Kha Studio</title>
+  <link rel="stylesheet" href="css/tia-portal.css">
+  <style>
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 16px;
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      font-size: 12.5px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { border-color: #10b981; background: #064e3b; color: #a7f3d0; }
+    .toast.error { border-color: #ef4444; background: #7f1d1d; color: #fecaca; }
+    .toast.warning { border-color: #f59e0b; background: #78350f; color: #fde68a; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header & Connection Bar -->
+  <header class="tia-header">
+    <div class="brand-section">
+      <div class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="2" width="20" height="8" rx="2"/>
+          <rect x="2" y="14" width="20" height="8" rx="2"/>
+          <line x1="6" y1="6" x2="6.01" y2="6"/>
+          <line x1="6" y1="18" x2="6.01" y2="18"/>
+        </svg>
+      </div>
+      <div class="brand-title">
+        Siemens TIA Portal Openness Hub
+        <span class="brand-badge">V17 / V20 / V21+</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div class="status-pill">
+        <div id="statusDot" class="status-dot"></div>
+        <span id="statusText">Chưa kết nối</span>
+      </div>
+      <button class="btn" id="btnShowWindow" disabled title="Đưa cửa sổ TIA Portal lên trên cùng màn hình Desktop">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        🖥️ Hiện TIA Portal
+      </button>
+      <button class="btn primary" id="btnCompile" disabled title="Biên dịch thiết bị PLC">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        Biên dịch (Compile)
+      </button>
+      <button class="btn" id="btnRefreshData" disabled title="Làm mới dữ liệu thiết bị, biến và khối">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Làm mới
+      </button>
+      <button class="btn" id="btnSave" disabled title="Lưu dự án hiện tại">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Lưu (Save)
+      </button>
+      <button class="btn" id="btnSaveAs" disabled title="Lưu bản sao sang thư mục mới">
+        Lưu bản sao (Save As)
+      </button>
+      <button class="btn" id="btnClose" disabled style="color:#f87171;" title="Ngắt kết nối dự án">
+        Đóng
+      </button>
+    </div>
+  </header>
+
+  <!-- Main 3-Column Layout -->
+  <div class="tia-layout">
+    
+    <!-- Cột Trái: Quản lý Instance & File dự án -->
+    <aside class="sidebar-col">
+      <div class="col-header">
+        <h3>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          TIẾN TRÌNH TIA ĐANG CHẠY
+        </h3>
+        <button class="btn sm" id="btnRefreshInstances" title="Quét lại các cửa sổ TIA Portal">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Quét
+        </button>
+      </div>
+
+      <div class="col-body" id="instancesList">
+        <!-- Render động từ JS -->
+      </div>
+
+      <!-- Mở theo đường dẫn file -->
+      <div style="padding:12px; border-top:1px solid var(--border-subtle); background:var(--bg-elevated);">
+        <div class="input-group">
+          <label class="input-label" for="inputProjectPath">Mở từ file dự án (.ap17 / .ap20 / .ap21):</label>
+          <div style="display:flex; gap:6px; margin-bottom:6px;">
+            <input type="text" id="inputProjectPath" class="text-input" placeholder="Chọn file dự án hoặc dán đường dẫn..." style="flex:1;">
+            <button class="btn" id="btnBrowseProjectFile" title="Mở hộp thoại chọn file trên máy tính" style="padding:6px 10px; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              Chọn file
+            </button>
+            <input type="file" id="filePickerHidden" accept=".ap17,.ap18,.ap19,.ap20,.ap21" style="display:none;">
+          </div>
+          <button class="btn primary" id="btnOpenProjectFile" style="width:100%; display:flex; justify-content:center; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Mở file dự án này
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Cột Giữa: Trạng thái Dự án & Tab Nội dung -->
+    <main class="main-content">
+      
+      <!-- Card Tổng quan Trạng thái Dự án -->
+      <section class="overview-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2 style="font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span id="statProjName">—</span>
+          </h2>
+          <span style="font-size:11.5px; color:var(--text-dim);" id="statProjPath">Chưa mở dự án</span>
+        </div>
+
+        <div class="overview-grid">
+          <div class="stat-item">
+            <div class="stat-title">Trạng thái dữ liệu</div>
+            <div class="stat-val" id="statProjModified">—</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">Thiết bị PLC / HMI</div>
+            <div class="stat-val" id="statProjDevices">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">Biến PLC (Tags)</div>
+            <div class="stat-val" id="statProjTags" style="color:#38bdf8;">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">Khối chương trình (Blocks)</div>
+            <div class="stat-val" id="statProjBlocks" style="color:#c084fc;">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-title">Luồng bảo vệ</div>
+            <div class="stat-val" style="color:#34d399;">STA Dedicated</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Thanh chuyển Tab điều hướng -->
+      <div class="view-tabs">
+        <button class="tab-btn active" id="tabBtnDevices" data-tab="devices">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M9 2v2M20 15h2M20 9h2M15 20v2M9 20v2M2 15h2M2 9h2"/></svg>
+          Thiết bị phần cứng <span class="tab-count" id="countDevices">0</span>
+        </button>
+        <button class="tab-btn" id="tabBtnTags" data-tab="tags">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Bảng biến PLC (Tags) <span class="tab-count" id="countTags">0</span>
+        </button>
+        <button class="tab-btn" id="tabBtnBlocks" data-tab="blocks">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Khối chương trình (Blocks) <span class="tab-count" id="countBlocks">0</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Cây Thiết bị Phần cứng -->
+      <section class="tab-pane active" id="paneDevices">
+        <div class="devices-container" id="devicesList">
+          <!-- Render động từ JS -->
+        </div>
+      </section>
+
+      <!-- Tab 2: Bảng biến PLC Tags -->
+      <section class="tab-pane" id="paneTags">
+        <div class="toolbar-row">
+          <div class="toolbar-left">
+            <select class="filter-select" id="filterTagTable">
+              <option value="">Tất cả bảng biến (All tables)</option>
+            </select>
+            <input type="text" class="search-box" id="searchTagInput" placeholder="Tìm tên biến, địa chỉ %I/%Q/%M, kiểu dữ liệu...">
+          </div>
+          <div class="toolbar-right">
+            <span style="font-size:11.5px; color:var(--text-dim);" id="tagFilteredCount">0 biến</span>
+            <button class="btn sm primary" id="btnOpenCreateTagModal" title="Tạo hoặc cập nhật biến PLC Tag mới">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              ➕ Thêm biến Tag
+            </button>
+            <button class="btn sm" id="btnExportTagsCsv" title="Xuất danh sách biến ra file CSV">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Xuất CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table" id="tagsTable">
+            <thead>
+              <tr>
+                <th style="width:160px;">Bảng biến</th>
+                <th>Tên biến (Tag Name)</th>
+                <th style="width:120px;">Địa chỉ</th>
+                <th style="width:110px;">Kiểu dữ liệu</th>
+                <th>Chú thích</th>
+              </tr>
+            </thead>
+            <tbody id="tagsTableBody">
+              <!-- Render động từ JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Tab 3: Khối Chương trình Blocks -->
+      <section class="tab-pane" id="paneBlocks">
+        <div class="toolbar-row">
+          <div class="toolbar-left">
+            <div class="filter-pills" id="blockTypePills">
+              <button class="pill-btn active" data-type="ALL">Tất cả</button>
+              <button class="pill-btn" data-type="OB">OB</button>
+              <button class="pill-btn" data-type="FB">FB</button>
+              <button class="pill-btn" data-type="FC">FC</button>
+              <button class="pill-btn" data-type="DB">DB</button>
+            </div>
+            <input type="text" class="search-box" id="searchBlockInput" placeholder="Tìm tên khối, số hiệu, ngôn ngữ (SCL/LAD)...">
+          </div>
+          <div class="toolbar-right">
+            <span style="font-size:11.5px; color:var(--text-dim);" id="blockFilteredCount">0 khối</span>
+            <button class="btn sm primary" id="btnImportBlockXml" title="Nhập khối hàm từ file XML (SimaticML)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              📥 Nhập khối XML
+            </button>
+            <button class="btn sm" id="btnExportBlocksCsv" title="Xuất danh sách khối chương trình ra file CSV">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Xuất CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="blocks-grid" id="blocksGrid">
+          <!-- Render động từ JS -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Cột Phải: Trợ lý AI & Cấu hình MCP Server -->
+    <aside class="sidebar-col right-col">
+      <div class="col-header">
+        <h3>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          KẾT NỐI AI (MCP SERVER)
+        </h3>
+      </div>
+
+      <div class="col-body">
+        <div class="mcp-box">
+          <strong style="color:#f8fafc;">Model Context Protocol (MCP)</strong>
+          <p style="color:var(--text-muted); font-size:11.5px; line-height:1.4;">
+            Kha Studio đã tích hợp sẵn máy chủ MCP chuẩn qua tiến trình Stdio. Sếp có thể dùng <strong>Google Gemini, Antigravity IDE, Cursor, Claude Code</strong> để đọc ghi PLC & HMI trực tiếp qua câu lệnh tự nhiên!
+          </p>
+          <div class="code-snippet">
+            KhaStudio.TiaWorker.exe --mcp
+          </div>
+          <button class="btn sm primary" id="btnCopyMcpConfig" style="margin-top:4px;">
+            Sao chép file cấu hình MCP
+          </button>
+        </div>
+
+        <div class="mcp-box" style="margin-top:6px;">
+          <strong>Nhóm quyền Windows Openness</strong>
+          <p style="color:var(--text-muted); font-size:11.5px; line-height:1.4;">
+            Siemens yêu cầu tài khoản Windows phải thuộc nhóm <code>Siemens TIA Openness</code> để cho phép phần mềm ngoài kết nối an toàn.
+          </p>
+          <button class="btn sm primary" id="btnRequestAdminPermission" style="width:100%; margin-top:8px; display:flex; justify-content:center; align-items:center; gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            🛡️ Bấm để cấp quyền ngay (1-Click UAC)
+          </button>
+          <p style="color:var(--text-dim); font-size:10.5px; margin-top:6px; line-height:1.3;">
+            * Sau khi bấm, sếp chỉ cần chọn "Yes" trên popup UAC, rồi Sign out / Đăng xuất Windows 1 lần là xong.
+          </p>
+        </div>
+
+        <div class="mcp-box" style="margin-top:6px; background:#121824;">
+          <strong>Các phiên bản TIA Portal hỗ trợ</strong>
+          <ul style="padding-left:16px; color:var(--text-muted); font-size:11.5px; line-height:1.6;">
+            <li>TIA Portal V21 (PublicAPI V21)</li>
+            <li>TIA Portal V20 (PublicAPI V20)</li>
+            <li>TIA Portal V17 / V18 / V19</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Modal Tạo/Ghi Tag mới -->
+  <div id="modalCreateTag" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Thêm hoặc ghi biến PLC Tag mới
+        </h3>
+        <button class="modal-close" id="btnCloseTagModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="selectTagDevice">Thiết bị PLC:</label>
+          <select id="selectTagDevice" class="form-select"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inputTagTable">Bảng biến (Tag Table):</label>
+          <input type="text" id="inputTagTable" class="form-input" list="tagTableList" placeholder="Tên bảng biến (mặc định: Default tag table)">
+          <datalist id="tagTableList"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inputTagName">Tên biến (Name): <span style="color:#ef4444;">*</span></label>
+          <input type="text" id="inputTagName" class="form-input" placeholder="Ví dụ: Start_Button, Motor_Speed">
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label" for="inputTagAddress">Địa chỉ (Address): <span style="color:#ef4444;">*</span></label>
+            <input type="text" id="inputTagAddress" class="form-input" placeholder="Ví dụ: %I0.0, %Q0.0, %M10.0, %MD20">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label" for="inputTagDataType">Kiểu dữ liệu (Data Type): <span style="color:#ef4444;">*</span></label>
+            <input type="text" id="inputTagDataType" class="form-input" list="dataTypeList" placeholder="Bool">
+            <datalist id="dataTypeList">
+              <option value="Bool">
+              <option value="Byte">
+              <option value="Word">
+              <option value="DWord">
+              <option value="Int">
+              <option value="DInt">
+              <option value="Real">
+              <option value="LReal">
+              <option value="Time">
+              <option value="String">
+            </datalist>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inputTagComment">Chú thích (Comment):</label>
+          <input type="text" id="inputTagComment" class="form-input" placeholder="Ghi chú mô tả công dụng của biến...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btnCancelCreateTag">Hủy</button>
+        <button class="btn primary" id="btnConfirmCreateTag">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Lưu biến vào PLC
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/tia-portal.js"></script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<Window x:Class="VisionStudio.App.Controls.GeometricModelEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Geometric Pattern Model Editor - Trình Thiết Kế Mẫu Hình Học Công Nghiệp"
+        Height="820" Width="1240"
+        MinHeight="600" MinWidth="900"
+        Background="{StaticResource KsBgBase}" Foreground="{StaticResource KsText}"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Header Bar -->
+            <RowDefinition Height="50"/>
+            <!-- Main Content Area -->
+            <RowDefinition Height="*"/>
+            <!-- Footer Status Bar -->
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP BAR -->
+        <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,0,0,1" Padding="16,0">
+            <Grid VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🎯 " FontSize="18" VerticalAlignment="Center"/>
+                    <TextBlock Text="TRÌNH THIẾT KẾ MẪU HÌNH HỌC (GEOMETRIC MODEL EDITOR)" FontWeight="Bold" FontSize="14" Foreground="{StaticResource KsAccentGlow}" VerticalAlignment="Center"/>
+                    <TextBlock Text=" | Edge Gradient Geometry &amp; Multi-Scale Pyramids" Foreground="{StaticResource KsTextDim}" FontSize="12" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                </StackPanel>
+
+                <!-- Action Buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnOpenImage" Content="📂 Mở Ảnh Mẫu" Click="BtnOpenImage_Click"
+                            Style="{StaticResource KsSecondaryButton}" Margin="0,0,8,0" Padding="12,5"/>
+                    <Button x:Name="BtnLoadModel" Content="📥 Nạp Mẫu (.vsgeom)" Click="BtnLoadModel_Click"
+                            Style="{StaticResource KsSecondaryButton}" Margin="0,0,8,0" Padding="12,5"/>
+                    <Button x:Name="BtnSaveModel" Content="💾 Lưu Mẫu (.vsgeom)" Click="BtnSaveModel_Click"
+                            Style="{StaticResource KsPrimaryButton}" Margin="0,0,8,0" Padding="12,5"/>
+                    <Button x:Name="BtnTrain" Content="⚡ Huấn Luyện (Train)" Click="BtnTrain_Click"
+                            Style="{StaticResource KsSuccessButton}" Margin="0,0,8,0" Padding="14,5"/>
+                    <Button x:Name="BtnTestMatch" Content="🔍 Kiểm Thử (Test Match)" Click="BtnTestMatch_Click"
+                            Style="{StaticResource KsPrimaryButton}" Padding="14,5"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- MAIN SPLIT VIEW -->
+        <Grid Grid.Row="1" Margin="10">
+            <Grid.ColumnDefinitions>
+                <!-- Left: Tool Settings & Model Parameters -->
+                <ColumnDefinition Width="360" MinWidth="300"/>
+                <!-- Splitter -->
+                <ColumnDefinition Width="6"/>
+                <!-- Right: Interactive Image & Edge Geometry Canvas -->
+                <ColumnDefinition Width="*" MinWidth="500"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT CONTROL PANEL -->
+            <Border Grid.Column="0" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- MODEL INFO -->
+                        <TextBlock Text="THÔNG TIN MÔ HÌNH" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,6"/>
+                        <TextBlock Text="Tên mô hình:" FontSize="11" Foreground="{StaticResource KsTextDim}" Margin="0,0,0,2"/>
+                        <TextBox x:Name="TxtModelName" Text="PartBracket_Geometric" Style="{StaticResource KsTextBox}" Margin="0,0,0,10"/>
+
+                        <!-- ROI COORDINATES -->
+                        <TextBlock Text="VÙNG HUẤN LUYỆN (TRAINING ROI)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,4,0,6"/>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="X" FontSize="10" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtRoiX" Text="20" Style="{StaticResource KsTextBox}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Y" FontSize="10" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtRoiY" Text="20" Style="{StaticResource KsTextBox}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="Width" FontSize="10" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtRoiW" Text="120" Style="{StaticResource KsTextBox}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="6">
+                                <TextBlock Text="Height" FontSize="10" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtRoiH" Text="120" Style="{StaticResource KsTextBox}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- ORIGIN COORDINATES -->
+                        <TextBlock Text="GỐC TOẠ ĐỘ (ORIGIN POINT)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,4,0,6"/>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Origin X (tương đối ROI)" FontSize="10" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtOriginX" Text="60" Style="{StaticResource KsTextBox}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Origin Y (tương đối ROI)" FontSize="10" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtOriginY" Text="60" Style="{StaticResource KsTextBox}"/>
+                            </StackPanel>
+                        </Grid>
+                        <Button x:Name="BtnCenterOrigin" Content="🎯 Đặt Gốc ở Tâm ROI" Click="BtnCenterOrigin_Click"
+                                Style="{StaticResource KsSecondaryButton}" HorizontalAlignment="Stretch" Margin="0,0,0,12"/>
+
+                        <!-- FEATURE EXTRACTION PARAMS -->
+                        <TextBlock Text="THAM SỐ TRÍCH XUẤT ĐƯỜNG BIÊN" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,4,0,6"/>
+                        
+                        <TextBlock Text="Ngưỡng tương phản tối thiểu (Min Contrast):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                        <Slider x:Name="SliderMinContrast" Minimum="5" Maximum="100" Value="25" ValueChanged="SliderMinContrast_ValueChanged" Margin="0,2,0,2"/>
+                        <TextBlock x:Name="LblMinContrast" Text="25.0" FontSize="11" HorizontalAlignment="Right" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,6"/>
+
+                        <TextBlock Text="Số điểm đặc trưng tối đa (Max Points):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                        <Slider x:Name="SliderMaxPoints" Minimum="50" Maximum="2000" Value="800" ValueChanged="SliderMaxPoints_ValueChanged" Margin="0,2,0,2"/>
+                        <TextBlock x:Name="LblMaxPoints" Text="800" FontSize="11" HorizontalAlignment="Right" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,6"/>
+
+                        <TextBlock Text="Số tầng Pyramid:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                        <ComboBox x:Name="CmbPyramids" SelectedIndex="2" Style="{StaticResource KsComboBox}" Margin="0,2,0,12">
+                            <ComboBoxItem Content="1 Tầng (Chỉ Full Resolution)"/>
+                            <ComboBoxItem Content="2 Tầng (Scale 1/2)"/>
+                            <ComboBoxItem Content="3 Tầng (Khuyên dùng công nghiệp)"/>
+                            <ComboBoxItem Content="4 Tầng (Tốc độ cao cho ảnh lớn)"/>
+                        </ComboBox>
+
+                        <!-- MATCHING TEST OPTIONS -->
+                        <TextBlock Text="THAM SỐ TÌM KIẾM (TEST MATCHING)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource KsAccentGlow}" Margin="0,4,0,6"/>
+                        
+                        <TextBlock Text="Điểm khớp tối thiểu (Min Score):" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                        <Slider x:Name="SliderMinScore" Minimum="0.2" Maximum="1.0" Value="0.70" ValueChanged="SliderMinScore_ValueChanged" Margin="0,2,0,2"/>
+                        <TextBlock x:Name="LblMinScore" Text="70%" FontSize="11" HorizontalAlignment="Right" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,6"/>
+
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Góc quay Min (°)" FontSize="10" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtAngleMin" Text="-180" Style="{StaticResource KsTextBox}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Góc quay Max (°)" FontSize="10" Foreground="{StaticResource KsTextDim}"/>
+                                <TextBox x:Name="TxtAngleMax" Text="180" Style="{StaticResource KsTextBox}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <CheckBox x:Name="ChkContrastReversal" Content="Cho phép đảo độ tương phản (Inverted Polarity)" 
+                                  IsChecked="False" Margin="0,4,0,6" Foreground="{StaticResource KsText}"/>
+                        <CheckBox x:Name="ChkSubPixel" Content="Tinh chỉnh Sub-Pixel &amp; Sub-Degree" 
+                                  IsChecked="True" Margin="0,2,0,14" Foreground="{StaticResource KsText}"/>
+
+                        <!-- EXTRACTION SUMMARY -->
+                        <Border Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="10">
+                            <StackPanel>
+                                <TextBlock Text="📊 KẾT QUẢ HUẤN LUYỆN" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsAccentGlow}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="TxtModelStats" Text="Chưa huấn luyện mô hình." FontSize="11" Foreground="{StaticResource KsTextDim}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+            <!-- RIGHT INTERACTIVE VIEWPORT -->
+            <Border Grid.Column="2" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <!-- Canvas Tool Strip -->
+                        <RowDefinition Height="40"/>
+                        <!-- Image Canvas Viewport -->
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- TOOL STRIP -->
+                    <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,0,0,1" Padding="10,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Chế độ chuột:" FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource KsTextDim}" Margin="0,0,8,0"/>
+                            <RadioButton x:Name="RbDrawRoi" Content="🔲 Kéo vẽ Training ROI" IsChecked="True" Margin="0,0,12,0" Foreground="{StaticResource KsText}"/>
+                            <RadioButton x:Name="RbDrawMask" Content="🖌️ Vẽ Vùng Che (Mask Out)" Margin="0,0,12,0" Foreground="{StaticResource KsText}"/>
+                            <RadioButton x:Name="RbSetOrigin" Content="🎯 Chọn Gốc Toạ Độ" Margin="0,0,12,0" Foreground="{StaticResource KsText}"/>
+                            <Button x:Name="BtnClearMask" Content="Xoá Mask" Click="BtnClearMask_Click" Style="{StaticResource KsSecondaryButton}" Padding="8,2" Margin="10,0,0,0"/>
+                            <Button x:Name="BtnResetView" Content="Thu phóng 1:1" Click="BtnResetView_Click" Style="{StaticResource KsSecondaryButton}" Padding="8,2" Margin="6,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- CANVAS VIEWPORT -->
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#111318">
+                        <Grid x:Name="ViewportGrid" HorizontalAlignment="Center" VerticalAlignment="Center"
+                              MouseDown="Viewport_MouseDown" MouseMove="Viewport_MouseMove" MouseUp="Viewport_MouseUp">
+                            <Image x:Name="ImgDisplay" Stretch="None"/>
+                            <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False"/>
+                        </Grid>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- FOOTER STATUS BAR -->
+        <Border Grid.Row="2" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,1,0,0" Padding="14,0">
+            <Grid VerticalAlignment="Center">
+                <TextBlock x:Name="TxtStatus" Text="Sẵn sàng. Mở ảnh mẫu hoặc nạp tệp .vsgeom để bắt đầu thiết kế mô hình." FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

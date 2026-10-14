@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Ultrasonic Level Sensor (Cảm biến đo mức siêu âm bồn chứa) -->
+  <rect x="75" y="30" width="50" height="60" rx="4" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <rect x="65" y="85" width="70" height="18" rx="2" fill="#334155" stroke="#1E293B" stroke-width="4"/>
+  <polygon points="80,103 120,103 110,125 90,125" fill="#70757A" stroke="#1E293B" stroke-width="4"/>
+  <!-- Sóng siêu âm tỏa xuống (Ultrasonic waves) -->
+  <path d="M75 140 A 30 30 0 0 0 125 140" fill="none" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M65 155 A 45 45 0 0 0 135 155" fill="none" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M55 170 A 60 60 0 0 0 145 170" fill="none" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+</svg>

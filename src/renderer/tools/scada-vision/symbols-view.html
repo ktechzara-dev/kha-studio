@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCADA HMI Symbol Studio & Vision — Kha Studio</title>
+  <script src="../../lib/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg-base: #1c2128;
+      --bg-surface: #242934;
+      --bg-card: #2c3340;
+      --bg-card-hover: #353d4c;
+      --border-color: #3b4354;
+      --border-accent: #0284c7;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent-cyan: #0ea5e9;
+      --accent-blue: #0284c7;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Segoe UI Symbol", sans-serif; }
+    body { background: var(--bg-base); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* MAIN WORKSPACE LAYOUT */
+    .workspace {
+      display: grid;
+      grid-template-columns: var(--left-sb-w, 320px) minmax(0, 1fr) var(--right-sb-w, 300px);
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      transition: grid-template-columns 0.15s ease-out;
+    }
+    .workspace.resizing {
+      transition: none !important;
+      user-select: none !important;
+    }
+
+    /* SIDEBAR SYMBOL LIST */
+    .sidebar-symbols {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .panel-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+    .search-box, .filter-select {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 12px;
+      width: 100%;
+      outline: none;
+    }
+    .search-box:focus, .filter-select:focus { border-color: var(--accent-blue); }
+    .symbol-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .symbol-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .symbol-card:hover {
+      background: var(--bg-card-hover);
+      border-color: #475569;
+    }
+    .symbol-card.active {
+      background: #2e3646;
+      border-color: #55627a;
+    }
+    .symbol-thumb {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      background: #181d24;
+      border-radius: 4px;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .symbol-thumb img, .symbol-thumb svg { width: 100%; height: 100%; object-fit: contain; }
+    .symbol-meta { overflow: hidden; }
+    .symbol-name { font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .symbol-cat { font-size: 10px; color: var(--text-dim); }
+
+    /* CENTER STAGE CANVAS */
+    .stage {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-base);
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+    }
+    .stage-toolbar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      overflow-x: auto;
+      min-width: 0;
+      flex-shrink: 0;
+    }
+    .line-icon {
+      width: 13px;
+      height: 13px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    .state-group { display: flex; align-items: center; gap: 4px; }
+    .state-btn {
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.12s;
+    }
+    .state-btn:hover {
+      background: var(--bg-card);
+      color: #fff;
+      border-color: #4f5a70;
+    }
+    .state-btn.active {
+      background: #2e3646;
+      border-color: #55627a;
+      color: #fff;
+    }
+    .state-dot {
+      display: none;
+    }
+
+    .stage-canvas-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: #181d24;
+      background-image: radial-gradient(circle, #2d3544 1px, transparent 1px);
+      background-size: 20px 20px;
+      overflow: hidden;
+      padding: 20px;
+    }
+    .canvas-preview-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .preview-box {
+      width: 280px;
+      height: 280px;
+      background: #242934;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .preview-box svg { width: 100%; height: 100%; }
+    
+    .tag-badge {
+      background: #242934;
+      border: 1px solid var(--border-color);
+      border-radius: 3px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* CONTROL BOTTOM BAR */
+    .stage-controls {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-color);
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      overflow-x: auto;
+      min-width: 0;
+      flex-shrink: 0;
+    }
+    .btn-group { display: flex; align-items: center; gap: 5px; }
+    .action-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.12s;
+    }
+    .action-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: #4f5a70;
+      color: #fff;
+    }
+    .action-btn.primary {
+      background: #2e3646;
+      border-color: #55627a;
+      color: #fff;
+    }
+    .action-btn.primary:hover {
+      background: #374256;
+      border-color: #6a7995;
+      color: #fff;
+    }
+
+    /* RIGHT PALETTE & SPECS */
+    .sidebar-right {
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 12px;
+      gap: 16px;
+    }
+    .section-title { font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .palette-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      margin-bottom: 6px;
+      transition: all 0.15s;
+    }
+    .palette-item:hover { border-color: #64748b; background: var(--bg-card-hover); }
+    .color-swatch { width: 24px; height: 24px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); }
+    .color-info { flex: 1; overflow: hidden; }
+    .color-name { font-size: 11px; font-weight: 600; color: #fff; }
+    .color-desc { font-size: 10px; color: var(--text-muted); }
+    .color-hex { font-family: monospace; font-size: 10px; color: var(--accent-blue); }
+    
+    .input-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 8px;
+    }
+    .input-field input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      width: 100%;
+      outline: none;
+    }
+
+    /* CUSTOM MODERN SCROLLBAR & SMOOTH SCROLL */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #38bdf8 rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #0284c7;
+    }
+
+    /* INDUSTRIAL MINIMAL MODAL ALERT (THUẦN CÔNG NGHIỆP, KHÔNG GLOW NEON) */
+    .scada-alert-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.15s ease-out, visibility 0.15s;
+    }
+    .scada-alert-modal-backdrop.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .scada-alert-modal-card {
+      background: #242934;
+      border: 1px solid #3b4354;
+      border-radius: 6px;
+      width: 440px;
+      max-width: 92vw;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+      transform: scale(0.97);
+      transition: transform 0.15s ease-out;
+      display: flex;
+      flex-direction: column;
+    }
+    .scada-alert-modal-backdrop.show .scada-alert-modal-card {
+      transform: scale(1);
+    }
+    .scada-alert-glow-bar {
+      height: 3px;
+      width: 100%;
+      background: #0284c7;
+    }
+    .scada-alert-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid #313847;
+    }
+    .scada-alert-brand {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+    .scada-alert-brand-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #0284c7;
+    }
+    .scada-alert-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+    .scada-alert-close:hover {
+      background: #313847;
+      color: #fff;
+    }
+    .scada-alert-body {
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .scada-alert-icon-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #1c2128;
+      border: 1px solid #3b4354;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    .scada-alert-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+    }
+    .scada-alert-text {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 12px;
+      white-space: pre-line;
+      text-align: center;
+    }
+    .scada-alert-file-card {
+      width: 100%;
+      background: #1c2128;
+      border: 1px solid #313847;
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+    .scada-alert-file-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .scada-alert-file-info {
+      flex: 1;
+      overflow: hidden;
+    }
+    .scada-alert-file-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0284c7;
+      word-break: break-all;
+    }
+    .scada-alert-file-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .scada-file-badge {
+      background: #1e3a30;
+      border: 1px solid #10b981;
+      color: #34d399;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    .scada-alert-actions {
+      display: flex;
+      width: 100%;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .scada-alert-btn-ok {
+      flex: 1;
+      background: #2e3646;
+      border: 1px solid #4a566d;
+      color: #fff;
+      padding: 7px 16px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.12s;
+    }
+    .scada-alert-btn-ok:hover {
+      background: #374256;
+      border-color: #6a7995;
+    }
+
+    .workspace {
+      transition: grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .workspace.collapse-left {
+      grid-template-columns: 0px minmax(0, 1fr) var(--right-sb-w, 300px) !important;
+    }
+    .workspace.mini-left {
+      grid-template-columns: 76px minmax(0, 1fr) var(--right-sb-w, 300px) !important;
+    }
+    .workspace.collapse-right {
+      grid-template-columns: var(--left-sb-w, 320px) minmax(0, 1fr) 0px !important;
+    }
+    .workspace.collapse-left.collapse-right {
+      grid-template-columns: 0px minmax(0, 1fr) 0px !important;
+    }
+    .workspace.mini-left.collapse-right {
+      grid-template-columns: 76px minmax(0, 1fr) 0px !important;
+    }
+
+    .sidebar-symbols, .sidebar-right {
+      min-width: 0;
+      transition: opacity 0.2s, visibility 0.2s;
+    }
+    .workspace.collapse-left .sidebar-symbols,
+    .workspace.collapse-right .sidebar-right {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* MINI-LEFT ICON ONLY CHO SYMBOLS LIST */
+    .workspace.mini-left .sidebar-symbols {
+      width: 76px;
+    }
+    .workspace.mini-left .panel-header {
+      padding: 8px 4px;
+      gap: 4px;
+    }
+    .workspace.mini-left .panel-title,
+    .workspace.mini-left .filter-select,
+    .workspace.mini-left .search-box,
+    .workspace.mini-left .symbol-meta {
+      display: none !important;
+    }
+    .workspace.mini-left .symbol-card {
+      padding: 6px 2px;
+      justify-content: center;
+    }
+    .workspace.mini-left .symbol-thumb {
+      width: 44px;
+      height: 44px;
+    }
+
+    /* THANH KÉO RESIZER CHUỘT */
+    .panel-resizer-h {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      cursor: col-resize;
+      z-index: 35;
+      background: transparent;
+      transition: background 0.15s;
+    }
+    .panel-resizer-h:hover, .panel-resizer-h.active {
+      background: #4f5a70;
+    }
+    #symbolsResizer {
+      left: calc(var(--left-sb-w, 320px) - 3px);
+    }
+    .workspace.collapse-left #symbolsResizer {
+      display: none;
+    }
+    .workspace.mini-left #symbolsResizer {
+      left: 73px;
+    }
+
+    .scroll-nav-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      width: 20px; height: 20px;
+      border-radius: 4px;
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .scroll-nav-btn:hover {
+      background: var(--bg-card-hover);
+      color: #fff;
+      border-color: #4f5a70;
+    }
+
+    .panel-toggle-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.12s;
+    }
+    .panel-toggle-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: #4f5a70;
+      color: #fff;
+    }
+
+    .floating-pill {
+      position: absolute;
+      z-index: 40;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+    .floating-pill:hover {
+      background: var(--bg-card-hover);
+      border-color: #4f5a70;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="workspace" id="mainWorkspace">
+    <!-- CỘT TRÁI: DANH SÁCH SYMBOL -->
+    <div class="sidebar-symbols">
+      <div class="panel-header">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div class="panel-title">Biểu Tượng Thiết Bị</div>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <button class="scroll-nav-btn" onclick="scrollSide('symbolList', -220)" title="Cuộn lên">
+              <svg class="line-icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
+            </button>
+            <button class="scroll-nav-btn" onclick="scrollSide('symbolList', 220)" title="Cuộn xuống">
+              <svg class="line-icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <button class="panel-toggle-btn" id="btnMiniSymbols" onclick="toggleMiniSymbols()" title="Thu nhỏ dạng Icon (Mini bar)">
+              <svg class="line-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>Thu nhỏ</span>
+            </button>
+            <button class="panel-toggle-btn" onclick="toggleSidebar('left')" title="Thu gọn / Ẩn cột">
+              <svg class="line-icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+              <span>Ẩn</span>
+            </button>
+          </div>
+        </div>
+        <select id="catSelect" class="filter-select">
+          <option value="all">Tất cả danh mục (50+ Biểu Tượng)</option>
+          <option value="robots">Robot &amp; Tự động hóa (Robotics)</option>
+          <option value="plcs">PLC, Tủ điện &amp; Biến tần (Automation)</option>
+          <option value="thermal">Thiết bị nhiệt, Lò hơi &amp; Trao đổi nhiệt</option>
+          <option value="motors">Động cơ (Motors)</option>
+          <option value="pumps">Bơm công nghiệp (Pumps)</option>
+          <option value="valves">Van đường ống (Valves)</option>
+          <option value="pneumatics">Khí nén (Pneumatics)</option>
+          <option value="tanks">Bồn chứa &amp; Silo</option>
+          <option value="conveyors">Băng tải &amp; Cầu trục nâng hạ</option>
+          <option value="sensors">Cảm biến &amp; Thiết bị đo</option>
+          <option value="signals">Đèn báo &amp; An toàn</option>
+        </select>
+        <div style="position: relative; width: 100%;">
+          <svg class="line-icon" viewBox="0 0 24 24" style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" class="search-box" style="padding-left: 28px;" placeholder="Tìm thiết bị (bơm, van, motor)...">
+        </div>
+      </div>
+      <div id="symbolList" class="symbol-list"></div>
+    </div>
+
+    <!-- THANH KÉO CO DÃN CHUỘT (RESIZER HANDLE CỘT DANH SÁCH SYMBOL) -->
+    <div class="panel-resizer-h" id="symbolsResizer" title="Kéo rê chuột sang trái/phải để điều chỉnh độ rộng cột biểu tượng"></div>
+
+    <!-- CỘT GIỮA: STAGE CHÍNH -->
+    <div class="stage">
+      <div class="stage-toolbar">
+        <div class="state-group">
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-right: 4px;">TRẠNG THÁI:</span>
+          <button class="state-btn active" data-state="Off" data-color="#70757A">
+            <span class="state-dot" style="background: #70757A;"></span> Off (Dừng)
+          </button>
+          <button class="state-btn" data-state="Run" data-color="#22C55E">
+            <span class="state-dot" style="background: #22C55E;"></span> Run (Chạy)
+          </button>
+          <button class="state-btn" data-state="Warning" data-color="#F59E0B">
+            <span class="state-dot" style="background: #F59E0B;"></span> Warn (Cảnh báo)
+          </button>
+          <button class="state-btn" data-state="Fault" data-color="#EF4444">
+            <span class="state-dot" style="background: #EF4444;"></span> Fault (Lỗi)
+          </button>
+          <button class="state-btn" data-state="Manual" data-color="#3B82F6">
+            <span class="state-dot" style="background: #3B82F6;"></span> Manual (Tay)
+          </button>
+          <button class="state-btn" data-state="Maintenance" data-color="#8B5CF6">
+            <span class="state-dot" style="background: #8B5CF6;"></span> Maint (Bảo trì)
+          </button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button class="panel-toggle-btn" id="btnToggleLeft" onclick="toggleSidebar('left')" title="Ẩn/Hiện cột Symbol trái">
+            <svg class="line-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+            <span>Trái</span>
+          </button>
+          <button class="panel-toggle-btn" id="btnToggleRight" onclick="toggleSidebar('right')" title="Ẩn/Hiện cột Màu phải">
+            <svg class="line-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+            <span>Phải</span>
+          </button>
+          <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">Size:</span>
+          <select id="resSelect" class="filter-select" style="width: auto; padding: 4px 8px;">
+            <option value="128">128 px</option>
+            <option value="256" selected>256 px</option>
+            <option value="512">512 px</option>
+            <option value="1024">1024 px</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- NÚT PHỤC HỒI NỔI -->
+      <button id="pillLeft" class="floating-pill" style="left: 10px; top: 50%; transform: translateY(-50%);" onclick="toggleSidebar('left')">
+        <svg class="line-icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        <span>Biểu Tượng</span>
+      </button>
+      <button id="pillRight" class="floating-pill" style="right: 10px; top: 50%; transform: translateY(-50%);" onclick="toggleSidebar('right')">
+        <svg class="line-icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        <span>Bảng Màu</span>
+      </button>
+
+      <div class="stage-canvas-wrap">
+        <div class="canvas-preview-container">
+          <div class="preview-box" id="previewBox"></div>
+          <div id="tagBadge" class="tag-badge">P-101A</div>
+        </div>
+      </div>
+
+      <div class="stage-controls">
+        <div class="btn-group">
+          <button id="btnRotateCCW" class="action-btn" title="Xoay ngược chiều kim đồng hồ 90 độ">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>-90°</span>
+          </button>
+          <button id="btnRotateCW" class="action-btn" title="Xoay theo chiều kim đồng hồ 90 độ">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            <span>+90°</span>
+          </button>
+          <button id="btnFlipH" class="action-btn" title="Lật ngang">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 2v20"/></svg>
+            <span>Lật Ngang</span>
+          </button>
+          <button id="btnFlipV" class="action-btn" title="Lật dọc">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="M3 8V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3"/><path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M2 12h20"/></svg>
+            <span>Lật Dọc</span>
+          </button>
+        </div>
+
+        <div class="btn-group">
+          <button id="btnExportPng" class="action-btn primary" title="Tải ảnh PNG">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>PNG</span>
+          </button>
+          <button id="btnExportSvg" class="action-btn" title="Tải file vector SVG">
+            <svg class="line-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>SVG</span>
+          </button>
+          <button id="btnExportWeintek" class="action-btn" onclick="exportSymbolHmiPackage('weintek')" title="Xuất gói thư viện cho Weintek EasyBuilder Pro">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <span>Weintek ZIP</span>
+          </button>
+          <button id="btnExportSiemens" class="action-btn" onclick="exportSymbolHmiPackage('siemens')" title="Xuất gói thư viện cho Siemens TIA Portal / WinCC">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <span>Siemens ZIP</span>
+          </button>
+          <button id="btnExportAllBrands" class="action-btn" onclick="exportSymbolHmiPackage('all')" title="Xuất trọn bộ thư viện 5 hãng HMI">
+            <svg class="line-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            <span>Gói 5 Hãng ZIP</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CỘT PHẢI: BẢNG MÀU ISA-101 & THÔNG SỐ -->
+    <div class="sidebar-right" id="sidebarRight">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+        <span class="section-title" style="margin-bottom: 0;">Cấu Hình &amp; Bảng Màu</span>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <button class="scroll-nav-btn" onclick="scrollSide('sidebarRight', -220)" title="Cuộn lên">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
+          </button>
+          <button class="scroll-nav-btn" onclick="scrollSide('sidebarRight', 220)" title="Cuộn xuống">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <button class="panel-toggle-btn" onclick="toggleSidebar('right')" title="Thu gọn cột phải">
+            <svg class="line-icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+            <span>Thu Gọn</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Device Tag Overlay</div>
+        <div class="input-field" style="margin-bottom: 8px;">
+          <span style="font-size: 11px; color: var(--text-muted);">Tag:</span>
+          <input type="text" id="tagInput" value="P-101A" placeholder="Nhập Tag...">
+        </div>
+        <label style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="checkbox" id="chkShowTag" checked> Hiển thị nhãn Tag
+        </label>
+      </div>
+
+      <div>
+        <div class="section-title">Bảng Màu Chuẩn ISA-101</div>
+        <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 8px;">Nhấp vào màu để áp dụng ngay:</div>
+        <div id="paletteList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isLeftCollapsed = false;
+    let isLeftMini = false;
+    let isRightCollapsed = false;
+
+    function toggleMiniSymbols() {
+      const ws = document.getElementById('mainWorkspace');
+      const btn = document.getElementById('btnMiniSymbols');
+      if (!ws) return;
+
+      isLeftMini = !isLeftMini;
+      if (isLeftMini) {
+        if (isLeftCollapsed) {
+          isLeftCollapsed = false;
+          ws.classList.remove('collapse-left');
+          document.getElementById('pillLeft').style.display = 'none';
+        }
+        ws.classList.add('mini-left');
+        if (btn) btn.innerText = '▪ Đầy đủ';
+      } else {
+        ws.classList.remove('mini-left');
+        if (btn) btn.innerText = '▫ Icon';
+      }
+    }
+
+    function toggleSidebar(side) {
+      const ws = document.getElementById('mainWorkspace');
+      if (side === 'left') {
+        isLeftCollapsed = !isLeftCollapsed;
+        ws.classList.toggle('collapse-left', isLeftCollapsed);
+        document.getElementById('pillLeft').style.display = isLeftCollapsed ? 'flex' : 'none';
+        const b = document.getElementById('btnToggleLeft');
+        if (b) b.classList.toggle('active', isLeftCollapsed);
+      } else {
+        isRightCollapsed = !isRightCollapsed;
+        ws.classList.toggle('collapse-right', isRightCollapsed);
+        document.getElementById('pillRight').style.display = isRightCollapsed ? 'flex' : 'none';
+        const b = document.getElementById('btnToggleRight');
+        if (b) b.classList.toggle('active', isRightCollapsed);
+      }
+    }
+
+    // Bộ kéo rê chuột điều chỉnh độ rộng danh sách symbol
+    (function initSymbolsResizer() {
+      window.addEventListener('DOMContentLoaded', () => {
+        const resizer = document.getElementById('symbolsResizer');
+        const ws = document.getElementById('mainWorkspace');
+        if (!resizer || !ws) return;
+
+        try {
+          const savedW = localStorage.getItem('kha_symbols_sb_w');
+          if (savedW && Number(savedW) >= 70 && Number(savedW) <= 500) {
+            ws.style.setProperty('--left-sb-w', `${savedW}px`);
+          }
+        } catch (e) {}
+
+        let isDragging = false;
+        resizer.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          isDragging = true;
+          resizer.classList.add('active');
+          ws.classList.add('resizing');
+          document.body.style.cursor = 'col-resize';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          const rect = ws.getBoundingClientRect();
+          let newW = e.clientX - rect.left;
+          if (newW < 76) newW = 76;
+          if (newW > 480) newW = 480;
+
+          if (newW <= 95 && !isLeftMini) {
+            isLeftMini = true;
+            ws.classList.add('mini-left');
+            const btn = document.getElementById('btnMiniSymbols');
+            if (btn) btn.innerText = '▪ Đầy đủ';
+          } else if (newW > 95 && isLeftMini) {
+            isLeftMini = false;
+            ws.classList.remove('mini-left');
+            const btn = document.getElementById('btnMiniSymbols');
+            if (btn) btn.innerText = '▫ Icon';
+          }
+
+          ws.style.setProperty('--left-sb-w', `${newW}px`);
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (!isDragging) return;
+          isDragging = false;
+          resizer.classList.remove('active');
+          ws.classList.remove('resizing');
+          document.body.style.cursor = '';
+
+          const curW = parseInt(ws.style.getPropertyValue('--left-sb-w'));
+          if (curW) {
+            try { localStorage.setItem('kha_symbols_sb_w', curW); } catch (e) {}
+          }
+        });
+      });
+    })();
+
+    function scrollSide(id, delta) {
+      const el = document.getElementById(id);
+      if (el) el.scrollBy({ top: delta, behavior: 'smooth' });
+    }
+    const SYMBOLS = [
+      /* ROBOTICS & AUTOMATION */
+      { id: 'robot_arm_6axis', name: 'Cánh tay Robot 6 trục công nghiệp', cat: 'robots', file: 'robot_arm_6axis.svg' },
+      { id: 'robot_scara', name: 'Robot SCARA 4 trục lắp ráp', cat: 'robots', file: 'robot_scara.svg' },
+      { id: 'robot_delta', name: 'Robot Delta Spider gắp tốc độ cao', cat: 'robots', file: 'robot_delta.svg' },
+
+      /* PLC, TỦ ĐIỆN & BIẾN TẦN */
+      { id: 'plc_siemens_s71500', name: 'Siemens S7-1500 Modular PLC Rack', cat: 'plcs', file: 'plc_siemens_s71500.svg' },
+      { id: 'hmi_touch_panel', name: 'Màn hình cảm ứng HMI Touch Panel', cat: 'plcs', file: 'hmi_touch_panel.svg' },
+      { id: 'cabinet_control', name: 'Tủ điều khiển SCADA Rittal IP55', cat: 'plcs', file: 'cabinet_control.svg' },
+      { id: 'vfd_inverter', name: 'Biến tần điều khiển động cơ VFD', cat: 'plcs', file: 'vfd_inverter.svg' },
+
+      /* THIẾT BỊ NHIỆT & LÒ HƠI */
+      { id: 'boiler_steam', name: 'Lò hơi công nghiệp (Steam Boiler)', cat: 'thermal', file: 'boiler_steam.svg' },
+      { id: 'heat_exchanger', name: 'Bộ trao đổi nhiệt dạng tấm (PHE)', cat: 'thermal', file: 'heat_exchanger.svg' },
+      { id: 'stack_chimney', name: 'Ống khói xả khí thải & Tháp hấp phụ', cat: 'thermal', file: 'stack_chimney.svg' },
+
+      /* ĐỘNG CƠ (MOTORS) */
+      { id: 'motor_ac', name: 'Động cơ AC 3 pha', cat: 'motors', file: 'motor_ac.svg' },
+      { id: 'motor_servo', name: 'Động cơ Servo chính xác', cat: 'motors', file: 'motor_servo.svg' },
+      { id: 'motor_vfd', name: 'Động cơ biến tần VFD', cat: 'motors', file: 'motor_vfd.svg' },
+      { id: 'motor_gear', name: 'Động cơ giảm tốc liền hộp số', cat: 'motors', file: 'motor_gear.svg' },
+      { id: 'motor', name: 'Động cơ điện tiêu chuẩn', cat: 'motors', file: 'motor.svg' },
+
+      /* BƠM CÔNG NGHIỆP (PUMPS) */
+      { id: 'pump_centrifugal', name: 'Bơm ly tâm công nghiệp', cat: 'pumps', file: 'pump_centrifugal.svg' },
+      { id: 'pump_peristaltic', name: 'Bơm nhu động chiết rót định lượng', cat: 'pumps', file: 'pump_peristaltic.svg' },
+      { id: 'pump_dosing', name: 'Bơm định lượng màng', cat: 'pumps', file: 'pump_dosing.svg' },
+      { id: 'pump_vacuum', name: 'Bơm hút chân không', cat: 'pumps', file: 'pump_vacuum.svg' },
+      { id: 'pump_hydraulic', name: 'Bơm dầu thủy lực', cat: 'pumps', file: 'pump_hydraulic.svg' },
+      { id: 'pump_submersible', name: 'Bơm chìm nước thải', cat: 'pumps', file: 'pump_submersible.svg' },
+
+      /* VAN (VALVES) */
+      { id: 'valve_ball', name: 'Van bi tay gạt P&ID', cat: 'valves', file: 'valve_ball.svg' },
+      { id: 'valve_butterfly', name: 'Van bướm tay quay', cat: 'valves', file: 'valve_butterfly.svg' },
+      { id: 'valve_control', name: 'Van điều khiển khí nén', cat: 'valves', file: 'valve_control.svg' },
+      { id: 'valve_diaphragm', name: 'Van màng vi sinh P&ID', cat: 'valves', file: 'valve_diaphragm.svg' },
+      { id: 'valve_solenoid', name: 'Van điện từ Solenoid', cat: 'valves', file: 'valve_solenoid.svg' },
+      { id: 'valve_check', name: 'Van 1 chiều', cat: 'valves', file: 'valve_check.svg' },
+      { id: 'valve_safety', name: 'Van an toàn xả áp PSV', cat: 'valves', file: 'valve_safety.svg' },
+      { id: 'valve_3way', name: 'Van 3 ngả', cat: 'valves', file: 'valve_3way.svg' },
+
+      /* KHÍ NÉN (PNEUMATICS) */
+      { id: 'pneumatic_cylinder_double', name: 'Xi lanh khí nén 2 chiều', cat: 'pneumatics', file: 'pneumatic_cylinder_double.svg' },
+      { id: 'pneumatic_cylinder_rotary', name: 'Xi lanh xoay góc', cat: 'pneumatics', file: 'pneumatic_cylinder_rotary.svg' },
+      { id: 'pneumatic_gripper', name: 'Tay kẹp khí nén 2 chấu', cat: 'pneumatics', file: 'pneumatic_gripper.svg' },
+
+      /* BỒN CHỨA & SILO (TANKS) */
+      { id: 'tank_vertical', name: 'Bồn chứa đứng', cat: 'tanks', file: 'tank_vertical.svg' },
+      { id: 'tank_agitator', name: 'Bồn khuấy trộn có motor', cat: 'tanks', file: 'tank_agitator.svg' },
+      { id: 'silo_storage', name: 'Silo chứa liệu đáy nón', cat: 'tanks', file: 'silo_storage.svg' },
+
+      /* BĂNG TẢI & NÂNG HẠ (CONVEYORS) */
+      { id: 'conveyor_belt', name: 'Băng tải đai phẳng', cat: 'conveyors', file: 'conveyor_belt.svg' },
+      { id: 'conveyor_roller', name: 'Băng tải con lăn', cat: 'conveyors', file: 'conveyor_roller.svg' },
+      { id: 'crane_overhead', name: 'Cầu trục nâng hạ nhà xưởng', cat: 'conveyors', file: 'crane_overhead.svg' },
+
+      /* CẢM BIẾN & ĐO LƯỜNG (SENSORS) */
+      { id: 'sensor_temperature_rtd', name: 'Cảm biến nhiệt độ PT100/RTD', cat: 'sensors', file: 'sensor_temperature_rtd.svg' },
+      { id: 'sensor_ultrasonic', name: 'Cảm biến siêu âm đo mức', cat: 'sensors', file: 'sensor_ultrasonic.svg' },
+      { id: 'flowmeter_electromagnetic', name: 'Lưu lượng kế điện từ (Magflow)', cat: 'sensors', file: 'flowmeter_electromagnetic.svg' },
+      { id: 'sensor_photoelectric', name: 'Cảm biến quang điện', cat: 'sensors', file: 'sensor_photoelectric.svg' },
+      { id: 'sensor_inductive', name: 'Cảm biến tiệm cận M18', cat: 'sensors', file: 'sensor_inductive.svg' },
+      { id: 'gauge_pressure', name: 'Đồng hồ áp suất ISA', cat: 'sensors', file: 'gauge_pressure.svg' },
+      { id: 'flowmeter', name: 'Lưu lượng kế điện tử', cat: 'sensors', file: 'flowmeter.svg' },
+
+      /* ĐÈN BÁO & AN TOÀN (SIGNALS) */
+      { id: 'tower_light', name: 'Đèn tháp Andon 3 tầng', cat: 'signals', file: 'tower_light.svg' },
+      { id: 'estop_button', name: 'Nút dừng khẩn E-STOP', cat: 'signals', file: 'estop_button.svg' },
+      { id: 'fan_exhaust', name: 'Quạt hút thông gió', cat: 'signals', file: 'fan_exhaust.svg' }
+    ];
+
+    const ISA_PALETTE = [
+      { name: "Normal Running", hex: "#22C55E", desc: "Vận hành bình thường" },
+      { name: "Standby / Off", hex: "#70757A", desc: "Dừng / Sẵn sàng" },
+      { name: "Warning / High", hex: "#F59E0B", desc: "Cảnh báo mức thấp" },
+      { name: "Emergency / Fault", hex: "#EF4444", desc: "Báo động sự cố / Trip" },
+      { name: "Manual Mode", hex: "#3B82F6", desc: "Chế độ chạy tay" },
+      { name: "Maintenance", hex: "#8B5CF6", desc: "Bảo trì / Lockout" }
+    ];
+
+    let currentSymbol = SYMBOLS[0];
+    let currentColor = "#70757A";
+    let currentRotation = 0;
+    let flipH = false;
+    let flipV = false;
+    let rawSvgText = "";
+
+    const symbolListEl = document.getElementById('symbolList');
+    const previewBoxEl = document.getElementById('previewBox');
+    const tagBadgeEl = document.getElementById('tagBadge');
+    const tagInputEl = document.getElementById('tagInput');
+    const chkShowTagEl = document.getElementById('chkShowTag');
+    const catSelectEl = document.getElementById('catSelect');
+    const searchInputEl = document.getElementById('searchInput');
+    const paletteListEl = document.getElementById('paletteList');
+
+    function renderSymbolList() {
+      const q = searchInputEl.value.trim().toLowerCase();
+      const cat = catSelectEl.value;
+
+      const filtered = SYMBOLS.filter(s => {
+        const matchCat = cat === 'all' || s.cat === cat;
+        const matchQ = !q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
+        return matchCat && matchQ;
+      });
+
+      symbolListEl.innerHTML = '';
+      filtered.forEach(s => {
+        const card = document.createElement('div');
+        card.className = `symbol-card ${s.id === currentSymbol.id ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="symbol-thumb"><img src="symbols/${s.file}"></div>
+          <div class="symbol-meta">
+            <div class="symbol-name">${s.name}</div>
+            <div class="symbol-cat">${s.file}</div>
+          </div>
+        `;
+        card.onclick = () => selectSymbol(s);
+        symbolListEl.appendChild(card);
+      });
+    }
+
+    async function selectSymbol(s) {
+      currentSymbol = s;
+      renderSymbolList();
+      await loadAndDisplaySvg();
+    }
+
+    async function loadAndDisplaySvg() {
+      try {
+        const res = await fetch(`symbols/${currentSymbol.file}`);
+        rawSvgText = await res.text();
+        applySvgTransformAndColor();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function applySvgTransformAndColor() {
+      if (!rawSvgText) return;
+      let modified = rawSvgText.replace(
+        /(fill\s*[:=]\s*["']?)(#70757A|#70757a|#6b7280|#475569)(["']?)/gi,
+        `$1${currentColor}$3`
+      );
+      previewBoxEl.innerHTML = modified;
+      const svgEl = previewBoxEl.querySelector('svg');
+      if (svgEl) {
+        let t = `rotate(${currentRotation}deg)`;
+        if (flipH) t += ` scaleX(-1)`;
+        if (flipV) t += ` scaleY(-1)`;
+        svgEl.style.transform = t;
+      }
+      tagBadgeEl.textContent = tagInputEl.value || currentSymbol.id.toUpperCase();
+      tagBadgeEl.style.display = chkShowTagEl.checked ? 'block' : 'none';
+      tagBadgeEl.style.borderColor = currentColor;
+    }
+
+    function renderPalette() {
+      paletteListEl.innerHTML = '';
+      ISA_PALETTE.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'palette-item';
+        item.innerHTML = `
+          <div class="color-swatch" style="background: ${c.hex};"></div>
+          <div class="color-info">
+            <div class="color-name">${c.name}</div>
+            <div class="color-desc">${c.desc}</div>
+          </div>
+          <div class="color-hex">${c.hex}</div>
+        `;
+        item.onclick = () => {
+          currentColor = c.hex;
+          document.querySelectorAll('.state-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.color.toLowerCase() === c.hex.toLowerCase());
+          });
+          applySvgTransformAndColor();
+        };
+        paletteListEl.appendChild(item);
+      });
+    }
+
+    document.querySelectorAll('.state-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentColor = btn.dataset.color;
+        applySvgTransformAndColor();
+      };
+    });
+
+    document.getElementById('btnRotateCW').onclick = () => { currentRotation = (currentRotation + 90) % 360; applySvgTransformAndColor(); };
+    document.getElementById('btnRotateCCW').onclick = () => { currentRotation = (currentRotation - 90 + 360) % 360; applySvgTransformAndColor(); };
+    document.getElementById('btnFlipH').onclick = () => { flipH = !flipH; applySvgTransformAndColor(); };
+    document.getElementById('btnFlipV').onclick = () => { flipV = !flipV; applySvgTransformAndColor(); };
+    tagInputEl.oninput = applySvgTransformAndColor;
+    chkShowTagEl.onchange = applySvgTransformAndColor;
+    catSelectEl.onchange = renderSymbolList;
+    searchInputEl.oninput = renderSymbolList;
+
+    document.getElementById('btnExportSvg').onclick = () => {
+      const svgEl = previewBoxEl.querySelector('svg');
+      if (!svgEl) return;
+      const blob = new Blob([svgEl.outerHTML], { type: 'image/svg+xml' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${tagInputEl.value || currentSymbol.id}_${currentColor.replace('#','')}.svg`;
+      a.click();
+    };
+
+    document.getElementById('btnCopySvg').onclick = () => {
+      const svgEl = previewBoxEl.querySelector('svg');
+      if (!svgEl) return;
+      navigator.clipboard.writeText(svgEl.outerHTML).then(() => alert('Đã copy SVG code!'));
+    };
+
+    document.getElementById('btnExportPng').onclick = () => {
+      const svgEl = previewBoxEl.querySelector('svg');
+      if (!svgEl) return;
+      const res = parseInt(document.getElementById('resSelect').value, 10) || 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = res; canvas.height = res;
+      const ctx = canvas.getContext('2d');
+      
+      const svgClone = svgEl.cloneNode(true);
+      svgClone.setAttribute('width', res);
+      svgClone.setAttribute('height', res);
+      if (!svgClone.getAttribute('xmlns')) {
+        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      }
+      const xml = new XMLSerializer().serializeToString(svgClone);
+      const svgBlob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+      const URLObj = window.URL || window.webkitURL || window;
+      const blobURL = URLObj.createObjectURL(svgBlob);
+      const img = new Image();
+      let finished = false;
+      const finish = (ok) => {
+        if (finished) return;
+        finished = true;
+        try { URLObj.revokeObjectURL(blobURL); } catch(e) {}
+        if (ok) {
+          try {
+            ctx.clearRect(0, 0, res, res);
+            ctx.save();
+            ctx.translate(res / 2, res / 2);
+            if (currentRotation) ctx.rotate((currentRotation * Math.PI) / 180);
+            ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+            ctx.drawImage(img, -res / 2, -res / 2, res, res);
+            ctx.restore();
+            const pngUrl = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = pngUrl;
+            a.download = `${tagInputEl.value || currentSymbol.id}_${res}px.png`;
+            a.click();
+          } catch(e) {
+            console.error(e);
+            alert("Lỗi xuất ảnh PNG: " + e.message);
+          }
+        }
+      };
+      img.onload = () => finish(true);
+      img.onerror = () => {
+        console.error("Lỗi tải SVG Blob");
+        finish(false);
+      };
+      setTimeout(() => { if (!finished) finish(true); }, 500);
+      img.src = blobURL;
+    };
+
+    async function exportSymbolHmiPackage(brand) {
+      if (typeof JSZip === 'undefined') {
+        alert("Thư viện JSZip đang tải, vui lòng thử lại sau giây lát.");
+        return;
+      }
+      const tagSafe = (tagInputEl.value || currentSymbol.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+      const res = parseInt(document.getElementById('resSelect').value, 10) || 256;
+
+      const states = [
+        { idx: 0, code: 'OFF', color: '#70757A' },
+        { idx: 1, code: 'ON', color: '#22C55E' },
+        { idx: 2, code: 'FAULT', color: '#EF4444' },
+        { idx: 3, code: 'WARN', color: '#F59E0B' },
+        { idx: 4, code: 'MANUAL', color: '#3B82F6' }
+      ];
+
+      try {
+        const zip = new JSZip();
+        const stateBlobs = [];
+
+        for (const st of states) {
+          let modified = rawSvgText.replace(
+            /(fill\s*[:=]\s*["']?)(#70757A|#70757a|#6b7280|#475569)(["']?)/gi,
+            `$1${st.color}$3`
+          );
+          const canvas = document.createElement('canvas');
+          canvas.width = res; canvas.height = res;
+          const ctx = canvas.getContext('2d');
+          const blob = new Blob([modified], { type: 'image/svg+xml;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          await new Promise((resolve) => {
+            img.onload = () => {
+              ctx.clearRect(0, 0, res, res);
+              ctx.save();
+              ctx.translate(res / 2, res / 2);
+              if (currentRotation) ctx.rotate((currentRotation * Math.PI) / 180);
+              ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+              ctx.drawImage(img, -res / 2, -res / 2, res, res);
+              ctx.restore();
+              URL.revokeObjectURL(url);
+              canvas.toBlob((pngBlob) => {
+                stateBlobs.push({ ...st, blob: pngBlob });
+                resolve();
+              }, 'image/png');
+            };
+            img.src = url;
+          });
+        }
+
+        // Weintek
+        if (brand === 'weintek' || brand === 'all') {
+          const wF = brand === 'all' ? zip.folder(`1_WEINTEK_${tagSafe}`) : zip;
+          stateBlobs.forEach(s => wF.file(`${tagSafe}_${s.idx}_${s.code}.png`, s.blob));
+          wF.file(`Huong_Dan_Weintek.txt`, `\uFEFF=== HƯỚNG DẪN WEINTEK EASYBUILDER PRO ===\n1. Project -> Picture Library -> Add Picture.\n2. Chọn các file ${tagSafe}_0_OFF -> 4_MANUAL.\n3. Gán vào Word Lamp / Bit Lamp.`);
+          wF.file(`${tagSafe}_Weintek_Tags.csv`, `\uFEFFName,Address Type,Address,Description\n${tagSafe}_STATUS,LW,0,Trạng thái (0..4)\n${tagSafe}_PV,LW,1,Giá trị thực`);
+        }
+
+        // Siemens
+        if (brand === 'siemens' || brand === 'all') {
+          const sF = brand === 'all' ? zip.folder(`2_SIEMENS_${tagSafe}`) : zip;
+          const gl = sF.folder(`GraphicList_${tagSafe}`);
+          stateBlobs.forEach(s => gl.file(`State_${s.idx}_${s.code}.png`, s.blob));
+          sF.file(`Huong_Dan_Siemens.txt`, `\uFEFF=== HƯỚNG DẪN SIEMENS TIA WINCC ===\n1. Text and graphic lists -> Graphic lists -> New GL_${tagSafe}.\n2. Gán Value 0..4 tương ứng các file State_0..4.\n3. Dùng Graphic I/O field trên màn hình.`);
+          sF.file(`Siemens_Tag_Table_${tagSafe}.csv`, `\uFEFFName,Data type,Address\n${tagSafe}_Status,Int,"DB_HMI"."${tagSafe}_Status"\n${tagSafe}_PV,Real,"DB_HMI"."${tagSafe}_PV"`);
+        }
+
+        // Mitsubishi, Delta, Schneider
+        if (brand === 'all') {
+          const mF = zip.folder(`3_MITSUBISHI_${tagSafe}`);
+          stateBlobs.forEach(s => mF.file(`${tagSafe}_0${s.idx}.png`, s.blob));
+          const dF = zip.folder(`4_DELTA_${tagSafe}`);
+          stateBlobs.forEach(s => dF.file(`${tagSafe}_state${s.idx}.png`, s.blob));
+          const scF = zip.folder(`5_SCHNEIDER_${tagSafe}`);
+          stateBlobs.forEach(s => scF.file(`${tagSafe}_St${s.idx}.png`, s.blob));
+        }
+
+        const zipName = brand === 'all' 
+          ? `KhaStudio_MultiHMI_${tagSafe}_AllBrands.zip`
+          : `KhaStudio_HMI_${brand.toUpperCase()}_${tagSafe}.zip`;
+
+        const content = await zip.generateAsync({ type: 'blob' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(content);
+        a.download = zipName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        alert(`✅ Đã xuất thành công gói HMI chuẩn ${brand.toUpperCase()} (${zipName})!`);
+      } catch (err) {
+        alert("Lỗi xuất gói HMI: " + err.message);
+      }
+    }
+
+    // ================================================================
+    // PRO CUSTOM INDUSTRIAL MODAL ALERT (THAY THẾ WINDOW.ALERT TRÌNH DUYỆT)
+    // ================================================================
+    function showScadaAlert(msg, options = {}) {
+      let modal = document.getElementById('scadaAlertModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'scadaAlertModal';
+        modal.className = 'scada-alert-modal-backdrop';
+        modal.innerHTML = `
+          <div class="scada-alert-modal-card">
+            <div class="scada-alert-glow-bar"></div>
+            <div class="scada-alert-header">
+              <div class="scada-alert-brand">
+                <span class="scada-alert-brand-dot"></span>
+                <span>Kha Studio • HMI Suite</span>
+              </div>
+              <button class="scada-alert-close" onclick="closeScadaAlert()" title="Đóng (Esc)">
+                <svg class="line-icon" style="width: 12px; height: 12px;" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="scada-alert-body">
+              <div class="scada-alert-icon-wrap" id="scadaAlertIconWrap"></div>
+              <h3 class="scada-alert-title" id="scadaAlertTitle">Thông Báo</h3>
+              <p class="scada-alert-text" id="scadaAlertText"></p>
+              <div class="scada-alert-file-card" id="scadaAlertFileCard" style="display: none;">
+                <div class="scada-alert-file-icon" id="scadaAlertFileIcon">
+                  <svg class="line-icon" style="width: 16px; height: 16px; color: var(--accent-blue);" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="scada-alert-file-info">
+                  <div class="scada-alert-file-name" id="scadaAlertFileName">file.zip</div>
+                  <div class="scada-alert-file-status">
+                    <span class="scada-file-badge">HOÀN TẤT</span>
+                    <span id="scadaAlertFileHint">Sẵn sàng sử dụng</span>
+                  </div>
+                </div>
+              </div>
+              <div class="scada-alert-actions">
+                <button class="scada-alert-btn-ok" id="scadaAlertBtnOk" onclick="closeScadaAlert()">
+                  <span>Đóng (OK)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) closeScadaAlert();
+        });
+        window.addEventListener('keydown', (e) => {
+          if (modal.classList.contains('show') && (e.key === 'Escape' || e.key === 'Enter')) {
+            closeScadaAlert();
+          }
+        });
+      }
+
+      let type = options.type || 'success';
+      let title = options.title || 'Thông Báo';
+      let text = String(msg || '');
+
+      if (/lỗi|error|thất bại/i.test(text)) {
+        type = 'error'; title = 'Có Lỗi Xảy Ra';
+      } else if (/cảnh báo|warning|vui lòng/i.test(text)) {
+        type = 'warn'; title = 'Lưu Ý';
+      }
+      text = text.replace(/^[✅✓📦📸📐⭐📚📂❌⚠️]\s*/, '');
+
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length > 1) {
+        title = lines[0].replace(/!+$/, '');
+        text = lines.slice(1).join('\n');
+      } else if (lines.length === 1 && lines[0].length < 75) {
+        title = lines[0];
+        text = '';
+      }
+
+      const fileMatch = (msg || '').match(/["']([^"']+\.(zip|csv|txt|json|png|svg))["']/i);
+      const fileCard = document.getElementById('scadaAlertFileCard');
+      if (fileMatch) {
+        const fileName = fileMatch[1];
+        fileCard.style.display = 'flex';
+        document.getElementById('scadaAlertFileName').textContent = fileName;
+      } else {
+        fileCard.style.display = 'none';
+      }
+
+      const iconWrap = document.getElementById('scadaAlertIconWrap');
+      if (type === 'error') {
+        iconWrap.innerHTML = `<svg class="line-icon" style="width: 22px; height: 22px; color: #ef4444;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+      } else if (type === 'warn') {
+        iconWrap.innerHTML = `<svg class="line-icon" style="width: 22px; height: 22px; color: #f59e0b;" viewBox="0 0 24 24"><path d="m10.29 3.86-8.6 14.88A2 2 0 0 0 3.42 21h17.16a2 2 0 0 0 1.73-2.96l-8.6-14.88a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+      } else {
+        iconWrap.innerHTML = `<svg class="line-icon" style="width: 22px; height: 22px; color: #0284c7;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`;
+      }
+      document.getElementById('scadaAlertTitle').textContent = title;
+      document.getElementById('scadaAlertText').textContent = text;
+
+      const card = modal.querySelector('.scada-alert-modal-card');
+      const iconWrap = document.getElementById('scadaAlertIconWrap');
+      if (type === 'error') {
+        card.style.borderColor = '#ef4444';
+        iconWrap.style.borderColor = '#ef4444';
+      } else if (type === 'warn') {
+        card.style.borderColor = '#f59e0b';
+        iconWrap.style.borderColor = '#f59e0b';
+      } else {
+        card.style.borderColor = '#3b4354';
+        iconWrap.style.borderColor = '#0284c7';
+      }
+
+      modal.classList.add('show');
+      setTimeout(() => {
+        document.getElementById('scadaAlertBtnOk')?.focus();
+      }, 50);
+    }
+
+    function closeScadaAlert() {
+      const modal = document.getElementById('scadaAlertModal');
+      if (modal) modal.classList.remove('show');
+    }
+
+    window.alert = function(msg) {
+      showScadaAlert(msg);
+    };
+
+    renderSymbolList();
+    renderPalette();
+    selectSymbol(SYMBOLS[0]);
+  </script>
+</body>
+</html>

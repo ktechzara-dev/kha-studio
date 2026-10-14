@@ -1,0 +1,136 @@
+<Window x:Class="VisionStudio.App.Controls.ToolCompareWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="⚖️ Tool Compare View (A/B Parameter Tuning &amp; Benchmark)"
+        Height="720" Width="1160"
+        WindowStartupLocation="CenterScreen"
+        Background="#121620" Foreground="#E2E8F0"
+        FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <SolidColorBrush x:Key="KsBgSurface" Color="#1A202C"/>
+        <SolidColorBrush x:Key="KsBgCard" Color="#232C3D"/>
+        <SolidColorBrush x:Key="KsBorder" Color="#334155"/>
+        <SolidColorBrush x:Key="KsAccent" Color="#00D2FF"/>
+        <SolidColorBrush x:Key="KsSuccess" Color="#10B981"/>
+        <SolidColorBrush x:Key="KsWarning" Color="#F59E0B"/>
+        <SolidColorBrush x:Key="KsTextDim" Color="#94A3B8"/>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOP BAR -->
+        <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="⚖️ SO SÁNH THAM SỐ THUẬT TOÁN (A/B COMPARISON)" FontWeight="Bold" FontSize="15" Foreground="{StaticResource KsAccent}"/>
+                    <TextBlock Text="Đánh giá song song 2 bộ tham số trên cùng một ảnh kiểm để tối ưu hóa độ chính xác và thời gian xử lý." FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="Chạy Thử Nghiệm A/B ⚡" Background="#0284C7" Foreground="White" FontWeight="Bold" Padding="14,8" Cursor="Hand" Click="BtnRunCompare_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- SPLIT VIEW A & B -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <!-- PANE A -->
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="14"/>
+                <!-- PANE B -->
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- PANE A -->
+            <Border Grid.Column="0" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="CẤU HÌNH A (HIỆN TẠI)" FontWeight="Bold" FontSize="13" Foreground="#38BDF8" Margin="0,0,0,8"/>
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Ngưỡng Threshold A:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <TextBox x:Name="TxtParamA1" Text="128" Background="#161B26" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,3" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Min Score A:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <TextBox x:Name="TxtParamA2" Text="0.75" Background="#161B26" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,3" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                    <!-- Visual Result Preview -->
+                    <Border Grid.Row="2" Background="#000" CornerRadius="6" BorderBrush="{StaticResource KsBorder}" BorderThickness="1">
+                        <TextBlock x:Name="TxtPreviewA" Text="[Ảnh Kết Quả Cấu Hình A]" Foreground="#64748B" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <!-- Metrics A -->
+                    <Border Grid.Row="3" Background="#161B26" CornerRadius="4" Padding="10,6" Margin="0,10,0,0">
+                        <TextBlock x:Name="TxtMetricsA" Text="Thời gian: 14.2 ms | Số lỗi phát hiện: 2 | Điểm tin cậy: 94.5%" FontSize="11" Foreground="{StaticResource KsSuccess}" FontFamily="Consolas"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- PANE B -->
+            <Border Grid.Column="2" Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="CẤU HÌNH B (THỬ NGHIỆM)" FontWeight="Bold" FontSize="13" Foreground="#F59E0B" Margin="0,0,0,8"/>
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Ngưỡng Threshold B:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <TextBox x:Name="TxtParamB1" Text="145" Background="#161B26" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,3" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Min Score B:" FontSize="11" Foreground="{StaticResource KsTextDim}"/>
+                            <TextBox x:Name="TxtParamB2" Text="0.85" Background="#161B26" Foreground="White" BorderBrush="{StaticResource KsBorder}" Padding="6,3" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                    <!-- Visual Result Preview -->
+                    <Border Grid.Row="2" Background="#000" CornerRadius="6" BorderBrush="{StaticResource KsBorder}" BorderThickness="1">
+                        <TextBlock x:Name="TxtPreviewB" Text="[Ảnh Kết Quả Cấu Hình B]" Foreground="#64748B" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <!-- Metrics B -->
+                    <Border Grid.Row="3" Background="#161B26" CornerRadius="4" Padding="10,6" Margin="0,10,0,0">
+                        <TextBlock x:Name="TxtMetricsB" Text="Thời gian: 9.8 ms | Số lỗi phát hiện: 0 | Điểm tin cậy: 98.2%" FontSize="11" Foreground="{StaticResource KsWarning}" FontFamily="Consolas"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- FOOTER SUMMARY DIFF -->
+        <Border Grid.Row="2" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,12,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="TxtDiffSummary" Grid.Column="0" Text="Chênh lệch: Cấu hình B nhanh hơn 4.4 ms (-31%) • Độ ổn định cao hơn • Giảm báo giả 100%." FontSize="12" Foreground="White" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="Áp Dụng Cấu Hình B Vào Pipeline" Background="#10B981" Foreground="White" FontWeight="Bold" Padding="12,6" Cursor="Hand" Click="BtnApplyB_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

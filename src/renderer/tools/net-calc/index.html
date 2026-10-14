@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Industrial IP & Network Architect Pro — Kha Studio</title>
+  <link rel="stylesheet" href="css/net-calc.css">
+</head>
+<body>
+  <div class="net-app">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></svg>
+        </div>
+        <div>
+          <h1>Industrial IP &amp; Network Architect Pro</h1>
+          <p class="subtitle">Quy hoạch phân dải mạng công nghiệp, tính toán Subnet &amp; chống xung đột IP</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btnExportCsv" class="btn btn-secondary">📥 Xuất bảng IP (CSV)</button>
+        <button id="btnAddDevice" class="btn btn-primary">+ Thêm thiết bị</button>
+      </div>
+    </header>
+
+    <!-- Subnet Calculator Bar -->
+    <section class="subnet-bar">
+      <div class="subnet-input-group">
+        <span class="label">IP mạng (Network IP):</span>
+        <input type="text" id="netIp" class="input-ip" value="192.168.10.0">
+        <span class="label">Subnet Mask (CIDR):</span>
+        <select id="cidrSelect" class="cfg-select">
+          <option value="24" selected>/24 (255.255.255.0 — 254 Hosts)</option>
+          <option value="25">/25 (255.255.255.128 — 126 Hosts)</option>
+          <option value="26">/26 (255.255.255.192 — 62 Hosts)</option>
+          <option value="27">/27 (255.255.255.224 — 30 Hosts)</option>
+          <option value="28">/28 (255.255.255.240 — 14 Hosts)</option>
+        </select>
+      </div>
+
+      <div class="subnet-calc-info">
+        <div>Subnet: <b id="infoMask">255.255.255.0</b></div>
+        <div>Khả dụng: <b id="infoRange">192.168.10.1 - 192.168.10.254</b></div>
+        <div>Broadcast: <b id="infoBroadcast">192.168.10.255</b></div>
+      </div>
+    </section>
+
+    <!-- Presets bar -->
+    <section class="preset-bar">
+      <span class="label">Mẫu mạng OT nhà máy:</span>
+      <button class="chip" data-preset="casepacker">📦 Line Đóng thùng (192.168.10.x)</button>
+      <button class="chip" data-preset="palletizer">🤖 Cell Robot (192.168.20.x)</button>
+      <button class="chip" data-preset="scada">🏢 Hệ thống SCADA toàn xưởng (10.10.1.x)</button>
+
+      <!-- Alert badge if duplicate IP detected -->
+      <div id="duplicateAlert" class="dup-alert" style="display: none;">
+        ⚠️ Phát hiện trùng lặp địa chỉ IP trong hệ thống!
+      </div>
+    </section>
+
+    <!-- Main Allocation Table -->
+    <main class="table-container">
+      <table class="net-table">
+        <thead>
+          <tr>
+            <th width="40">STT</th>
+            <th width="140">Địa chỉ IP</th>
+            <th width="150">Nhóm thiết bị</th>
+            <th width="200">Tên thiết bị (Device Name)</th>
+            <th width="140">Hãng / Model</th>
+            <th width="160">Giao thức truyền thông</th>
+            <th width="140">Vị trí / Tủ điện</th>
+            <th width="50" style="text-align: center;">Xóa</th>
+          </tr>
+        </thead>
+        <tbody id="netTableBody">
+          <!-- Dynamically populated rows -->
+        </tbody>
+      </table>
+    </main>
+
+    <!-- Footer Stats -->
+    <footer class="net-footer">
+      <span>Tổng thiết bị đã gán IP: <b id="statTotalDevices">0</b></span>
+      <span style="margin-left: auto; color: var(--text-dim); font-size: 11px;">Chuẩn Profinet, Ethernet/IP, Modbus TCP, EtherCAT IP</span>
+    </footer>
+  </div>
+
+  <script type="module" src="js/net-calc.js"></script>
+</body>
+</html>

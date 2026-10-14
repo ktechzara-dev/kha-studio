@@ -4,12 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kha Studio</title>
+  <link rel="icon" type="image/svg+xml" href="shell/img/logo.svg">
+  <link rel="alternate icon" href="shell/img/app.ico">
   <!-- CSS Design System -->
   <link rel="stylesheet" href="shell/shell.css">
   <!-- JavaScript Modules -->
   <script src="shell/icons.js"></script>
   <script src="shell/registry.js"></script>
   <script src="shell/i18n.js"></script>
+  <script src="shell/auth.js"></script>
   <script src="shell/shell.js" defer></script>
 </head>
 <body>
@@ -22,7 +25,9 @@
           <script>document.write(icon('sidebar', 16));</script>
         </button>
         <div class="brand">
-          <div class="logo">K</div>
+          <div class="logo">
+            <img src="shell/img/logo.svg" alt="Kha Studio" class="logo-img">
+          </div>
           <span>Kha <b>Studio</b></span>
         </div>
         <div id="crumb">
@@ -41,6 +46,35 @@
 
       <!-- Right: Action buttons & Window Controls -->
       <div class="tb-right">
+        <!-- User Profile Dropdown -->
+        <div class="user-profile-wrap no-drag">
+          <button class="user-profile-btn" id="btn-user-profile" title="Tài khoản cá nhân">
+            <span class="user-avatar" id="hdr-user-avatar">K</span>
+            <span class="user-name" id="hdr-user-name">Sếp Kha</span>
+            <span class="user-role-badge" id="hdr-user-role">ADMIN</span>
+          </button>
+          <div class="user-menu-dropdown" id="user-menu-dropdown" hidden>
+            <div class="user-menu-header">
+              <strong id="menu-user-fullname">Sếp Kha</strong>
+              <small id="menu-user-role-desc">Quản trị viên hệ thống (Administrator)</small>
+            </div>
+            <div class="user-menu-divider"></div>
+            <button class="user-menu-item" id="btn-menu-change-pwd">
+              <script>document.write(icon('settings', 14));</script>
+              <span>Đổi mật khẩu</span>
+            </button>
+            <button class="user-menu-item" id="btn-menu-manage-users" hidden>
+              <script>document.write(icon('database', 14));</script>
+              <span>Quản lý người dùng & Phân quyền</span>
+            </button>
+            <div class="user-menu-divider"></div>
+            <button class="user-menu-item danger" id="btn-menu-logout">
+              <script>document.write(icon('power', 14));</script>
+              <span>Đăng xuất / Khóa màn hình</span>
+            </button>
+          </div>
+        </div>
+
         <button class="tb-btn" id="btn-theme-toggle" data-i18n-title="toggleTheme">
           <script>document.write(icon('sun', 16));</script>
         </button>
@@ -66,6 +100,14 @@
     <div id="body">
       <!-- Sidebar Navigation -->
       <aside id="sidebar">
+        <!-- Nút thu nhỏ / mở rộng trực tiếp trên sidebar -->
+        <div class="sb-header-actions">
+          <button class="sb-collapse-btn" id="btn-sidebar-collapse" title="Thu nhỏ / Mở rộng menu (Ctrl+B)">
+            <span id="sb-collapse-icon"><script>document.write(icon('sidebar', 15));</script></span>
+            <span class="sb-collapse-txt">Thu nhỏ menu</span>
+          </button>
+        </div>
+
         <div class="sb-scroll">
           <div class="nav-item active" id="nav-home">
             <script>document.write(icon('home', 18));</script>
@@ -102,7 +144,15 @@
           </div>
           <div class="sb-ver" id="sb-version">v1.0.0</div>
         </div>
+
+        <!-- Thanh kéo thay đổi độ rộng menu (Drag to resize) -->
+        <div class="sb-resizer" id="sb-resizer" title="Kéo rê chuột để chỉnh độ rộng thanh menu"></div>
       </aside>
+
+      <!-- Nút nổi mở lại sidebar khi bị ẩn hoàn toàn -->
+      <button class="sb-floating-restore" id="sb-floating-restore" title="Mở lại menu bên trái (Ctrl+B)">
+        <script>document.write(icon('sidebar', 16));</script>
+      </button>
 
       <!-- Main Content / Views -->
       <main id="main">
@@ -117,8 +167,8 @@
                   <script>document.write(icon('sparkles', 14));</script>
                   <span data-i18n="appTagline">Bộ công cụ cá nhân</span>
                 </div>
-                <h1 id="hero-greeting">Chào sếp Kha!</h1>
-                <p data-i18n="homeSub">Hôm nay sếp muốn làm gì?</p>
+                <h1 id="hero-greeting">Chào bạn!</h1>
+                <p id="hero-sub" data-i18n="homeSub">Hôm nay bạn muốn làm gì?</p>
                 <div class="hero-search input-wrap">
                   <script>document.write(icon('search', 18));</script>
                   <input type="text" class="input" id="hero-search-input" data-i18n-ph="searchPh" placeholder="Tìm công cụ hoặc chạy lệnh…">
@@ -442,6 +492,36 @@
                   </div>
                 </div>
 
+                <!-- Group 5: User Accounts & RBAC -->
+                <div class="s-group" id="sec-users">
+                  <header>
+                    <div class="gi"><script>document.write(icon('sparkles', 18));</script></div>
+                    <div>
+                      <h2>Tài khoản & Phân quyền (RBAC)</h2>
+                      <p>Quản lý danh sách người dùng, vai trò Admin / Kỹ sư và đổi mật khẩu</p>
+                    </div>
+                  </header>
+                  <div class="s-card">
+                    <div class="s-row">
+                      <div class="lbl">
+                        <b>Tài khoản đang đăng nhập</b>
+                        <span id="set-current-user-info">Đang tải…</span>
+                      </div>
+                      <button class="btn sm" id="btn-set-change-pwd">Đổi mật khẩu</button>
+                    </div>
+                    <div id="set-admin-user-mgmt">
+                      <div class="s-row" style="border-top:1px solid var(--border); padding-top:16px; margin-top:8px;">
+                        <div class="lbl">
+                          <b>Danh sách tài khoản hệ thống</b>
+                          <span>Chỉ Administrator mới có quyền tạo, sửa vai trò hoặc cấp lại mật khẩu</span>
+                        </div>
+                        <button class="btn sm primary" id="btn-open-add-user">+ Thêm tài khoản</button>
+                      </div>
+                      <div class="user-table-wrap" id="user-mgmt-list" style="margin-top:12px;"></div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -451,7 +531,9 @@
         <div class="view" id="view-about">
           <div class="page">
             <section class="about-hero">
-              <div class="about-logo">K</div>
+              <div class="about-logo">
+                <img src="shell/img/logo.svg" alt="Kha Studio" class="about-logo-img">
+              </div>
               <div>
                 <h1>Kha Studio</h1>
                 <p data-i18n="aboutDesc">Bộ công cụ đa năng cho công việc hằng ngày: thiết kế pallet, xử lý ảnh và nhiều hơn nữa.</p>
@@ -545,5 +627,161 @@
     <!-- ==================== Toast Notifications ==================== -->
     <div id="toasts"></div>
   </div>
+
+  <!-- ==================== Login Screen Overlay ==================== -->
+  <div id="login-screen" class="login-overlay" hidden>
+    <div class="login-backdrop"></div>
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo-glow">
+          <img src="shell/img/logo.svg" alt="Kha Studio" class="login-logo-img">
+        </div>
+        <h2>Kha Studio</h2>
+        <p class="login-subtitle">Hệ thống Quản lý Kỹ thuật & Tự động hóa</p>
+      </div>
+
+      <form id="login-form" class="login-form" autocomplete="off">
+        <div class="form-group">
+          <label for="login-username">Tên đăng nhập</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><script>document.write(icon('sidebar', 16));</script></span>
+            <input type="text" id="login-username" placeholder="Tên đăng nhập (vd: kha, engineer)" required autofocus>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="login-password">Mật khẩu</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><script>document.write(icon('settings', 16));</script></span>
+            <input type="password" id="login-password" placeholder="Nhập mật khẩu" required>
+            <button type="button" class="btn-toggle-pwd" id="btn-toggle-pwd" title="Hiện mật khẩu">
+              <script>document.write(icon('zoom', 15));</script>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-row-remember">
+          <label class="remember-label">
+            <input type="checkbox" id="login-remember">
+            <span>Ghi nhớ phiên làm việc trên máy này</span>
+          </label>
+        </div>
+
+        <div id="login-error-msg" class="login-error-alert" hidden></div>
+
+        <button type="submit" class="btn-login-submit" id="btn-login-submit">
+          <span>Đăng nhập hệ thống</span>
+          <script>document.write(icon('chevronRight', 16));</script>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <span>Bảo mật chuẩn Web Crypto PBKDF2 · 100% Hoạt động Offline</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Modal: Change Password ==================== -->
+  <div class="modal-backdrop" id="modal-change-pwd" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>
+          <script>document.write(icon('settings', 18));</script>
+          <span>Đổi mật khẩu tài khoản</span>
+        </h3>
+        <button class="btn-close-modal" id="btn-close-pwd-modal">
+          <script>document.write(icon('x', 16));</script>
+        </button>
+      </div>
+      <form id="form-change-pwd" class="modal-body">
+        <div class="form-group">
+          <label for="pwd-current">Mật khẩu hiện tại</label>
+          <input type="password" id="pwd-current" class="input" placeholder="Nhập mật khẩu đang dùng" required>
+        </div>
+        <div class="form-group">
+          <label for="pwd-new">Mật khẩu mới</label>
+          <input type="password" id="pwd-new" class="input" placeholder="Tối thiểu 4 ký tự" required minlength="4">
+        </div>
+        <div class="form-group">
+          <label for="pwd-confirm">Xác nhận mật khẩu mới</label>
+          <input type="password" id="pwd-confirm" class="input" placeholder="Nhập lại mật khẩu mới" required minlength="4">
+        </div>
+        <div id="pwd-error-msg" class="modal-error-alert" hidden></div>
+        <div class="modal-foot">
+          <button type="button" class="btn sm" id="btn-cancel-pwd">Hủy</button>
+          <button type="submit" class="btn sm primary" id="btn-save-pwd">Lưu mật khẩu mới</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== Modal: User Create/Edit (Admin) ==================== -->
+  <div class="modal-backdrop" id="modal-user-form" hidden>
+    <div class="modal-card modal-wide">
+      <div class="modal-head">
+        <h3 id="user-modal-title">
+          <script>document.write(icon('database', 18));</script>
+          <span>Thêm người dùng mới</span>
+        </h3>
+        <button class="btn-close-modal" id="btn-close-user-modal">
+          <script>document.write(icon('x', 16));</script>
+        </button>
+      </div>
+      <form id="form-user-edit" class="modal-body">
+        <input type="hidden" id="usr-edit-id">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="usr-edit-username">Tên đăng nhập</label>
+            <input type="text" id="usr-edit-username" class="input" placeholder="vd: tung.nm, quang.nv" required>
+          </div>
+          <div class="form-group">
+            <label for="usr-edit-name">Họ và tên / Tên hiển thị</label>
+            <input type="text" id="usr-edit-name" class="input" placeholder="vd: Nguyễn Văn Tùng" required>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="usr-edit-role">Vai trò phân quyền</label>
+            <select id="usr-edit-role" class="input">
+              <option value="engineer">Kỹ sư (Engineer) — Phân quyền theo công cụ</option>
+              <option value="admin">Quản trị viên (Admin) — Toàn quyền hệ thống</option>
+            </select>
+          </div>
+          <div class="form-group" id="usr-pwd-group">
+            <label for="usr-edit-pwd" id="usr-pwd-label">Mật khẩu</label>
+            <input type="password" id="usr-edit-pwd" class="input" placeholder="Tối thiểu 4 ký tự" required minlength="4">
+            <small id="usr-pwd-hint" style="color:var(--text-3); display:none;">Để trống nếu giữ nguyên mật khẩu cũ</small>
+          </div>
+        </div>
+        <div class="form-group" id="usr-permissions-group">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <label style="margin-bottom:0; font-weight:600; font-size:12.5px;">Phân quyền công cụ được thấy & truy cập</label>
+            <div id="usr-perm-actions" style="display:flex; gap:6px;">
+              <button type="button" class="btn sm" id="btn-perm-select-all" style="padding:2px 8px; font-size:11px;">Chọn tất cả</button>
+              <button type="button" class="btn sm" id="btn-perm-deselect-all" style="padding:2px 8px; font-size:11px;">Bỏ chọn</button>
+            </div>
+          </div>
+          <div id="usr-admin-perm-notice" style="display:none; padding:8px 12px; background:rgba(59, 130, 246, 0.08); border:1px solid rgba(59, 130, 246, 0.2); border-radius:6px; font-size:12px; color:var(--text-2);">
+            Tài khoản Quản trị viên (Admin) mặc định có toàn quyền truy cập tất cả công cụ của ứng dụng.
+          </div>
+          <div id="usr-tools-checklist" class="perm-tools-grid">
+            <!-- Rendered dynamically from TOOLS -->
+          </div>
+        </div>
+        <div id="usr-error-msg" class="modal-error-alert" hidden></div>
+        <div class="modal-foot">
+          <button type="button" class="btn sm" id="btn-cancel-user-modal">Hủy</button>
+          <button type="submit" class="btn sm primary" id="btn-save-user-modal">Lưu tài khoản</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Nút nổi cuộn lên đầu trang -->
+  <button id="btn-back-to-top" class="back-to-top" title="Cuộn lên đầu trang" aria-label="Cuộn lên đầu trang">
+    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  </button>
 </body>
 </html>

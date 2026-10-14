@@ -1,0 +1,63 @@
+/* Industrial Unit Converter Pro — shadcn/ui Design */
+:root {
+  --bg-primary: #09090b;
+  --bg-surface: #18181b;
+  --bg-card: #18181b;
+  --bg-input: #09090b;
+  --border-color: #27272a;
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+  --accent-cyan: #38bdf8;
+  --accent-blue: #fafafa;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-main); height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+.conv-app { display: flex; flex-direction: column; height: 100vh; }
+
+.app-header { background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 34px; height: 34px; border-radius: 6px; background: #27272a; border: 1px solid #3f3f46; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.brand h1 { font-size: 14px; font-weight: 600; color: #f4f4f5; letter-spacing: -0.2px; }
+.subtitle { font-size: 11px; color: var(--text-muted); }
+
+.category-tabs { display: flex; gap: 4px; background: #18181b; padding: 3px; border-radius: 8px; border: 1px solid var(--border-color); }
+.cat-tab { background: transparent; border: none; color: var(--text-muted); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.cat-tab:hover { color: #f4f4f5; background: #27272a; }
+.cat-tab.active { background: #27272a; color: #fff; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+.workspace { flex: 1; padding: 24px; overflow-y: auto; display: flex; justify-content: center; }
+
+.converter-box { width: 100%; max-width: 920px; display: flex; flex-direction: column; gap: 20px; }
+.box-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+.box-title { font-size: 16px; font-weight: 600; color: #f4f4f5; letter-spacing: -0.3px; }
+.box-hint { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
+.unit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+
+.unit-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.15s, box-shadow 0.15s; position: relative; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.1); }
+.unit-card:focus-within { border-color: #a1a1aa; box-shadow: 0 0 0 1px #a1a1aa; }
+
+.unit-header { display: flex; justify-content: space-between; align-items: center; }
+.unit-name { font-size: 12px; font-weight: 600; color: #e4e4e7; }
+.unit-symbol { font-size: 11px; font-weight: 600; color: #38bdf8; font-family: var(--font-mono); }
+
+.input-row { display: flex; gap: 6px; align-items: center; }
+.unit-input { flex: 1; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 6px; padding: 7px 10px; font-size: 14px; font-weight: 600; font-family: var(--font-mono); color: #fff; outline: none; transition: border-color 0.15s; }
+.unit-input:focus { border-color: #38bdf8; }
+
+.btn-copy { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 6px; padding: 7px 10px; cursor: pointer; transition: all 0.15s; font-size: 12px; }
+.btn-copy:hover { color: #fff; border-color: #52525b; background: #27272a; }
+
+.formula-card { background: #18181b; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px 18px; margin-top: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.formula-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); display: block; margin-bottom: 6px; }
+.formula-card p { font-size: 12px; line-height: 1.6; color: #d4d4d8; font-family: var(--font-mono); }
+
+.toast { position: fixed; bottom: 20px; right: 20px; background: #27272a; border: 1px solid #3f3f46; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; transform: translateY(4px); z-index: 99; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.toast.show { opacity: 1; transform: translateY(0); }

@@ -1,0 +1,194 @@
+{
+ "schemaVersion": 2,
+ "version": "2.0.0",
+ "scopes": [
+  {
+   "id": "full",
+   "label": "Trọn phạm vi dự án",
+   "modules": [
+    "management",
+    "tender",
+    "material",
+    "concept",
+    "simulation",
+    "layout",
+    "mechanical",
+    "electrical",
+    "plc",
+    "hmi",
+    "robot",
+    "vision",
+    "communication",
+    "followup",
+    "site",
+    "commissioning",
+    "handover",
+    "templates",
+    "drive",
+    "safety",
+    "data",
+    "quality",
+    "archive",
+    "recipe",
+    "service",
+    "process"
+   ]
+  },
+  {
+   "id": "tender",
+   "label": "Tender / Báo giá",
+   "modules": [
+    "management",
+    "tender",
+    "concept",
+    "simulation",
+    "layout",
+    "templates",
+    "archive"
+   ]
+  },
+  {
+   "id": "concept",
+   "label": "Concept / Giải pháp",
+   "modules": [
+    "management",
+    "concept",
+    "simulation",
+    "layout",
+    "communication",
+    "safety",
+    "data",
+    "recipe",
+    "process",
+    "templates",
+    "archive"
+   ]
+  },
+  {
+   "id": "design",
+   "label": "Thiết kế",
+   "modules": [
+    "management",
+    "material",
+    "concept",
+    "simulation",
+    "layout",
+    "mechanical",
+    "electrical",
+    "communication",
+    "safety",
+    "quality",
+    "recipe",
+    "process",
+    "templates",
+    "archive"
+   ]
+  },
+  {
+   "id": "simulation",
+   "label": "Simulation / Mô phỏng",
+   "modules": [
+    "management",
+    "concept",
+    "simulation",
+    "layout",
+    "communication",
+    "safety",
+    "templates",
+    "archive"
+   ]
+  },
+  {
+   "id": "programming",
+   "label": "Lập trình",
+   "modules": [
+    "management",
+    "concept",
+    "plc",
+    "hmi",
+    "robot",
+    "vision",
+    "communication",
+    "followup",
+    "drive",
+    "safety",
+    "data",
+    "recipe",
+    "process",
+    "templates",
+    "archive"
+   ]
+  },
+  {
+   "id": "commissioning",
+   "label": "Commissioning / Chạy thử",
+   "modules": [
+    "management",
+    "electrical",
+    "plc",
+    "hmi",
+    "robot",
+    "vision",
+    "communication",
+    "followup",
+    "site",
+    "commissioning",
+    "drive",
+    "safety",
+    "data",
+    "quality",
+    "recipe",
+    "process",
+    "templates",
+    "archive"
+   ]
+  },
+  {
+   "id": "handover",
+   "label": "Bàn giao",
+   "modules": [
+    "management",
+    "electrical",
+    "plc",
+    "hmi",
+    "robot",
+    "vision",
+    "communication",
+    "commissioning",
+    "handover",
+    "drive",
+    "safety",
+    "data",
+    "quality",
+    "recipe",
+    "process",
+    "templates",
+    "archive"
+   ]
+  },
+  {
+   "id": "service",
+   "label": "Service / Bảo trì",
+   "modules": [
+    "management",
+    "electrical",
+    "plc",
+    "hmi",
+    "robot",
+    "vision",
+    "communication",
+    "followup",
+    "site",
+    "commissioning",
+    "drive",
+    "safety",
+    "data",
+    "recipe",
+    "process",
+    "service",
+    "templates",
+    "archive"
+   ]
+  }
+ ]
+}

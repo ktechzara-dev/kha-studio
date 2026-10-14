@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VisionStudio — Industrial Machine Vision Research Studio</title>
+  <style>
+    :root {
+      --bg-base: #09090b;
+      --bg-surface: #121215;
+      --bg-card: #18181b;
+      --bg-card-hover: #222226;
+      --border: #27272a;
+      --border-accent: #38bdf8;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --accent: #0284c7;
+      --accent-glow: #38bdf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
+    body { background: var(--bg-base); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-size: 13px; }
+
+    /* HEADER */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .brand-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: #27272a;
+      color: #f4f4f5;
+      border: 1px solid #3f3f46;
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { background: #3f3f46; color: #fff; }
+    .btn.primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    }
+    .btn.primary:hover {
+      background: #0369a1;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.5);
+    }
+    .btn.success {
+      background: #16a34a;
+      border-color: #22c55e;
+      color: #fff;
+    }
+
+    /* MAIN CONTENT */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    /* HERO BANNER */
+    .hero-card {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.14) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      right: -40px;
+      top: -40px;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-content h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hero-content p {
+      color: var(--text-muted);
+      font-size: 13.5px;
+      max-width: 680px;
+      line-height: 1.5;
+    }
+    .hero-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+
+    /* STATS STRIP */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-card .label {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card .value {
+      font-size: 20px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+    .stat-card .sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    /* FEATURE MODULES GRID */
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+    .feature-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+    }
+    .feature-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .feature-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: rgba(2, 132, 199, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .feature-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .feature-desc {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      flex: 1;
+    }
+    .feature-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .feature-tag {
+      font-size: 11px;
+      padding: 2px 6px;
+      background: #27272a;
+      border-radius: 4px;
+      color: #94a3b8;
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #38bdf8;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">VS</div>
+      <div class="brand-title">
+        VisionStudio 2026
+        <span class="badge">.NET 8 WPF &amp; OpenCV Native</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn" onclick="openToolGuideModal()">
+        📖 Cẩm Nang Hướng Dẫn
+      </button>
+      <button class="btn primary" onclick="launchVisionStudio()">
+        🚀 Khởi chạy VisionStudio Desktop
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT -->
+  <main>
+    <!-- HERO -->
+    <div class="hero-card">
+      <div class="hero-content">
+        <h1>
+          <span>📷</span>
+          Industrial Machine Vision Research Studio
+        </h1>
+        <p>
+          Studio nghiên cứu, tạo mẫu và vận hành chuỗi xử lý ảnh thị giác máy công nghiệp chuẩn hãng (thay thế mở cho Cognex VisionPro / Keyence / HALCON HDevelop).
+          Hỗ trợ bộ công cụ thuật toán đồ thị DAG, tích hợp Camera GigE GenICam / USB / Giả lập đa nguồn, và kết nối PLC/Robot thời gian thực.
+        </p>
+      </div>
+
+      <div class="hero-actions">
+        <button class="btn primary" style="padding: 10px 20px; font-size: 13.5px;" onclick="launchVisionStudio()">
+          ⚡ Mở Cửa Sổ VisionStudio (.EXE)
+        </button>
+        <button class="btn" onclick="openCameraStudio()">
+          🎥 Mở Trung Tâm Camera Studio
+        </button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Bộ công cụ Vision</div>
+        <div class="value">50+ Tools</div>
+        <div class="sub">Filter, Caliper, Blob, Edges, OCR, Defect</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Driver Camera (M6)</div>
+        <div class="value">4 Nguồn Độc Lập</div>
+        <div class="sub">GigE SFNC, USB DShow, File, Synthetic</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Kiểm thử Tự động</div>
+        <div class="value">118 / 118 Unit Tests</div>
+        <div class="sub">100% Pass trên cả 4 Projects</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Kết nối Hiện trường</div>
+        <div class="value">PLC &amp; Robot</div>
+        <div class="sub">Siemens S7, Modbus, Fanuc, ABB, UR</div>
+      </div>
+    </div>
+
+    <!-- CORE MODULES -->
+    <div class="section-title">
+      <span>🛠️</span>
+      CÁC PHÂN HỆ CỐT LÕI TRONG VISIONSTUDIO
+    </div>
+
+    <div class="features-grid">
+      <!-- 1. Pipeline Canvas -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">📈</div>
+          <div class="feature-title">Visual Pipeline DAG Editor</div>
+        </div>
+        <div class="feature-desc">
+          Soạn thảo quy trình kiểm tra thị giác máy trực quan với dây nối Bézier mượt mà, snap lưới tọa độ, kéo thả node, điểm dừng Debug Breakpoint và lịch sử Undo/Redo.
+        </div>
+        <div class="feature-tags">
+          <span class="feature-tag">Đồ thị DAG</span>
+          <span class="feature-tag">Cubic Bézier</span>
+          <span class="feature-tag">Breakpoint F9</span>
+          <span class="feature-tag">Undo/Redo Ctrl+Z</span>
+        </div>
+      </div>
+
+      <!-- 2. High-speed Viewer -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">🖼️</div>
+          <div class="feature-title">High-Speed Image Viewer</div>
+        </div>
+        <div class="feature-desc">
+          Bộ hiển thị ảnh thời gian thực với lớp phủ vector sub-pixel (hộp định vị, đường đo caliper, tâm blob, text đo đạc), zoom/pan mượt mà và trỏ chuột soi màu pixel RGB/Gray.
+        </div>
+        <div class="feature-tags">
+          <span class="feature-tag">Sub-pixel Overlay</span>
+          <span class="feature-tag">Zoom/Pan Matrix</span>
+          <span class="feature-tag">Pixel Inspector</span>
+        </div>
+      </div>
+
+      <!-- 3. Camera Hub -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">📷</div>
+          <div class="feature-title">Camera Studio &amp; Multi-Simulator</div>
+        </div>
+        <div class="feature-desc">
+          Trung tâm thu nhận ảnh GigE Vision GenICam SFNC, USB DirectShow, quét chuỗi ảnh từ thư mục và bộ phát mẫu phôi giả lập 5 chế độ kèm tiêm lỗi khuyết tật (Missing Hole, Scratch, Burr).
+        </div>
+        <div class="feature-tags">
+          <span class="feature-tag">GigE GenICam</span>
+          <span class="feature-tag">Defect Injection</span>
+          <span class="feature-tag">FreeRun / Trigger</span>
+          <span class="feature-tag">Live FPS HUD</span>
+        </div>
+      </div>
+
+      <!-- 4. Measurement & Caliper -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">📏</div>
+          <div class="feature-title">1D Caliper &amp; Đo Kích Thước</div>
+        </div>
+        <div class="feature-desc">
+          Thước kẹp vi sai quét biên độ sáng (Edge Pair), Multi-Caliper cào nhiều tia (Rake), khớp đường thẳng Line Fit, vòng tròn Circle Fit với độ chính xác dưới pixel (Sub-pixel parabolic).
+        </div>
+        <div class="feature-tags">
+          <span class="feature-tag">Sub-pixel Caliper</span>
+          <span class="feature-tag">Rake Measurement</span>
+          <span class="feature-tag">Tolerance OK/NG</span>
+        </div>
+      </div>
+
+      <!-- 5. Optical Code & OCR -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">🔤</div>
+          <div class="feature-title">Đọc Mã Barcode &amp; Nhận Diện</div>
+        </div>
+        <div class="feature-desc">
+          Giải mã siêu tốc mã vạch 1D (Code128, Code39, EAN-13) và mã ma trận 2D (QR Code, DataMatrix ECC200) trên bề mặt kim loại hoặc bao bì đóng gói.
+        </div>
+        <div class="feature-tags">
+          <span class="feature-tag">QR Code</span>
+          <span class="feature-tag">DataMatrix</span>
+          <span class="feature-tag">Code128 / EAN</span>
+          <span class="feature-tag">Tự động xoay</span>
+        </div>
+      </div>
+
+      <!-- 6. Defect & Golden Diff -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">🔍</div>
+          <div class="feature-title">Phát Hiện Lỗi Bề Mặt (Golden Diff)</div>
+        </div>
+        <div class="feature-desc">
+          Trừ vi sai ảnh mẫu chuẩn không lỗi (Golden Template Diff), lọc bất thường Surface Anomaly và phát hiện vết xước kim loại định hướng (Oriented Line Filters).
+        </div>
+        <div class="feature-tags">
+          <span class="feature-tag">Golden Diff</span>
+          <span class="feature-tag">Scratch Filter</span>
+          <span class="feature-tag">Surface Anomaly</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast">Đang mở VisionStudio...</div>
+
+  <script>
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    function launchVisionStudio() {
+      showToast('🚀 Đang khởi chạy VisionStudio trên màn hình Desktop...');
+      
+      const msg = { cmd: 'vision_studio.open' };
+      
+      // 1. Gửi qua Shell cha (Kha Studio)
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(msg, '*');
+      }
+
+      // 2. Gửi qua Electron context bridge nếu có
+      if (window.electronAPI && typeof window.electronAPI.postMessage === 'function') {
+        window.electronAPI.postMessage(msg);
+      }
+
+      // 3. Gửi qua WebView2 nếu chạy trong WPF
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(msg);
+      }
+    }
+
+    function openCameraStudio() {
+      launchVisionStudio();
+      showToast('📷 Bấm nút "Camera Studio" trên thanh Header của VisionStudio để mở bộ điều khiển.');
+    }
+
+    function openToolGuideModal() {
+      launchVisionStudio();
+      showToast('📖 Bấm nút "Hướng dẫn sử dụng" trên thanh Header của VisionStudio.');
+    }
+  </script>
+</body>
+</html>

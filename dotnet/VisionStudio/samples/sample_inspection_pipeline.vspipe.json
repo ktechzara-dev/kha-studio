@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Part Dimension Tolerance Inspection",
+  "description": "Simulated pipeline reading dimension measurement, multiplying calibration scale, and judging against tolerances",
+  "savedAt": "2026-10-11T21:28:00+07:00",
+  "nodes": [
+    {
+      "id": "Node_Source",
+      "toolId": "Flow.ConstantSource",
+      "title": "Raw Part Sensor",
+      "x": 80.0,
+      "y": 140.0,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "NumberValue": 24.5,
+        "TextValue": "PART-2026-X1"
+      }
+    },
+    {
+      "id": "Node_ScaleConst",
+      "toolId": "Flow.ConstantSource",
+      "title": "Pixel Scale Factor",
+      "x": 80.0,
+      "y": 280.0,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "NumberValue": 1.5,
+        "TextValue": "Scale_mm_per_px"
+      }
+    },
+    {
+      "id": "Node_ScaleMath",
+      "toolId": "Flow.Expression",
+      "title": "Dimension Calculator",
+      "x": 360.0,
+      "y": 180.0,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "Operation": "Multiply",
+        "Tolerance": 0.001
+      }
+    },
+    {
+      "id": "Node_Judge",
+      "toolId": "Output.Judge",
+      "title": "Quality Inspector",
+      "x": 640.0,
+      "y": 180.0,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "LowerLimit": 30.0,
+        "UpperLimit": 40.0
+      }
+    }
+  ],
+  "connections": [
+    {
+      "sourceNodeId": "Node_Source",
+      "sourcePortId": "OutNumber",
+      "targetNodeId": "Node_ScaleMath",
+      "targetPortId": "A"
+    },
+    {
+      "sourceNodeId": "Node_ScaleConst",
+      "sourcePortId": "OutNumber",
+      "targetNodeId": "Node_ScaleMath",
+      "targetPortId": "B"
+    },
+    {
+      "sourceNodeId": "Node_ScaleMath",
+      "sourcePortId": "ResultNumber",
+      "targetNodeId": "Node_Judge",
+      "targetPortId": "Value"
+    }
+  ]
+}

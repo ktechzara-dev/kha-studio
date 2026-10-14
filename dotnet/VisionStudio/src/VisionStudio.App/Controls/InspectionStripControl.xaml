@@ -1,0 +1,109 @@
+<UserControl x:Class="VisionStudio.App.Controls.InspectionStripControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:conv="clr-namespace:VisionStudio.App.Converters"
+             xmlns:vm="clr-namespace:VisionStudio.App.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="120" d:DesignWidth="800"
+             Background="{StaticResource KsBgBase}">
+
+    <UserControl.Resources>
+        <conv:StatusToBrushConverter x:Key="StatusBrushConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="26"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header Title -->
+        <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" Padding="12,0" BorderBrush="{StaticResource KsBorder}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="🎞 IN-LINE INSPECTION STRIP" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsTextMuted}"/>
+                <TextBlock Text=" (Click any node thumbnail to inspect full output image &amp; overlays)" Foreground="{StaticResource KsTextDim}" FontSize="10" Margin="6,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Horizontal Scrollable Thumbnail Cards List -->
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="8,6">
+            <ItemsControl ItemsSource="{Binding InspectionStrip}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:InspectionItemViewModel}">
+                        <!-- Inspection Thumbnail Card -->
+                        <Border Width="116" Height="86" Background="{StaticResource KsBgCard}" BorderThickness="1" CornerRadius="6"
+                                Margin="0,0,8,0" Cursor="Hand" MouseDown="OnCardMouseDown">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="BorderBrush" Value="{StaticResource KsBorder}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="BorderBrush" Value="{StaticResource KsBorderAccent}"/>
+                                            <Setter Property="Background" Value="#27272a"/>
+                                        </DataTrigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="BorderBrush" Value="{StaticResource KsBorderHover}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <Grid Margin="5">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Top Node Title & Status Dot -->
+                                <Grid Grid.Row="0" Margin="0,0,0,2">
+                                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="10.5" Foreground="{StaticResource KsText}"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" MaxWidth="90"/>
+                                    <Ellipse Width="6" Height="6" Fill="{Binding Status, Converter={StaticResource StatusBrushConverter}}"
+                                             HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Center Thumbnail Image or Placeholder -->
+                                <Border Grid.Row="1" Background="{StaticResource KsBgBase}" CornerRadius="4" BorderBrush="{StaticResource KsBorder}" BorderThickness="0.5" ClipToBounds="True">
+                                    <Grid>
+                                        <Image Source="{Binding Thumbnail}" Stretch="Uniform"
+                                               Visibility="{Binding Thumbnail, Converter={StaticResource BoolToVisConverter}}"/>
+                                        <!-- Placeholder when no image -->
+                                        <TextBlock Text="No Image" Foreground="{StaticResource KsTextDim}" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Visibility="{Binding Thumbnail, Converter={StaticResource BoolToVisConverter}, ConverterParameter=Inverse}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Bottom Timing Badge -->
+                                <Grid Grid.Row="2" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding ExecutionTimeMs, StringFormat='⏱ {0:F1}ms'}" FontSize="9" Foreground="{StaticResource KsTextDim}"/>
+                                    <TextBlock Text="{Binding Status}" FontSize="9" FontWeight="SemiBold"
+                                               Foreground="{Binding Status, Converter={StaticResource StatusBrushConverter}}" HorizontalAlignment="Right"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

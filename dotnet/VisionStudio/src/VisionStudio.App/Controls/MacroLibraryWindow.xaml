@@ -1,0 +1,164 @@
+<Window x:Class="VisionStudio.App.Controls.MacroLibraryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="📦 Thư viện Khối Macro (Sub-pipelines Library)"
+        Height="650" Width="950"
+        WindowStartupLocation="CenterScreen"
+        Background="#181824" Foreground="#E0E0E0"
+        FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <SolidColorBrush x:Key="KsBgSurface" Color="#222232"/>
+        <SolidColorBrush x:Key="KsBgCard" Color="#2B2B3E"/>
+        <SolidColorBrush x:Key="KsBorder" Color="#383850"/>
+        <SolidColorBrush x:Key="KsAccent" Color="#4A90E2"/>
+        <SolidColorBrush x:Key="KsAccentGlow" Color="#64B5F6"/>
+        <SolidColorBrush x:Key="KsSuccess" Color="#2ECC71"/>
+        <SolidColorBrush x:Key="KsDanger" Color="#E74C3C"/>
+        <SolidColorBrush x:Key="KsTextMuted" Color="#A0A0B8"/>
+
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource KsBgCard}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource KsBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3B3B54"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource KsAccent}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="📦 Quản lý Thư viện Khối Macro (Sub-pipelines)" FontWeight="Bold" FontSize="16" Foreground="{StaticResource KsAccentGlow}"/>
+                    <TextBlock Text="Đóng gói, phân phối và tái sử dụng các cụm pipeline phức tạp qua định dạng chuẩn .vsmacro" FontSize="12" Foreground="{StaticResource KsTextMuted}" Margin="0,3,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource ActionButton}" Content="📂 Nhập tệp .vsmacro" Click="OnImportMacroClick" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource ActionButton}" Content="🔄 Làm mới" Click="OnRefreshClick"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="340"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Macro List -->
+            <Border Grid.Column="0" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,10,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="DANH SÁCH KHỐI MACRO" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsTextMuted}" Margin="4,0,0,8"/>
+                    <ListBox x:Name="LstMacros" Background="Transparent" BorderThickness="0" SelectionChanged="OnMacroSelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{StaticResource KsBgCard}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="White" FontSize="13"/>
+                                            <TextBlock Text="{Binding Category}" FontSize="11" Foreground="{StaticResource KsTextMuted}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" Background="#383850" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Version, StringFormat='v{0}'}" FontSize="11" Foreground="{StaticResource KsAccentGlow}"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Macro Details Inspector -->
+            <Border Grid.Column="1" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="PnlDetails">
+                        <TextBlock x:Name="TxtSelectedName" Text="Chưa chọn khối Macro" FontWeight="Bold" FontSize="18" Foreground="{StaticResource KsAccentGlow}"/>
+                        <TextBlock x:Name="TxtSelectedMeta" Text="Vui lòng chọn một khối Macro từ danh sách để xem thông số chi tiết" FontSize="12" Foreground="{StaticResource KsTextMuted}" Margin="0,4,0,14"/>
+
+                        <Border Height="1" Background="{StaticResource KsBorder}" Margin="0,0,0,14"/>
+
+                        <!-- Description -->
+                        <TextBlock Text="MÔ TẢ KHỐI" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsTextMuted}" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="TxtDescription" Text="-" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+                        <!-- Port summary -->
+                        <TextBlock Text="CỔNG ĐẦU VÀO CÔNG KHAI (INPUTS)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsTextMuted}" Margin="0,0,0,6"/>
+                        <ListBox x:Name="LstInputs" Background="Transparent" BorderThickness="0" Margin="0,0,0,14" MaxHeight="120">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName, StringFormat='• {0}'}" Foreground="#64B5F6" FontSize="12"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <TextBlock Text="CỔNG ĐẦU RA CÔNG KHAI (OUTPUTS)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsTextMuted}" Margin="0,0,0,6"/>
+                        <ListBox x:Name="LstOutputs" Background="Transparent" BorderThickness="0" Margin="0,0,0,14" MaxHeight="120">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName, StringFormat='• {0}'}" Foreground="#81C784" FontSize="12"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <TextBlock Text="THAM SỐ CÔNG KHAI (PARAMETERS)" FontWeight="Bold" FontSize="11" Foreground="{StaticResource KsTextMuted}" Margin="0,0,0,6"/>
+                        <ListBox x:Name="LstParams" Background="Transparent" BorderThickness="0" Margin="0,0,0,14" MaxHeight="120">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName, StringFormat='• {0}'}" Foreground="#FFD54F" FontSize="12"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Bottom Actions -->
+        <Border Grid.Row="2" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,12,0,0">
+            <Grid>
+                <TextBlock x:Name="TxtStatus" Text="Sẵn sàng." VerticalAlignment="Center" Foreground="{StaticResource KsTextMuted}" FontSize="12"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource ActionButton}" Content="💾 Xuất tệp .vsmacro" Click="OnExportClick" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource ActionButton}" Content="🗑️ Xóa Macro" Click="OnDeleteClick" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource ActionButton}" Background="{StaticResource KsAccent}" Content="Đóng" Click="OnCloseClick"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Pneumatic Diaphragm Control Valve (Van điều khiển tuyến tính màng khí nén chuẩn ISA) -->
+  <!-- Thân van 2 tam giác đối đỉnh -->
+  <polygon points="35,115 100,140 35,165" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <polygon points="165,115 100,140 165,165" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <line x1="35" y1="105" x2="35" y2="175" stroke="#1E293B" stroke-width="6"/>
+  <line x1="165" y1="105" x2="165" y2="175" stroke="#1E293B" stroke-width="6"/>
+  <!-- Ty van (Stem) -->
+  <line x1="100" y1="140" x2="100" y2="72" stroke="#1E293B" stroke-width="5"/>
+  <!-- Giá đỡ ty van (Yoke) -->
+  <path d="M82 75 L100 115 L118 75" fill="none" stroke="#1E293B" stroke-width="3"/>
+  <!-- Bầu màng khí nén Actuator (Diaphragm dome) -->
+  <path d="M50 72 C50 32, 150 32, 150 72 Z" fill="#70757A" stroke="#1E293B" stroke-width="5"/>
+  <line x1="42" y1="72" x2="158" y2="72" stroke="#1E293B" stroke-width="6"/>
+  <!-- Cổng cấp khí nén điều khiển (Air signal) -->
+  <line x1="100" y1="42" x2="100" y2="15" stroke="#1E293B" stroke-width="4" stroke-dasharray="4,3"/>
+  <!-- Ký hiệu CV -->
+  <text x="100" y="62" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">FC</text>
+</svg>
