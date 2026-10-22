@@ -41,17 +41,20 @@ if ($LASTEXITCODE) { throw "dotnet publish lỗi" }
 $iconFile = Join-Path $root "KhaStudio\app.ico"
 if (Test-Path $iconFile) {
   vpk pack --packId KhaStudio --packVersion $Version --packDir $pub --mainExe KhaStudio.exe `
-    --packTitle "Kha Studio" --packAuthors "Kha.nm" --icon $iconFile --outputDir $rel
+    --packTitle "Kha Studio" --packAuthors "Kha.nm" --runtime win-x64 --noPortable --icon $iconFile --outputDir $rel
 } else {
   vpk pack --packId KhaStudio --packVersion $Version --packDir $pub --mainExe KhaStudio.exe `
-    --packTitle "Kha Studio" --packAuthors "Kha.nm" --outputDir $rel
+    --packTitle "Kha Studio" --packAuthors "Kha.nm" --runtime win-x64 --noPortable --outputDir $rel
 }
 if ($LASTEXITCODE) { throw "vpk pack lỗi" }
+
+# Loại bỏ file portable zip cũ nếu còn sót lại để không tốn thời gian upload
+Remove-Item (Join-Path $rel "*-Portable.zip") -Force -ErrorAction SilentlyContinue
 
 if ($Publish) {
   if (-not $isGh) { throw "-Publish hiện chỉ hỗ trợ GitHub. Với thư mục mạng: copy nội dung $rel lên đó." }
   if (-not $token) { throw "Chưa đặt `$env:GITHUB_TOKEN hoặc file dotnet\github-token.txt" }
-  vpk upload github --repoUrl $RepoUrl --token $token --publish --merge --releaseName "Kha Studio $Version" --tag "v$Version" --outputDir $rel
+  vpk upload github --repoUrl $RepoUrl --token $token --publish --merge --releaseName "Kha Studio $Version" --tag "v$Version" --timeout 60 --outputDir $rel
   if ($LASTEXITCODE) { throw "vpk upload lỗi" }
 }
 Write-Host "Xong: $rel" -ForegroundColor Green
