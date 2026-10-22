@@ -42,10 +42,10 @@ const TOOLS = [
     id: 'plc-modbus', icon: 'cpu', color: ['#06B6D4', '#3B82F6'], cat: 'industry',
     name: { vi: 'PLC & Modbus Inspector Pro', en: 'PLC & Modbus Inspector Pro' },
     desc: {
-      vi: 'Kiểm thử & giám sát truyền thông công nghiệp đa giao thức: Modbus TCP/RTU Master, Siemens S7 PLC (S7-1200/1500/300/400/200), Test kết nối Siemens OPC UA (HEL/ACK Handshake & Discovery), Data Monitor Grid và Traffic Hex Inspector.',
-      en: 'Universal industrial communication tool: Modbus TCP/RTU Master, Siemens S7 PLC Inspector, Siemens OPC UA Tester (HEL/ACK Handshake & Discovery), Real-time Data Grid Monitor, and Traffic Hex Inspector.',
+      vi: 'Kiểm thử & giám sát truyền thông công nghiệp đa hãng: Siemens (S7 & OPC UA), Mitsubishi (MELSEC MC Qna-3E), Omron (FINS/TCP), Keyence (KV Upper Link), Delta (DVP/AS), LS ELECTRIC (XGB/XGT) & Modbus TCP/RTU Master. Hỗ trợ chọn Card mạng, Data Monitor Grid, Bit Matrix 16-bit và chẩn đoán kết nối tức thì.',
+      en: 'Universal industrial PLC communication tool: Siemens (S7 & OPC UA), Mitsubishi (MELSEC MC Qna-3E), Omron (FINS/TCP), Keyence (KV Upper Link), Delta (DVP/AS), LS ELECTRIC (XGB/XGT) & Modbus TCP/RTU Master. Features NIC selection, real-time grid, 16-bit matrix & instant connectivity diagnosis.',
     },
-    path: 'tools/plc-modbus/index.html', keywords: 'modbus rtu tcp examiner modscan qmodmaster s7 siemens plc opc ua opcua register coil holding hex traffic fieldbus',
+    path: 'tools/plc-modbus/index.html', keywords: 'modbus rtu tcp examiner modscan qmodmaster s7 siemens mitsubishi melsec fx5u omron fins keyence kv delta ls xgt plc opc ua opcua register coil holding hex traffic fieldbus',
   },
   {
     id: 'tia-portal', icon: 'cpu', color: ['#0284C7', '#0EA5E9'], cat: 'industry',
@@ -67,12 +67,12 @@ const TOOLS = [
   },
   {
     id: 'vision-studio', icon: 'camera', color: ['#0284C7', '#38BDF8'], cat: 'industry',
-    name: { vi: 'Industrial Machine Vision Studio (VisionStudio)', en: 'Industrial Machine Vision Studio (VisionStudio)' },
+    name: { vi: 'Vision Pro Studio — Industrial Machine Vision (VisionStudio)', en: 'Vision Pro Studio — Industrial Machine Vision (VisionStudio)' },
     desc: {
-      vi: 'Studio nghiên cứu & xử lý ảnh thị giác máy công nghiệp chuẩn hãng: Biên tập Pipeline đồ thị khối (DAG), 50+ công cụ thuật toán (Caliper, Blob, Canny, Golden Diff, QR/Barcode, OCR), tích hợp Camera đa nguồn (GigE GenICam SFNC, USB3, File/Folder, Synthetic simulator) và kết nối PLC/Robot.',
-      en: 'Industrial machine vision research & pipeline studio: Visual DAG workflow editor, 50+ inspection algorithms, multi-source cameras (GigE GenICam, USB3, Synthetic Simulators), PLC & Robot interfaces.',
+      vi: 'Studio nghiên cứu & xử lý ảnh thị giác máy công nghiệp chuẩn hãng (thay thế mở cho Cognex VisionPro / Keyence / HALCON): Biên tập Pipeline đồ thị khối (DAG), 50+ công cụ thuật toán (Caliper, Blob, Canny, Golden Diff, QR/Barcode, OCR), tích hợp Camera đa nguồn (GigE GenICam SFNC, USB3, File/Folder, Synthetic simulator) và kết nối PLC/Robot.',
+      en: 'Industrial machine vision research & pipeline studio (Open-source alternative to Cognex VisionPro / Keyence / HALCON): Visual DAG workflow editor, 50+ inspection algorithms, multi-source cameras (GigE GenICam, USB3, Synthetic Simulators), PLC & Robot interfaces.',
     },
-    path: 'tools/vision-studio/index.html', keywords: 'vision machine vision camera gige opencv caliper blob barcode qr defect dag pipeline visual inspection halcon visionpro',
+    path: 'tools/vision-studio/index.html', keywords: 'vision vision pro visionpro machine vision camera gige opencv caliper blob barcode qr defect dag pipeline visual inspection halcon',
   },
   {
     id: 'field-ops', icon: 'clipboard', color: ['#8B5CF6', '#3B82F6'], cat: 'industry',

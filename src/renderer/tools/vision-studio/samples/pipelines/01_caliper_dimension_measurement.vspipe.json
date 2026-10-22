@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "1. Đo Đường Kính Trục Bậc Cơ Khí & SPC (Caliper & SPC Tolerance)",
+  "description": "Kịch bản đo lường kích thước đường kính sub-pixel của trục bậc cơ khí chính xác, tự động tính toán năng lực quá trình Cp/Cpk và kiểm tra dung sai SPC.",
+  "savedAt": "2026-10-14T14:45:00Z",
+  "nodes": [
+    {
+      "id": "Node_1_CameraGrab",
+      "toolId": "Acquisition.CameraGrab",
+      "title": "Camera Grab (Ảnh Trục Bậc)",
+      "x": 60,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "FilePath": "samples/images/01_stepped_shaft_dimension.png",
+        "CameraId": "SIM_FILE_01"
+      }
+    },
+    {
+      "id": "Node_2_Grayscale",
+      "toolId": "Color.Grayscale",
+      "title": "Chuyển Đổi Mức Xám",
+      "x": 330,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {}
+    },
+    {
+      "id": "Node_3_Gaussian",
+      "toolId": "Filter.Gaussian",
+      "title": "Lọc Nhiễu Gaussian",
+      "x": 600,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "KernelSize": 5,
+        "Sigma": 1.2
+      }
+    },
+    {
+      "id": "Node_4_Caliper",
+      "toolId": "Measurement.Caliper",
+      "title": "Thước Đo Sub-pixel Caliper",
+      "x": 870,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "StartX": 400.0,
+        "StartY": 120.0,
+        "EndX": 400.0,
+        "EndY": 480.0,
+        "EdgeThreshold": 25.0,
+        "Transition": "Any",
+        "ScaleMmPerPixel": 0.1
+      }
+    },
+    {
+      "id": "Node_5_Spc",
+      "toolId": "Spc.ProcessCapability",
+      "title": "Đánh Giá Dung Sai & SPC (Cp/Cpk)",
+      "x": 1140,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "LowerSpecLimit": 19.0,
+        "UpperSpecLimit": 21.0
+      }
+    }
+  ],
+  "connections": [
+    {
+      "sourceNodeId": "Node_1_CameraGrab",
+      "sourcePortId": "Image",
+      "targetNodeId": "Node_2_Grayscale",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_2_Grayscale",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_3_Gaussian",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_3_Gaussian",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_4_Caliper",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_4_Caliper",
+      "sourcePortId": "WidthMm",
+      "targetNodeId": "Node_5_Spc",
+      "targetPortId": "ValueIn"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "6. Phân Loại Màu Sắc & Kiểm Tra Hiện Diện Nắp Chai (Color Check & Presence)",
+  "description": "Kịch bản kiểm tra sự hiện diện của linh kiện và xác thực màu sắc nắp chai đạt chuẩn theo không gian màu CIE Lab Delta E.",
+  "savedAt": "2026-10-14T14:45:00Z",
+  "nodes": [
+    {
+      "id": "Node_1_CameraGrab",
+      "toolId": "Acquisition.CameraGrab",
+      "title": "Camera Grab (Dàn Nắp Chai)",
+      "x": 60,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "FilePath": "samples/images/06_colored_bottle_caps.png",
+        "CameraId": "SIM_FILE_06"
+      }
+    },
+    {
+      "id": "Node_2_Crop",
+      "toolId": "Geometry.Crop",
+      "title": "Cắt Vùng Quan Sát Nắp",
+      "x": 330,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "X": 150,
+        "Y": 150,
+        "Width": 500,
+        "Height": 300
+      }
+    },
+    {
+      "id": "Node_3_ColorCheck",
+      "toolId": "Identification.ColorCheck",
+      "title": "Kiểm Tra Sai Khác Màu (Delta E)",
+      "x": 600,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "ReferenceRed": 180,
+        "ReferenceGreen": 40,
+        "ReferenceBlue": 40,
+        "MaxAllowedDeltaE": 40.0
+      }
+    },
+    {
+      "id": "Node_4_Presence",
+      "toolId": "Identification.PresenceAbsence",
+      "title": "Xác Minh Hiện Diện (Presence)",
+      "x": 870,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "MinPixels": 1000,
+        "MaxPixels": 2000000,
+        "DetectDarkPixels": false
+      }
+    }
+  ],
+  "connections": [
+    {
+      "sourceNodeId": "Node_1_CameraGrab",
+      "sourcePortId": "Image",
+      "targetNodeId": "Node_2_Crop",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_2_Crop",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_3_ColorCheck",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_2_Crop",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_4_Presence",
+      "targetPortId": "ImageIn"
+    }
+  ]
+}

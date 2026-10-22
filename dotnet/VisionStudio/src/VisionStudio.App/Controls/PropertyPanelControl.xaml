@@ -158,6 +158,14 @@
                         <TextBlock Text="Kéo thả trực tiếp bằng chuột trên cửa sổ ảnh để gán tọa độ và kích thước:"
                                    Foreground="{StaticResource KsTextDim}" FontSize="10.5" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
+                        <!-- TEACH TARGET FOR OBJECT COUNTER / PATTERN -->
+                        <Button Style="{StaticResource KsSuccessButton}"
+                                Command="{Binding DataContext.TeachSelectedNodeTargetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                Content="🎯 Dạy Mẫu Vật Thể (Teach Target)"
+                                Visibility="{Binding DataContext.SelectedNodeSupportsTeach, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisConverter}}"
+                                Margin="0,0,0,8" Padding="10,7" FontSize="11.5" FontWeight="Bold"
+                                ToolTip="Khoanh vùng một vật thể mẫu (Táo, Gói hàng, Thùng, Chai...) trên ảnh để dạy mẫu: hệ thống sẽ chỉ nhận diện và đếm chính xác loại vật thể này, loại bỏ 100% đối tượng lạ và nhiễu!"/>
+
                         <!-- ROI Box button -->
                         <Button Style="{StaticResource KsPrimaryButton}"
                                 Command="{Binding DataContext.SelectRoiOnImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -165,12 +173,86 @@
                                 Visibility="{Binding DataContext.SelectedNodeSupportsRoi, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisConverter}}"
                                 Margin="0,0,0,6" Padding="8,5" FontSize="11"/>
 
-                        <!-- Caliper Line button -->
-                        <Button Style="{StaticResource KsPrimaryButton}"
-                                Command="{Binding DataContext.SelectLineOnImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                Content="📏 Kéo vạch đo Caliper (Line)"
-                                Visibility="{Binding DataContext.SelectedNodeSupportsLine, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisConverter}}"
-                                Margin="0,0,0,6" Padding="8,5" FontSize="11"/>
+                        <!-- Eraser Scan ROI button -->
+                        <Button Style="{StaticResource KsWarningButton}"
+                                Command="{Binding DataContext.EraseSelectedNodeScanRoiCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                Content="🧽 Cục Tẩy (Tẩy Vùng Quét ROI)"
+                                Visibility="{Binding DataContext.SelectedNodeSupportsRoi, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisConverter}}"
+                                Margin="0,0,0,6" Padding="8,5" FontSize="11" FontWeight="SemiBold"
+                                ToolTip="Xóa sạch vùng quét ROI lỡ khoanh mà không làm mất mẫu đã dạy hay vạch đếm!"/>
+
+                        <!-- Line / Caliper / Tripwire Control Panel -->
+                        <Border Visibility="{Binding DataContext.SelectedNodeSupportsLine, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisConverter}}"
+                                Background="#1e2025" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,6">
+                                    <TextBlock Text="📏 VẠCH ĐẾM / ĐO KÍCH THƯỚC" FontWeight="Bold" FontSize="10.5" Foreground="{StaticResource KsAccentGlow}" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Button to activate direct drawing on image -->
+                                <Button Style="{StaticResource KsPrimaryButton}"
+                                        Command="{Binding DataContext.SelectLineOnImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Content="📏 Kéo Vạch Trên Cửa Sổ Ảnh"
+                                        Margin="0,0,0,6" Padding="8,5" FontSize="11" FontWeight="SemiBold"
+                                        ToolTip="Bật chế độ kéo vạch trên ảnh: Bạn có thể click chuột kéo đoạn thẳng mới, hoặc rê chuột vào 2 đầu mút / thân vạch có sẵn để di chuyển!"/>
+
+                                <!-- Quick Direction Orientation -->
+                                <Grid Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="6"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="↔️ Vạch Ngang" Style="{StaticResource KsButton}" Padding="4,4" FontSize="10.5"
+                                            Command="{Binding DataContext.SetLineHorizontalCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            ToolTip="Đặt nhanh vạch đếm nằm ngang chắn toàn bộ băng tải"/>
+                                    <Button Grid.Column="2" Content="↕️ Vạch Dọc" Style="{StaticResource KsButton}" Padding="4,4" FontSize="10.5"
+                                            Command="{Binding DataContext.SetLineVerticalCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            ToolTip="Đặt nhanh vạch đếm thẳng đứng từ trên xuống dưới"/>
+                                </Grid>
+
+                                <!-- Nudge Position Fine-tuning (10px steps) -->
+                                <TextBlock Text="Dịch chuyển tinh chỉnh (Nudge 10px):" Foreground="{StaticResource KsTextDim}" FontSize="9.5" Margin="0,2,0,3"/>
+                                <Grid Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="4"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="4"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="4"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="⬆️ Lên" Style="{StaticResource KsButton}" Padding="2,3" FontSize="10"
+                                            Command="{Binding DataContext.NudgeLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="up" ToolTip="Dịch vạch lên trên 10px"/>
+                                    <Button Grid.Column="2" Content="⬇️ Xuống" Style="{StaticResource KsButton}" Padding="2,3" FontSize="10"
+                                            Command="{Binding DataContext.NudgeLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="down" ToolTip="Dịch vạch xuống dưới 10px"/>
+                                    <Button Grid.Column="4" Content="⬅️ Trái" Style="{StaticResource KsButton}" Padding="2,3" FontSize="10"
+                                            Command="{Binding DataContext.NudgeLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="left" ToolTip="Dịch vạch sang trái 10px"/>
+                                    <Button Grid.Column="6" Content="➡️ Phải" Style="{StaticResource KsButton}" Padding="2,3" FontSize="10"
+                                            Command="{Binding DataContext.NudgeLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="right" ToolTip="Dịch vạch sang phải 10px"/>
+                                </Grid>
+
+                                <!-- Extend / Shorten Length -->
+                                <Grid Margin="0,0,0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="6"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="➕ Kéo Dài Ra" Style="{StaticResource KsButton}" Padding="4,4" FontSize="10.5"
+                                            Command="{Binding DataContext.NudgeLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="extend" ToolTip="Kéo dài vạch ra 2 phía thêm 30px"/>
+                                    <Button Grid.Column="2" Content="➖ Thu Ngắn Lại" Style="{StaticResource KsButton}" Padding="4,4" FontSize="10.5"
+                                            Command="{Binding DataContext.NudgeLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="shorten" ToolTip="Thu ngắn vạch bớt 30px"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
                         <!-- Point Picker button -->
                         <Button Style="{StaticResource KsButton}"
@@ -185,6 +267,22 @@
                                 Content="⬡ Đặt đa giác vùng chọn (Polygon)"
                                 Visibility="{Binding DataContext.SelectedNodeSupportsPolygon, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisConverter}}"
                                 Margin="0,0,0,6" Padding="8,5" FontSize="11"/>
+
+                        <!-- Clear ROI button -->
+                        <Button Style="{StaticResource KsDangerButton}"
+                                Command="{Binding DataContext.ClearSelectedNodeRoiCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                Content="🧹 Xóa Vùng Chọn ROI (Clear ROI)"
+                                Visibility="{Binding DataContext.SelectedNodeSupportsClearRoi, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisConverter}}"
+                                Margin="0,4,0,6" Padding="8,6" FontSize="11" FontWeight="SemiBold"
+                                ToolTip="Xóa sạch các tọa độ vùng chọn ROI và hủy mẫu dạy"/>
+
+                        <!-- Reset Teach button -->
+                        <Button Style="{StaticResource KsButton}"
+                                Command="{Binding DataContext.ResetSelectedNodeTeachCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                Content="🔄 Hủy Mẫu Đã Dạy (Reset Teach)"
+                                Visibility="{Binding DataContext.SelectedNodeSupportsTeach, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisConverter}}"
+                                Margin="0,0,0,6" Padding="8,5" FontSize="11"
+                                ToolTip="Hủy mẫu thùng đã học, quay về chế độ nhận diện tự động ban đầu"/>
                     </StackPanel>
                 </Border>
 

@@ -87,6 +87,69 @@ class PlcInspectorApp {
     this.diagLatency = document.getElementById('diagLatency');
     this.diagSpeed = document.getElementById('diagSpeed');
     this.diagErrors = document.getElementById('diagErrors');
+
+    // Multi-PLC Brand Elements
+    this.cfgMitsu = document.getElementById('cfgMitsu');
+    this.mitsuCpu = document.getElementById('mitsuCpu');
+    this.mitsuHost = document.getElementById('mitsuHost');
+    this.mitsuPort = document.getElementById('mitsuPort');
+    this.btnTestMitsu = document.getElementById('btnTestMitsu');
+    this.btnTestMitsuText = document.getElementById('btnTestMitsuText');
+    this.mitsuQuery = document.getElementById('mitsuQuery');
+    this.mitsuArea = document.getElementById('mitsuArea');
+    this.mitsuAddress = document.getElementById('mitsuAddress');
+    this.mitsuCount = document.getElementById('mitsuCount');
+    this.mitsuPreset = document.getElementById('mitsuPreset');
+
+    this.cfgOmron = document.getElementById('cfgOmron');
+    this.omronModel = document.getElementById('omronModel');
+    this.omronHost = document.getElementById('omronHost');
+    this.omronPort = document.getElementById('omronPort');
+    this.btnTestOmron = document.getElementById('btnTestOmron');
+    this.btnTestOmronText = document.getElementById('btnTestOmronText');
+    this.omronQuery = document.getElementById('omronQuery');
+    this.omronArea = document.getElementById('omronArea');
+    this.omronAddress = document.getElementById('omronAddress');
+    this.omronCount = document.getElementById('omronCount');
+    this.omronPreset = document.getElementById('omronPreset');
+
+    this.cfgKeyence = document.getElementById('cfgKeyence');
+    this.keyenceModel = document.getElementById('keyenceModel');
+    this.keyenceHost = document.getElementById('keyenceHost');
+    this.keyencePort = document.getElementById('keyencePort');
+    this.btnTestKeyence = document.getElementById('btnTestKeyence');
+    this.btnTestKeyenceText = document.getElementById('btnTestKeyenceText');
+    this.keyenceQuery = document.getElementById('keyenceQuery');
+    this.keyenceArea = document.getElementById('keyenceArea');
+    this.keyenceAddress = document.getElementById('keyenceAddress');
+    this.keyenceCount = document.getElementById('keyenceCount');
+    this.keyencePreset = document.getElementById('keyencePreset');
+
+    this.cfgDelta = document.getElementById('cfgDelta');
+    this.deltaSeries = document.getElementById('deltaSeries');
+    this.deltaHost = document.getElementById('deltaHost');
+    this.deltaPort = document.getElementById('deltaPort');
+    this.deltaSlaveId = document.getElementById('deltaSlaveId');
+    this.btnTestDelta = document.getElementById('btnTestDelta');
+    this.btnTestDeltaText = document.getElementById('btnTestDeltaText');
+    this.deltaQuery = document.getElementById('deltaQuery');
+    this.deltaArea = document.getElementById('deltaArea');
+    this.deltaAddress = document.getElementById('deltaAddress');
+    this.deltaCount = document.getElementById('deltaCount');
+    this.deltaPreset = document.getElementById('deltaPreset');
+
+    this.cfgLs = document.getElementById('cfgLs');
+    this.lsSeries = document.getElementById('lsSeries');
+    this.lsHost = document.getElementById('lsHost');
+    this.lsPort = document.getElementById('lsPort');
+    this.btnTestLs = document.getElementById('btnTestLs');
+    this.btnTestLsText = document.getElementById('btnTestLsText');
+    this.lsQuery = document.getElementById('lsQuery');
+    this.lsArea = document.getElementById('lsArea');
+    this.lsAddress = document.getElementById('lsAddress');
+    this.lsCount = document.getElementById('lsCount');
+
+    this.modalDiagTitle = document.getElementById('modalDiagTitle');
   }
 
   initIpc() {
@@ -217,6 +280,46 @@ class PlcInspectorApp {
       this.btnBrowseOpcUa.addEventListener('click', () => this.openAddressSpaceBrowser());
     }
 
+    // Multi-PLC test buttons
+    if (this.btnTestMitsu) this.btnTestMitsu.addEventListener('click', () => this.testPlcConnection('mitsu'));
+    if (this.btnTestOmron) this.btnTestOmron.addEventListener('click', () => this.testPlcConnection('omron'));
+    if (this.btnTestKeyence) this.btnTestKeyence.addEventListener('click', () => this.testPlcConnection('keyence'));
+    if (this.btnTestDelta) this.btnTestDelta.addEventListener('click', () => this.testPlcConnection('delta'));
+    if (this.btnTestLs) this.btnTestLs.addEventListener('click', () => this.testPlcConnection('ls'));
+
+    // Presets
+    if (this.mitsuPreset) {
+      this.mitsuPreset.addEventListener('change', () => {
+        if (this.mitsuAddress) this.mitsuAddress.value = this.mitsuPreset.value;
+        if (this.isPolling) this.pollSingleCycle();
+      });
+    }
+    if (this.omronPreset) {
+      this.omronPreset.addEventListener('change', () => {
+        if (this.omronAddress) this.omronAddress.value = this.omronPreset.value;
+        if (this.isPolling) this.pollSingleCycle();
+      });
+    }
+    if (this.keyencePreset) {
+      this.keyencePreset.addEventListener('change', () => {
+        if (this.keyenceAddress) this.keyenceAddress.value = this.keyencePreset.value;
+        if (this.isPolling) this.pollSingleCycle();
+      });
+    }
+    if (this.deltaPreset) {
+      this.deltaPreset.addEventListener('change', () => {
+        const val = this.deltaPreset.value;
+        if (val === '0_M') {
+          if (this.deltaArea) this.deltaArea.value = 'M';
+          if (this.deltaAddress) this.deltaAddress.value = '0';
+        } else {
+          if (this.deltaArea) this.deltaArea.value = 'D';
+          if (this.deltaAddress) this.deltaAddress.value = val;
+        }
+        if (this.isPolling) this.pollSingleCycle();
+      });
+    }
+
     // OPC UA Test Result Modal Controls
     if (this.btnCloseOpcUaModal) {
       this.btnCloseOpcUaModal.addEventListener('click', () => {
@@ -232,7 +335,7 @@ class PlcInspectorApp {
       this.btnCopyOpcUaReport.addEventListener('click', () => {
         if (this.lastOpcUaReport) {
           navigator.clipboard.writeText(JSON.stringify(this.lastOpcUaReport, null, 2));
-          this.logTraffic('Hệ thống', 'Đã sao chép báo cáo chẩn đoán OPC UA vào Clipboard.');
+          this.logTraffic('Hệ thống', 'Đã sao chép báo cáo chẩn đoán vào Clipboard.');
         }
       });
     }
@@ -267,29 +370,44 @@ class PlcInspectorApp {
 
   switchProtocol(proto) {
     this.activeProto = proto;
-    if (this.cfgNic) {
-      this.cfgNic.style.display = (proto === 'tcp' || proto === 's7' || proto === 'opcua') ? 'flex' : 'none';
-    }
-    this.cfgTcp.style.display = proto === 'tcp' ? 'flex' : 'none';
-    this.cfgRtu.style.display = proto === 'rtu' ? 'flex' : 'none';
-    this.cfgS7.style.display = proto === 's7' ? 'flex' : 'none';
-    this.cfgOpcUa.style.display = proto === 'opcua' ? 'flex' : 'none';
-    this.cfgSim.style.display = proto === 'sim' ? 'flex' : 'none';
+    const isEthernet = ['tcp', 's7', 'opcua', 'mitsu', 'omron', 'keyence', 'delta', 'ls'].includes(proto);
+    if (this.cfgNic) this.cfgNic.style.display = isEthernet ? 'flex' : 'none';
 
-    this.modbusQuery.style.display = (proto === 'tcp' || proto === 'rtu' || proto === 'sim') ? 'flex' : 'none';
-    this.s7Query.style.display = proto === 's7' ? 'flex' : 'none';
-    this.opcUaQuery.style.display = proto === 'opcua' ? 'flex' : 'none';
+    if (this.cfgTcp) this.cfgTcp.style.display = proto === 'tcp' ? 'flex' : 'none';
+    if (this.cfgRtu) this.cfgRtu.style.display = proto === 'rtu' ? 'flex' : 'none';
+    if (this.cfgS7) this.cfgS7.style.display = proto === 's7' ? 'flex' : 'none';
+    if (this.cfgOpcUa) this.cfgOpcUa.style.display = proto === 'opcua' ? 'flex' : 'none';
+    if (this.cfgMitsu) this.cfgMitsu.style.display = proto === 'mitsu' ? 'flex' : 'none';
+    if (this.cfgOmron) this.cfgOmron.style.display = proto === 'omron' ? 'flex' : 'none';
+    if (this.cfgKeyence) this.cfgKeyence.style.display = proto === 'keyence' ? 'flex' : 'none';
+    if (this.cfgDelta) this.cfgDelta.style.display = proto === 'delta' ? 'flex' : 'none';
+    if (this.cfgLs) this.cfgLs.style.display = proto === 'ls' ? 'flex' : 'none';
+    if (this.cfgSim) this.cfgSim.style.display = proto === 'sim' ? 'flex' : 'none';
+
+    if (this.modbusQuery) this.modbusQuery.style.display = (proto === 'tcp' || proto === 'rtu' || proto === 'sim') ? 'flex' : 'none';
+    if (this.s7Query) this.s7Query.style.display = proto === 's7' ? 'flex' : 'none';
+    if (this.opcUaQuery) this.opcUaQuery.style.display = proto === 'opcua' ? 'flex' : 'none';
+    if (this.mitsuQuery) this.mitsuQuery.style.display = proto === 'mitsu' ? 'flex' : 'none';
+    if (this.omronQuery) this.omronQuery.style.display = proto === 'omron' ? 'flex' : 'none';
+    if (this.keyenceQuery) this.keyenceQuery.style.display = proto === 'keyence' ? 'flex' : 'none';
+    if (this.deltaQuery) this.deltaQuery.style.display = proto === 'delta' ? 'flex' : 'none';
+    if (this.lsQuery) this.lsQuery.style.display = proto === 'ls' ? 'flex' : 'none';
 
     const names = {
       tcp: 'Modbus TCP',
       rtu: 'Modbus RTU (Serial)',
       s7: 'Siemens S7 PLC',
       opcua: 'Siemens OPC UA',
+      mitsu: 'Mitsubishi MELSEC MC Protocol (Qna-3E)',
+      omron: 'Omron FINS / TCP',
+      keyence: 'Keyence KV Upper Link',
+      delta: 'Delta DVP & AS Series',
+      ls: 'LS ELECTRIC XGB & XGT',
       sim: 'Mô phỏng ảo'
     };
     this.logTraffic('Giao thức', `Đã chuyển sang chế độ: ${names[proto] || proto.toUpperCase()}`);
 
-    // Cập nhật tiêu đề bảng nếu sang chế độ OPC UA
+    // Cập nhật tiêu đề bảng theo giao thức
     this.updateTableHeader();
   }
 
@@ -308,8 +426,16 @@ class PlcInspectorApp {
         <th style="width: 90px; text-align: center;">Ghi nhanh</th>
       `;
     } else {
+      let addrCol = 'Địa chỉ';
+      if (this.activeProto === 'mitsu') addrCol = 'Thiết bị (Device)';
+      else if (this.activeProto === 'omron') addrCol = 'Vùng nhớ (FINS)';
+      else if (this.activeProto === 'keyence') addrCol = 'Biến KV (Device)';
+      else if (this.activeProto === 'delta') addrCol = 'Biến Delta';
+      else if (this.activeProto === 'ls') addrCol = 'Biến LS';
+      else if (this.activeProto === 's7') addrCol = 'Offset Byte';
+
       thead.innerHTML = `
-        <th style="width: 80px;">Địa chỉ</th>
+        <th style="width: 90px;">${addrCol}</th>
         <th style="width: 170px;">Tên Tag / Mô tả</th>
         <th style="width: 100px;">Hex (16-bit)</th>
         <th style="width: 180px;">Nhị phân (Binary)</th>
@@ -447,6 +573,16 @@ class PlcInspectorApp {
         await this.pollOpcUa();
       } else if (this.activeProto === 's7') {
         await this.pollS7();
+      } else if (this.activeProto === 'mitsu') {
+        await this.pollMitsu();
+      } else if (this.activeProto === 'omron') {
+        await this.pollOmron();
+      } else if (this.activeProto === 'keyence') {
+        await this.pollKeyence();
+      } else if (this.activeProto === 'delta') {
+        await this.pollDelta();
+      } else if (this.activeProto === 'ls') {
+        await this.pollLs();
       } else {
         await this.pollModbus();
       }
@@ -659,6 +795,493 @@ class PlcInspectorApp {
     `;
 
     this.modalOpcUaResult.style.display = 'flex';
+  }
+
+  // ==========================================
+  // CHẨN ĐOÁN KẾT NỐI ĐA THƯƠNG HIỆU PLC
+  // ==========================================
+  async testPlcConnection(proto) {
+    let btn = null;
+    let btnText = null;
+    let cmd = `plc.${proto}.test`;
+    let title = '';
+    let targetEndpoint = '';
+    let payload = {};
+    let tipsHtml = '';
+
+    const localIp = (this.selectNic && this.selectNic.value !== 'auto') ? this.selectNic.value : null;
+
+    if (proto === 'mitsu') {
+      btn = this.btnTestMitsu;
+      btnText = this.btnTestMitsuText;
+      const host = (this.mitsuHost?.value || '192.168.0.20').trim();
+      const port = parseInt(this.mitsuPort?.value, 10) || 5000;
+      const cpu = this.mitsuCpu?.value || 'FX5U';
+      targetEndpoint = `mel-mc://${host}:${port} (${cpu})`;
+      payload = { host, port, cpu, localIp, timeout: 3500 };
+      title = 'Chẩn đoán kết nối Mitsubishi MC Protocol (Qna-3E Binary)';
+      tipsHtml = `
+        <strong>💡 Hướng dẫn kết nối PLC Mitsubishi (FX5U / iQ-F / Q-Series):</strong><br>
+        1. <strong>Cấu hình GX Works3</strong>: Mở Navigation -> Parameter -> Ethernet Port -> <em>External Device Configuration</em> -> Thêm kết nối <strong>SLMP Connection Module / MC Protocol</strong> (TCP, Port 5000, Binary Code).<br>
+        2. <strong>Card mạng</strong>: Chọn đúng card mạng kết nối cùng dải IP với PLC (ví dụ <code>192.168.0.x</code>).<br>
+        3. <strong>Tường lửa Windows</strong>: Mở cổng TCP <strong>5000</strong> trong Windows Defender Firewall để thông gói tin MC 3E.
+      `;
+    } else if (proto === 'omron') {
+      btn = this.btnTestOmron;
+      btnText = this.btnTestOmronText;
+      const host = (this.omronHost?.value || '192.168.0.30').trim();
+      const port = parseInt(this.omronPort?.value, 10) || 9600;
+      const model = this.omronModel?.value || 'CP1H';
+      targetEndpoint = `fins://${host}:${port} (${model})`;
+      payload = { host, port, model, localIp, timeout: 3500 };
+      title = 'Chẩn đoán kết nối Omron FINS/TCP (CP1 / CJ2 / CS1 / NX)';
+      tipsHtml = `
+        <strong>💡 Hướng dẫn kết nối PLC Omron qua FINS/TCP:</strong><br>
+        1. <strong>Quy tắc Node FINS</strong>: Theo tiêu chuẩn Omron FINS/TCP, Node Address của PLC và Client thường là octet cuối của IP (ví dụ PLC 192.168.0.30 -> Node 30). Kha Studio tự động thực hiện FINS Node Handshake.<br>
+        2. <strong>Cổng mạng</strong>: FINS/TCP chạy mặc định ở cổng <strong>9600</strong>.<br>
+        3. <strong>Cấu hình CX-Programmer</strong>: Mở IO Table and Unit Setup -> Ethernet Module -> FINS/TCP Settings -> Cho phép kết nối TCP Server.
+      `;
+    } else if (proto === 'keyence') {
+      btn = this.btnTestKeyence;
+      btnText = this.btnTestKeyenceText;
+      const host = (this.keyenceHost?.value || '192.168.0.40').trim();
+      const port = parseInt(this.keyencePort?.value, 10) || 8501;
+      const model = this.keyenceModel?.value || 'KV8000';
+      targetEndpoint = `kv-link://${host}:${port} (${model})`;
+      payload = { host, port, model, localIp, timeout: 3500 };
+      title = 'Chẩn đoán kết nối Keyence KV Upper Link (KV-8000 / 7500 / 5500)';
+      tipsHtml = `
+        <strong>💡 Hướng dẫn kết nối PLC Keyence qua Upper Link:</strong><br>
+        1. <strong>Cấu hình KV STUDIO</strong>: Mở Unit Configuration -> Built-in Ethernet -> Socket Communication -> Chọn chức năng <strong>Upper Link Communication</strong> (Port 8501 mặc định).<br>
+        2. <strong>Lệnh kiểm tra</strong>: Kha Studio tự động gửi lệnh truy vấn trạng thái <code>?K\\r</code> để nhận diện model CPU và Mode (RUN/PROG).
+      `;
+    } else if (proto === 'delta') {
+      btn = this.btnTestDelta;
+      btnText = this.btnTestDeltaText;
+      const host = (this.deltaHost?.value || '192.168.0.50').trim();
+      const port = parseInt(this.deltaPort?.value, 10) || 502;
+      const series = this.deltaSeries?.value || 'DVP';
+      const slaveId = parseInt(this.deltaSlaveId?.value, 10) || 1;
+      targetEndpoint = `delta://${host}:${port} (Slave: ${slaveId}, ${series})`;
+      payload = { host, port, series, slaveId, localIp, timeout: 3500 };
+      title = 'Chẩn đoán kết nối Delta PLC (DVP / AS Series)';
+      tipsHtml = `
+        <strong>💡 Hướng dẫn kết nối PLC Delta:</strong><br>
+        1. <strong>Phần mềm COMMGR / ISPSoft</strong>: Đảm bảo driver Ethernet đã được kích hoạt (Start).<br>
+        2. <strong>Thanh ghi thông minh</strong>: Kha Studio tự động chuyển đổi các thanh ghi quen thuộc <strong>D0..D9999</strong>, <strong>M0..M4095</strong> sang địa chỉ Modbus TCP chuẩn trên cổng 502.
+      `;
+    } else if (proto === 'ls') {
+      btn = this.btnTestLs;
+      btnText = this.btnTestLsText;
+      const host = (this.lsHost?.value || '192.168.0.60').trim();
+      const port = parseInt(this.lsPort?.value, 10) || 2004;
+      const series = this.lsSeries?.value || 'XGB';
+      targetEndpoint = `ls-fenet://${host}:${port} (${series})`;
+      payload = { host, port, series, localIp, timeout: 3500 };
+      title = 'Chẩn đoán kết nối LS ELECTRIC PLC (XGB / XGT Series)';
+      tipsHtml = `
+        <strong>💡 Hướng dẫn kết nối PLC LS ELECTRIC (LG Industrial):</strong><br>
+        1. <strong>Cấu hình XG5000</strong>: Vào Parameter -> Network Configuration -> Chọn Ethernet FEnet server (Cổng 2004 hoặc Modbus 502).<br>
+        2. <strong>Hỗ trợ biến %MW và D</strong>: Truy cập trực tiếp vùng nhớ %MW0..%MW9999 hoặc D0..D9999 của LS mà không cần tính bù trừ offset phức tạp.
+      `;
+    }
+
+    if (!btn || !btnText) return;
+
+    const originalText = btnText.textContent;
+    btn.disabled = true;
+    btnText.textContent = 'Đang kiểm tra...';
+    this.statusDot.className = 'status-dot busy';
+    this.statusText.textContent = `Đang kiểm tra ${proto.toUpperCase()}...`;
+
+    this.logTraffic(proto.toUpperCase(), `[TX] Bắt đầu kiểm tra kết nối & bắt tay giao thức tới ${targetEndpoint}`, '#38bdf8');
+
+    let report;
+    try {
+      const resp = await this.sendIpc(cmd, payload);
+      report = resp.data;
+    } catch (err) {
+      if (err.message === 'NOT_IN_WPF' || err.message === 'NOT_IN_NATIVE_CONTAINER') {
+        if (proto === 'mitsu') report = this.mockEngine.testMitsu(payload.host, payload.port, payload.cpu);
+        else if (proto === 'omron') report = this.mockEngine.testOmron(payload.host, payload.port, payload.model);
+        else if (proto === 'keyence') report = this.mockEngine.testKeyence(payload.host, payload.port, payload.model);
+        else if (proto === 'delta') report = this.mockEngine.testDelta(payload.host, payload.port, payload.series);
+        else if (proto === 'ls') report = this.mockEngine.testLs(payload.host, payload.port, payload.series);
+      } else {
+        report = {
+          success: false,
+          host: payload.host,
+          port: payload.port,
+          endpointUrl: targetEndpoint,
+          usedAdapter: localIp || 'Tự động (OS Route)',
+          latencyMs: 0,
+          error: err.message
+        };
+      }
+    } finally {
+      btn.disabled = false;
+      btnText.textContent = originalText;
+    }
+
+    this.lastOpcUaReport = report;
+
+    if (report && report.success) {
+      this.statusDot.className = 'status-dot online';
+      this.statusText.textContent = `${proto.toUpperCase()} Sẵn sàng`;
+      this.diagLatency.textContent = (report.latencyMs || 10) + ' ms';
+      this.logTraffic(proto.toUpperCase(), `[RX] Kết nối & Bắt tay thành công! Model: ${report.detectedCpu || report.productName || report.serverName || report.model || 'PLC'} (${report.latencyMs}ms)`, '#10b981');
+    } else {
+      this.statusDot.className = 'status-dot error';
+      this.statusText.textContent = `${proto.toUpperCase()} Thất bại`;
+      this.logTraffic(`${proto.toUpperCase()}_LỖI`, report?.error || 'Không thể kết nối đến PLC', 'err');
+    }
+
+    this.renderPlcDiagnosticModal(title, targetEndpoint, report, tipsHtml);
+  }
+
+  renderPlcDiagnosticModal(title, endpoint, r, tipsHtml) {
+    if (!this.modalOpcUaResult) return;
+    if (this.modalDiagTitle) this.modalDiagTitle.textContent = title;
+    this.modalOpcUaEndpointText.textContent = endpoint || `${r?.host}:${r?.port}`;
+
+    const isGood = Boolean(r && r.success);
+    const bannerClass = isGood ? '' : 'error';
+    const bannerTitle = isGood ? 'KẾT NỐI VÀ BẮT TAY GIAO THỨC PLC THÀNH CÔNG' : 'KẾT NỐI PLC THẤT BẠI';
+    const bannerDesc = isGood
+      ? (r.message || `Đã kết nối và nhận diện thành công PLC trong ${r.latencyMs || 10} ms!`)
+      : (r.error || 'Không nhận được phản hồi từ cổng mạng của PLC.');
+
+    const adapterText = r?.usedAdapter || (this.selectNic && this.selectNic.value !== 'auto' ? this.selectNic.value : 'Tự động (OS Route)');
+
+    this.modalOpcUaBody.innerHTML = `
+      <div class="diag-status-banner ${bannerClass}">
+        <div style="font-size: 24px;">${isGood ? '✅' : '❌'}</div>
+        <div>
+          <div style="font-weight: 700; font-size: 13px;">${bannerTitle}</div>
+          <div style="font-size: 11px; opacity: 0.9;">${bannerDesc}</div>
+        </div>
+      </div>
+
+      <!-- 4 Cards Metrics -->
+      <div class="diag-metric-grid">
+        <div class="diag-metric-card">
+          <div class="metric-lbl">Độ trễ phản hồi</div>
+          <div class="metric-val" style="color: var(--accent-green);">${r?.latencyMs || 0} ms</div>
+        </div>
+        <div class="diag-metric-card">
+          <div class="metric-lbl">Cổng kết nối (Port)</div>
+          <div class="metric-val" style="color: var(--accent-cyan);">${r?.port || 0}</div>
+        </div>
+        <div class="diag-metric-card">
+          <div class="metric-lbl">Giao thức tầng ứng dụng</div>
+          <div class="metric-val" style="color: #fff; font-size: 12px;">${r?.protocol || 'TCP/IP'}</div>
+        </div>
+        <div class="diag-metric-card">
+          <div class="metric-lbl">Trạng thái Bắt tay</div>
+          <div class="metric-val" style="color: ${isGood ? 'var(--accent-green)' : 'var(--accent-red)'}; font-size: 12px;">
+            ${r?.handshake || (isGood ? 'THÀNH CÔNG' : 'THẤT BẠI')}
+          </div>
+        </div>
+      </div>
+
+      <!-- PLC Details Table -->
+      <div>
+        <div class="diag-section-title">Chi tiết phần cứng & kết nối vật lý</div>
+        <table class="diag-table">
+          <tbody>
+            <tr>
+              <td class="prop-name">Card mạng xuất gói tin:</td>
+              <td class="prop-val" style="color: var(--accent-green); font-weight: 600;">🌐 ${this.escapeHtml(adapterText)}</td>
+            </tr>
+            <tr>
+              <td class="prop-name">Địa chỉ IP PLC đích:</td>
+              <td class="prop-val" style="font-family: var(--font-mono);">${r?.host || ''}:${r?.port || ''}</td>
+            </tr>
+            <tr>
+              <td class="prop-name">Dòng PLC / CPU Model:</td>
+              <td class="prop-val" style="color: var(--accent-cyan); font-weight: 700;">${r?.detectedCpu || r?.productName || r?.model || r?.series || 'Industrial Controller'}</td>
+            </tr>
+            <tr>
+              <td class="prop-name">Phản hồi bắt tay / Khung tin:</td>
+              <td class="prop-val" style="font-family: var(--font-mono); font-size: 10px;">${this.escapeHtml(r?.responseHex || r?.cpuInfo || 'OK')}</td>
+            </tr>
+            <tr>
+              <td class="prop-name">Thời gian kiểm tra:</td>
+              <td class="prop-val">${new Date().toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="diag-advice-box">
+        ${tipsHtml}
+      </div>
+    `;
+
+    this.modalOpcUaResult.style.display = 'flex';
+  }
+
+  // ==========================================
+  // MITSUBISHI MC PROTOCOL (Qna-3E)
+  // ==========================================
+  async pollMitsu() {
+    const host = (this.mitsuHost?.value || '192.168.0.20').trim();
+    const port = parseInt(this.mitsuPort?.value, 10) || 5000;
+    const cpu = this.mitsuCpu?.value || 'FX5U';
+    const area = this.mitsuArea?.value || 'D';
+    const address = parseInt(this.mitsuAddress?.value, 10) || 0;
+    const count = parseInt(this.mitsuCount?.value, 10) || 10;
+    const localIp = (this.selectNic && this.selectNic.value !== 'auto') ? this.selectNic.value : null;
+
+    const payload = { host, port, cpu, area, address, count, localIp, timeout: 3500 };
+    let res;
+    try {
+      const resp = await this.sendIpc('plc.mitsu.read', payload);
+      res = resp.data;
+    } catch (err) {
+      if (err.message === 'NOT_IN_WPF' || err.message === 'NOT_IN_NATIVE_CONTAINER') {
+        res = this.mockEngine.readMitsu(area, address, count);
+      } else {
+        throw err;
+      }
+    }
+
+    if (res && res.values) {
+      this.diagLatency.textContent = (res.latencyMs || 10) + ' ms';
+      const isBit = (area === 'X' || area === 'Y' || area === 'M');
+      this.renderPlcWordTable(res.values, area, address, 'MITSU', isBit);
+      this.logTrafficPlc('MC_READ', `${cpu} Read ${area}${address}..${area}${address + count - 1}`, res.values, res.latencyMs);
+    }
+  }
+
+  // ==========================================
+  // OMRON FINS / TCP
+  // ==========================================
+  async pollOmron() {
+    const host = (this.omronHost?.value || '192.168.0.30').trim();
+    const port = parseInt(this.omronPort?.value, 10) || 9600;
+    const model = this.omronModel?.value || 'CP1H';
+    const area = this.omronArea?.value || 'DM';
+    const address = parseInt(this.omronAddress?.value, 10) || 0;
+    const count = parseInt(this.omronCount?.value, 10) || 10;
+    const localIp = (this.selectNic && this.selectNic.value !== 'auto') ? this.selectNic.value : null;
+
+    const payload = { host, port, model, area, address, count, localIp, timeout: 3500 };
+    let res;
+    try {
+      const resp = await this.sendIpc('plc.omron.read', payload);
+      res = resp.data;
+    } catch (err) {
+      if (err.message === 'NOT_IN_WPF' || err.message === 'NOT_IN_NATIVE_CONTAINER') {
+        res = this.mockEngine.readOmron(area, address, count);
+      } else {
+        throw err;
+      }
+    }
+
+    if (res && res.values) {
+      this.diagLatency.textContent = (res.latencyMs || 10) + ' ms';
+      this.renderPlcWordTable(res.values, area, address, 'OMRON', false);
+      this.logTrafficPlc('FINS_READ', `${model} Read ${area}${address}..${area}${address + count - 1}`, res.values, res.latencyMs);
+    }
+  }
+
+  // ==========================================
+  // KEYENCE KV UPPER LINK
+  // ==========================================
+  async pollKeyence() {
+    const host = (this.keyenceHost?.value || '192.168.0.40').trim();
+    const port = parseInt(this.keyencePort?.value, 10) || 8501;
+    const model = this.keyenceModel?.value || 'KV8000';
+    const area = this.keyenceArea?.value || 'DM';
+    const address = parseInt(this.keyenceAddress?.value, 10) || 0;
+    const count = parseInt(this.keyenceCount?.value, 10) || 10;
+    const localIp = (this.selectNic && this.selectNic.value !== 'auto') ? this.selectNic.value : null;
+
+    const payload = { host, port, model, area, address, count, localIp, timeout: 3500 };
+    let res;
+    try {
+      const resp = await this.sendIpc('plc.keyence.read', payload);
+      res = resp.data;
+    } catch (err) {
+      if (err.message === 'NOT_IN_WPF' || err.message === 'NOT_IN_NATIVE_CONTAINER') {
+        res = this.mockEngine.readKeyence(area, address, count);
+      } else {
+        throw err;
+      }
+    }
+
+    if (res && res.values) {
+      this.diagLatency.textContent = (res.latencyMs || 10) + ' ms';
+      const isBit = (area === 'MR');
+      this.renderPlcWordTable(res.values, area, address, 'KEYENCE', isBit);
+      this.logTrafficPlc('KV_READ', `${model} RDS ${area}${address} ${count}`, res.values, res.latencyMs);
+    }
+  }
+
+  // ==========================================
+  // DELTA DVP & AS SERIES
+  // ==========================================
+  async pollDelta() {
+    const host = (this.deltaHost?.value || '192.168.0.50').trim();
+    const port = parseInt(this.deltaPort?.value, 10) || 502;
+    const series = this.deltaSeries?.value || 'DVP';
+    const slaveId = parseInt(this.deltaSlaveId?.value, 10) || 1;
+    const area = this.deltaArea?.value || 'D';
+    const address = parseInt(this.deltaAddress?.value, 10) || 0;
+    const count = parseInt(this.deltaCount?.value, 10) || 10;
+    const localIp = (this.selectNic && this.selectNic.value !== 'auto') ? this.selectNic.value : null;
+
+    const payload = { host, port, series, slaveId, area, address, count, localIp, timeout: 3500 };
+    let res;
+    try {
+      const resp = await this.sendIpc('plc.delta.read', payload);
+      res = resp.data;
+    } catch (err) {
+      if (err.message === 'NOT_IN_WPF' || err.message === 'NOT_IN_NATIVE_CONTAINER') {
+        res = this.mockEngine.readDelta(series, area, address, count);
+      } else {
+        throw err;
+      }
+    }
+
+    if (res && res.values) {
+      this.diagLatency.textContent = (res.latencyMs || 10) + ' ms';
+      const isBit = (area === 'M' || area === 'X' || area === 'Y');
+      this.renderPlcWordTable(res.values, area, address, 'DELTA', isBit);
+      this.logTrafficPlc('DELTA_READ', `${series} Read ${area}${address}..${area}${address + count - 1}`, res.values, res.latencyMs);
+    }
+  }
+
+  // ==========================================
+  // LS ELECTRIC XGB & XGT
+  // ==========================================
+  async pollLs() {
+    const host = (this.lsHost?.value || '192.168.0.60').trim();
+    const port = parseInt(this.lsPort?.value, 10) || 2004;
+    const series = this.lsSeries?.value || 'XGB';
+    const area = this.lsArea?.value || '%MW';
+    const address = parseInt(this.lsAddress?.value, 10) || 0;
+    const count = parseInt(this.lsCount?.value, 10) || 10;
+    const localIp = (this.selectNic && this.selectNic.value !== 'auto') ? this.selectNic.value : null;
+
+    const payload = { host, port, series, area, address, count, localIp, timeout: 3500 };
+    let res;
+    try {
+      const resp = await this.sendIpc('plc.ls.read', payload);
+      res = resp.data;
+    } catch (err) {
+      if (err.message === 'NOT_IN_WPF' || err.message === 'NOT_IN_NATIVE_CONTAINER') {
+        res = this.mockEngine.readLs(series, area, address, count);
+      } else {
+        throw err;
+      }
+    }
+
+    if (res && res.values) {
+      this.diagLatency.textContent = (res.latencyMs || 10) + ' ms';
+      const isBit = (area === 'M' || area === 'P' || area === 'K');
+      this.renderPlcWordTable(res.values, area, address, 'LS', isBit);
+      this.logTrafficPlc('LS_READ', `${series} Read ${area}${address}..${area}${address + count - 1}`, res.values, res.latencyMs);
+    }
+  }
+
+  renderPlcWordTable(values, area, baseAddr, brand, isBit = false) {
+    this.tableBody.innerHTML = '';
+
+    values.forEach((val, idx) => {
+      const addr = baseAddr + idx;
+      const numVal = isBit ? (val ? 1 : 0) : Number(val);
+
+      // Định danh thiết bị trực quan cho từng hãng
+      let devName = `${area}${addr}`;
+      if (brand === 'MITSU') {
+        if (area === 'X' || area === 'Y') {
+          devName = `${area}${addr.toString(8).toUpperCase()}`;
+        } else if (area === 'W') {
+          devName = `${area}${addr.toString(16).toUpperCase().padStart(4, '0')}`;
+        } else {
+          devName = `${area}${addr}`;
+        }
+      } else if (brand === 'LS' && area === '%MW') {
+        devName = `%MW${addr}`;
+      }
+
+      const tagKey = `${brand}_${area}_${addr}`;
+      const tagName = this.tagNames[tagKey] || `${devName}`;
+
+      const prev = this.lastValues.get(tagKey);
+      const hasChanged = prev !== undefined && prev !== numVal;
+      this.lastValues.set(tagKey, numVal);
+
+      const binStr = isBit ? (numVal ? '1' : '0') : this.formatBinary16(numVal);
+      const hexStr = isBit ? (numVal ? '0x01' : '0x00') : '0x' + numVal.toString(16).toUpperCase().padStart(4, '0');
+      const signed16 = isBit ? numVal : (numVal > 32767 ? numVal - 65536 : numVal);
+
+      let floatStr = '--';
+      if (!isBit && idx + 1 < values.length) {
+        floatStr = this.calculateFloat32(numVal, Number(values[idx + 1]));
+      }
+
+      const tr = document.createElement('tr');
+      if (addr === this.selectedAddress) tr.classList.add('selected');
+      if (hasChanged) tr.classList.add('flash-update');
+
+      tr.innerHTML = `
+        <td style="font-weight: 700; color: var(--accent-cyan); font-family: var(--font-mono); font-size: 11px;">
+          ${devName}
+        </td>
+        <td>
+          <span class="tag-name" data-tag="${tagKey}" title="Nhấp đúp chuột để đổi tên gợi nhớ">${this.escapeHtml(tagName)}</span>
+        </td>
+        <td class="val-hex">${hexStr}</td>
+        <td class="val-bin">${binStr}</td>
+        <td class="val-num" style="font-weight: 700; color: var(--accent-green);">${numVal}</td>
+        <td class="val-num">${signed16}</td>
+        <td class="val-float">${floatStr}</td>
+        <td style="text-align: center;">
+          <button class="btn btn-secondary btn-quick-write" data-addr="${addr}" style="padding: 2px 8px; font-size: 10px;">Ghi</button>
+        </td>
+      `;
+
+      tr.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-quick-write')) return;
+        document.querySelectorAll('#tableBody tr').forEach((r) => r.classList.remove('selected'));
+        tr.classList.add('selected');
+        this.selectedAddress = addr;
+        this.inspectModbusRegister(devName, numVal, idx + 1 < values.length ? Number(values[idx + 1]) : null);
+      });
+
+      const btnWrite = tr.querySelector('.btn-quick-write');
+      btnWrite.addEventListener('click', () => {
+        const newVal = prompt(`Ghi giá trị mới vào thiết bị [${devName}]:`, numVal);
+        if (newVal !== null) {
+          const parsed = parseInt(newVal, 10);
+          if (!isNaN(parsed)) {
+            this.selectedAddress = addr;
+            this.executeDirectWrite(parsed);
+          }
+        }
+      });
+
+      const tagSpan = tr.querySelector('.tag-name');
+      tagSpan.addEventListener('dblclick', () => {
+        this.promptEditTag(tagKey, tagName, tagSpan);
+      });
+
+      this.tableBody.appendChild(tr);
+
+      if (addr === this.selectedAddress || (idx === 0 && !this.selectedAddress)) {
+        this.inspectModbusRegister(devName, numVal, idx + 1 < values.length ? Number(values[idx + 1]) : null);
+      }
+    });
+  }
+
+  logTrafficPlc(prefix, title, values, latency) {
+    const now = new Date().toTimeString().split(' ')[0] + '.' + String(Date.now() % 1000).padStart(3, '0');
+    const preview = values.slice(0, 6).map(v => typeof v === 'number' ? v : (v ? 1 : 0)).join(', ');
+    const more = values.length > 6 ? `... (${values.length} words)` : '';
+    this.appendTrafficRow(now, prefix, `${title} -> [${preview}${more}] (${latency || 10}ms)`, '#10b981');
   }
 
   // ==========================================
@@ -1272,12 +1895,23 @@ class PlcInspectorApp {
     }
 
     const addr = this.selectedAddress;
+    const localIp = (this.selectNic && this.selectNic.value !== 'auto') ? this.selectNic.value : null;
     this.logTraffic('GHI', `Gửi lệnh ghi: Giá trị ${val} xuống Địa chỉ #${addr}`);
 
     try {
       if (this.activeProto === 'sim') {
         if (this.activeProto === 's7') {
           this.mockEngine.writeS7(addr, -1, 0, [(val >> 8) & 0xFF, val & 0xFF]);
+        } else if (this.activeProto === 'mitsu') {
+          this.mockEngine.writeMitsu(this.mitsuArea?.value || 'D', addr, val);
+        } else if (this.activeProto === 'omron') {
+          this.mockEngine.writeOmron(this.omronArea?.value || 'DM', addr, val);
+        } else if (this.activeProto === 'keyence') {
+          this.mockEngine.writeKeyence(this.keyenceArea?.value || 'DM', addr, val);
+        } else if (this.activeProto === 'delta') {
+          this.mockEngine.writeDelta(this.deltaArea?.value || 'D', addr, val);
+        } else if (this.activeProto === 'ls') {
+          this.mockEngine.writeLs(this.lsArea?.value || '%MW', addr, val);
         } else {
           this.mockEngine.writeModbus(false, addr, val);
         }
@@ -1289,8 +1923,65 @@ class PlcInspectorApp {
           db: parseInt(document.getElementById('s7DbNumber').value) || 1,
           startByte: addr,
           bytes: [(val >> 8) & 0xFF, val & 0xFF],
+          localIp
         };
         await this.sendIpc('plc.s7.write', payload);
+      } else if (this.activeProto === 'mitsu') {
+        const payload = {
+          host: (this.mitsuHost?.value || '192.168.0.20').trim(),
+          port: parseInt(this.mitsuPort?.value, 10) || 5000,
+          cpu: this.mitsuCpu?.value || 'FX5U',
+          area: this.mitsuArea?.value || 'D',
+          address: addr,
+          value: val,
+          localIp
+        };
+        await this.sendIpc('plc.mitsu.write', payload);
+      } else if (this.activeProto === 'omron') {
+        const payload = {
+          host: (this.omronHost?.value || '192.168.0.30').trim(),
+          port: parseInt(this.omronPort?.value, 10) || 9600,
+          model: this.omronModel?.value || 'CP1H',
+          area: this.omronArea?.value || 'DM',
+          address: addr,
+          value: val,
+          localIp
+        };
+        await this.sendIpc('plc.omron.write', payload);
+      } else if (this.activeProto === 'keyence') {
+        const payload = {
+          host: (this.keyenceHost?.value || '192.168.0.40').trim(),
+          port: parseInt(this.keyencePort?.value, 10) || 8501,
+          model: this.keyenceModel?.value || 'KV8000',
+          area: this.keyenceArea?.value || 'DM',
+          address: addr,
+          value: val,
+          localIp
+        };
+        await this.sendIpc('plc.keyence.write', payload);
+      } else if (this.activeProto === 'delta') {
+        const payload = {
+          host: (this.deltaHost?.value || '192.168.0.50').trim(),
+          port: parseInt(this.deltaPort?.value, 10) || 502,
+          series: this.deltaSeries?.value || 'DVP',
+          slaveId: parseInt(this.deltaSlaveId?.value, 10) || 1,
+          area: this.deltaArea?.value || 'D',
+          address: addr,
+          value: val,
+          localIp
+        };
+        await this.sendIpc('plc.delta.write', payload);
+      } else if (this.activeProto === 'ls') {
+        const payload = {
+          host: (this.lsHost?.value || '192.168.0.60').trim(),
+          port: parseInt(this.lsPort?.value, 10) || 2004,
+          series: this.lsSeries?.value || 'XGB',
+          area: this.lsArea?.value || '%MW',
+          address: addr,
+          value: val,
+          localIp
+        };
+        await this.sendIpc('plc.ls.write', payload);
       } else {
         const mode = this.activeProto === 'rtu' ? 'rtu' : 'tcp';
         const payload = {
@@ -1301,6 +1992,7 @@ class PlcInspectorApp {
           host: document.getElementById('tcpHost').value.trim(),
           port: parseInt(document.getElementById('tcpPort').value) || 502,
           portName: document.getElementById('rtuPort').value,
+          localIp
         };
         await this.sendIpc('plc.modbus.write', payload);
       }

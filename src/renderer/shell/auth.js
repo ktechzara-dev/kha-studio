@@ -89,7 +89,7 @@
       username: 'engineer',
       name: 'Kỹ sư Dự án',
       role: 'engineer',
-      allowedTools: ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'field-ops', 'tia-portal'],
+      allowedTools: ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
       createdAt: '2026-10-01T00:00:00.000Z',
       // Mật khẩu mặc định: '123456'
       passwordHash: 'pbkdf2:100000:bf88fa90740a3ddde02b11894d07b812:12cbfa3f79efbca279a05b38e2ecad0318413a0e69d763bc753ad37ea92209d7'
@@ -108,12 +108,15 @@
         if (!raw) {
           localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(INITIAL_USERS));
         } else {
-          // Nâng cấp dữ liệu cũ nếu chưa có allowedTools
+          // Nâng cấp dữ liệu cũ nếu chưa có allowedTools hoặc thiếu vision-studio
           const users = JSON.parse(raw);
           let changed = false;
           users.forEach(u => {
             if (!Array.isArray(u.allowedTools)) {
-              u.allowedTools = u.role === 'admin' ? ['*'] : ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'field-ops', 'tia-portal'];
+              u.allowedTools = u.role === 'admin' ? ['*'] : ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'];
+              changed = true;
+            } else if (u.role !== 'admin' && !u.allowedTools.includes('vision-studio')) {
+              u.allowedTools.push('vision-studio');
               changed = true;
             }
           });
@@ -130,7 +133,9 @@
         const users = raw ? JSON.parse(raw) : [...INITIAL_USERS];
         users.forEach(u => {
           if (!Array.isArray(u.allowedTools)) {
-            u.allowedTools = u.role === 'admin' ? ['*'] : ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'field-ops', 'tia-portal'];
+            u.allowedTools = u.role === 'admin' ? ['*'] : ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'];
+          } else if (u.role !== 'admin' && !u.allowedTools.includes('vision-studio')) {
+            u.allowedTools.push('vision-studio');
           }
         });
         return users;
@@ -279,7 +284,7 @@
 
       const tools = role === 'admin'
         ? ['*']
-        : (Array.isArray(allowedTools) ? allowedTools : ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'field-ops']);
+        : (Array.isArray(allowedTools) ? allowedTools : ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal']);
 
       const passwordHash = await hashPassword(password);
       const newUser = {

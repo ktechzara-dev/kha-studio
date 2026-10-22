@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "4. Định Vị Chi Tiết Bánh Răng & Điều Khiển Robot Gắp (Locate & Pick)",
+  "description": "Kịch bản trích xuất tâm hình học chi tiết cơ khí xoay 360°, tính toán toạ độ bù sai lệch Delta X, Delta Y và góc lệch để xuất lệnh gắp cho Robot và PLC.",
+  "savedAt": "2026-10-14T14:45:00Z",
+  "nodes": [
+    {
+      "id": "Node_1_CameraGrab",
+      "toolId": "Acquisition.CameraGrab",
+      "title": "Camera Grab (Bánh Răng Cơ Khí)",
+      "x": 60,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "FilePath": "samples/images/04_gear_part_alignment.png",
+        "CameraId": "SIM_FILE_04"
+      }
+    },
+    {
+      "id": "Node_2_Grayscale",
+      "toolId": "Color.Grayscale",
+      "title": "Chuyển Đổi Mức Xám",
+      "x": 330,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {}
+    },
+    {
+      "id": "Node_3_Threshold",
+      "toolId": "Segmentation.Threshold",
+      "title": "Phân Đoạn Tách Biên",
+      "x": 600,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "Method": "Fixed",
+        "Threshold": 128.0,
+        "Invert": false
+      }
+    },
+    {
+      "id": "Node_4_BlobCenter",
+      "toolId": "Blob.Analysis",
+      "title": "Trích Xuất Tâm Hình Học (X, Y)",
+      "x": 870,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "MinArea": 1000.0,
+        "MaxArea": 200000.0,
+        "SortBy": "AreaDescending"
+      }
+    },
+    {
+      "id": "Node_5_PatternAlign",
+      "toolId": "Matching.PatternAlign",
+      "title": "Tính Bù Sai Lệch Delta (Robot Guidance)",
+      "x": 1140,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "NominalX": 400.0,
+        "NominalY": 300.0,
+        "NominalAngle": 0.0
+      }
+    }
+  ],
+  "connections": [
+    {
+      "sourceNodeId": "Node_1_CameraGrab",
+      "sourcePortId": "Image",
+      "targetNodeId": "Node_2_Grayscale",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_2_Grayscale",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_3_Threshold",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_3_Threshold",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_4_BlobCenter",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_4_BlobCenter",
+      "sourcePortId": "PrimaryCenterX",
+      "targetNodeId": "Node_5_PatternAlign",
+      "targetPortId": "CurrentX"
+    },
+    {
+      "sourceNodeId": "Node_4_BlobCenter",
+      "sourcePortId": "PrimaryCenterY",
+      "targetNodeId": "Node_5_PatternAlign",
+      "targetPortId": "CurrentY"
+    }
+  ]
+}

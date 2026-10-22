@@ -37,10 +37,10 @@ public sealed class MultiCaliperTool : VisionToolBase
     {
         _pCount = AddParameter(new ToolParameter(ParamCaliperCount, "Number of Calipers", ParameterType.Integer, 5, min: 2, max: 50));
         _pSpacing = AddParameter(new ToolParameter(ParamSpacing, "Rake Spacing (px)", ParameterType.Double, 10.0, min: 1.0, max: 200.0));
-        _pX1 = AddParameter(new ToolParameter(ParamStartX, "Base Start X", ParameterType.Double, 50.0));
-        _pY1 = AddParameter(new ToolParameter(ParamStartY, "Base Start Y", ParameterType.Double, 80.0));
-        _pX2 = AddParameter(new ToolParameter(ParamEndX, "Base End X", ParameterType.Double, 250.0));
-        _pY2 = AddParameter(new ToolParameter(ParamEndY, "Base End Y", ParameterType.Double, 80.0));
+        _pX1 = AddParameter(new ToolParameter(ParamStartX, "Base Start X", ParameterType.Double, 400.0, min: 0.0, max: 10000.0, unit: "px"));
+        _pY1 = AddParameter(new ToolParameter(ParamStartY, "Base Start Y", ParameterType.Double, 120.0, min: 0.0, max: 10000.0, unit: "px"));
+        _pX2 = AddParameter(new ToolParameter(ParamEndX, "Base End X", ParameterType.Double, 400.0, min: 0.0, max: 10000.0, unit: "px"));
+        _pY2 = AddParameter(new ToolParameter(ParamEndY, "Base End Y", ParameterType.Double, 480.0, min: 0.0, max: 10000.0, unit: "px"));
 
         AddInput(new ToolPort("ImageIn", "Image In", PortType.Image, PortDirection.Input));
 

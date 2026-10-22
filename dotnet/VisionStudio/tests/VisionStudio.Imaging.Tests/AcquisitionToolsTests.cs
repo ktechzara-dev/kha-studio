@@ -55,4 +55,23 @@ public class AcquisitionToolsTests
             if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
+
+    [Fact]
+    public void VideoFileTool_SeekTest()
+    {
+        var videoPath = @"C:\Users\KHA\Desktop\1792125768167_7096571893584373167_g5467388982485979187.mp4";
+        if (!File.Exists(videoPath)) return;
+        
+        var tool = new VideoFileTool();
+        tool.Parameters.First(p => p.Name == VideoFileTool.ParamFilePath).Value = videoPath;
+        var ctx = new ToolContext(new Dictionary<string, object?>());
+
+        using var res = tool.Execute(ctx, CancellationToken.None);
+        res.Status.Should().Be(ToolStatus.Ok);
+
+        tool.Seek(15);
+        using var resSeek = tool.Execute(ctx, CancellationToken.None);
+        resSeek.Status.Should().Be(ToolStatus.Ok);
+        tool.CurrentFrame.Should().Be(16);
+    }
 }

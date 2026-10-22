@@ -9,7 +9,7 @@
     <AssemblyName>KhaStudio</AssemblyName>
     <Product>Kha Studio</Product>
     <Company>Kha.nm</Company>
-    <Version>1.3.1</Version>
+    <Version>1.4.0</Version>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <StartupObject>KhaStudio.Program</StartupObject>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

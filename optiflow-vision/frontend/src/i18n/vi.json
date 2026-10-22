@@ -1,0 +1,81 @@
+{
+  "app": {
+    "title": "OptiFlow Vision Studio",
+    "subtitle": "Môi Trường Lập Trình Thị Giác Máy Dòng Dữ Liệu Công Nghiệp",
+    "version": "1.0.0 (Milestone 1)",
+    "offline_badge": "BẢO MẬT OFFLINE"
+  },
+  "menu": {
+    "file": "Tệp (File)",
+    "new_project": "Dự Án Mới...",
+    "open_project": "Mở Dự Án (.vsproj)...",
+    "save_project": "Lưu Dự Án",
+    "save_project_as": "Lưu Dự Án Dưới Tên Khác...",
+    "load_image": "Nạp Ảnh Từ Ổ Đĩa...",
+    "exit": "Thoát Ứng Dụng",
+    "view": "Hiển Thị (View)",
+    "fit_to_view": "Vừa Khung Màn Hình (Ctrl+0)",
+    "actual_size": "Kích Thước Thật (1:1)",
+    "toggle_histogram": "Bảng Phân Bố Sáng Histogram",
+    "toggle_pixel_probe": "Kính Lúp Điểm Ảnh (Pixel Inspector)",
+    "toggle_overlays": "Lớp Đồ Họa Vector (Overlays)",
+    "mode": "Chế Độ Làm Việc",
+    "mode_full": "1. Bộ Soạn Thảo Đồ Thị Đầy Đủ",
+    "mode_simple": "2. Chế Độ Vận Hành Tối Giản",
+    "mode_runtime": "3. Màn Hình Thực Thi Sản Xuất",
+    "language": "Ngôn Ngữ",
+    "lang_en": "English",
+    "lang_vi": "Tiếng Việt"
+  },
+  "toolbar": {
+    "run_once": "Chạy 1 Lần",
+    "run_continuous": "Chạy Liên Tục",
+    "pause": "Tạm Dừng",
+    "stop": "Dừng",
+    "step": "Từng Bước",
+    "sample_bottle": "Mẫu 1: Dây Chuyền Chai",
+    "sample_pcb": "Mẫu 2: Bo Mạch Điện Tử PCB",
+    "sample_calib": "Mẫu 3: Bàn Cờ Hiệu Chuẩn"
+  },
+  "viewer": {
+    "pan_zoom_hint": "Cuộn Chuột để Phóng To • Kéo để Di Chuyển • Bấm để Soi Pixel",
+    "coord_hud": "Tọa Độ Con Trỏ",
+    "zoom_level": "Độ Phóng Đại",
+    "resolution": "Độ Phân Giải",
+    "intensity": "Cường Độ",
+    "channels": "Số Kênh",
+    "histogram_title": "Biểu Đồ Phân Bố Cường Độ Sáng (Histogram 256 Mức)",
+    "stats_min": "Thấp Nhất",
+    "stats_max": "Cao Nhất",
+    "stats_mean": "Trung Bình",
+    "stats_std": "Độ Lệch Chuẩn",
+    "pixel_probe_title": "Ma Trận Pixel 7x7 Cục Bộ Dưới Con Trỏ",
+    "no_image": "Chưa có ảnh nào được nạp. Vui lòng chọn mẫu hoặc nạp file ảnh.",
+    "overlay_roi": "VÙNG QUÉT KIỂM TRA (1580x920 px)",
+    "overlay_bottle": "SẢN PHẨM 01 [ĐẠT] X:+420.5mm Y:+185.3mm",
+    "overlay_cap": "CHIỀU CỔ CHAI: +15.0°"
+  },
+  "project": {
+    "new_title": "Tạo Dự Án Thị Giác Mới",
+    "project_name": "Tên Dự Án",
+    "description": "Mô Tả Dự Án",
+    "author": "Kỹ Sư / Đơn Vị",
+    "target_fps": "Tốc Độ Mục Tiêu (FPS)",
+    "create_button": "Tạo Dự Án",
+    "cancel_button": "Hủy Bỏ",
+    "save_success": "Đã lưu dự án thành công vào ổ đĩa!",
+    "save_error": "Lỗi khi lưu dự án.",
+    "load_success": "Đã nạp dự án thành công!",
+    "load_error": "Lỗi khi nạp dự án."
+  },
+  "status": {
+    "engine_online": "SIDECAR ENGINE SẴN SÀNG",
+    "engine_offline": "MẤT KẾT NỐI SIDECAR",
+    "engine_pid": "PID Engine",
+    "latency": "Độ Trễ IPC",
+    "memory": "RAM Sử Dụng",
+    "fps": "Tốc Độ",
+    "cycle_time": "Chu Kỳ Xử Lý",
+    "m1_banner": "Milestone 1 Hoàn Tất: Electron Shell + Python Sidecar IPC + Lưu/Nạp .vsproj + Trình Xem Ảnh 12MP Siêu Mượt"
+  }
+}

@@ -178,16 +178,40 @@ public partial class MainWindow : Window
                     {
                         try
                         {
-                            var candidates = new[]
+                            string? exe = null;
+                            var searchCandidates = new List<string>
                             {
+                                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "VisionStudio", "src", "VisionStudio.App", "bin", "Debug", "net8.0-windows", "VisionStudio.App.exe")),
                                 Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "VisionStudio", "src", "VisionStudio.App", "bin", "Debug", "net8.0-windows", "VisionStudio.App.exe")),
                                 Path.Combine(AppContext.BaseDirectory, "VisionStudio.App.exe"),
-                                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "publish", "VisionStudio", "VisionStudio.App.exe"))
+                                @"D:\BUITAPP\kha-studio-app\pallet-studio-app\dotnet\VisionStudio\src\VisionStudio.App\bin\Debug\net8.0-windows\VisionStudio.App.exe"
                             };
-                            var exe = candidates.FirstOrDefault(File.Exists) ?? candidates[0];
+
+                            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+                            while (dir != null)
+                            {
+                                var p1 = Path.Combine(dir.FullName, "VisionStudio", "src", "VisionStudio.App", "bin", "Debug", "net8.0-windows", "VisionStudio.App.exe");
+                                if (File.Exists(p1)) { exe = p1; break; }
+
+                                var p2 = Path.Combine(dir.FullName, "dotnet", "VisionStudio", "src", "VisionStudio.App", "bin", "Debug", "net8.0-windows", "VisionStudio.App.exe");
+                                if (File.Exists(p2)) { exe = p2; break; }
+
+                                var p3 = Path.Combine(dir.FullName, "VisionStudio.App.exe");
+                                if (File.Exists(p3)) { exe = p3; break; }
+
+                                dir = dir.Parent;
+                            }
+
+                            exe ??= searchCandidates.FirstOrDefault(File.Exists) ?? searchCandidates.Last();
+
                             if (File.Exists(exe))
                             {
-                                Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true });
+                                var psi = new ProcessStartInfo(exe)
+                                {
+                                    WorkingDirectory = Path.GetDirectoryName(exe) ?? string.Empty,
+                                    UseShellExecute = true
+                                };
+                                Process.Start(psi);
                             }
                             else
                             {
@@ -332,6 +356,126 @@ public partial class MainWindow : Window
                         {
                             Send(new { type = "plc.opcua.browse.reply", id = reqId, error = ex.Message });
                         }
+                        break;
+                    }
+                case "plc.mitsu.read":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.ExecuteMitsubishiAsync(root); Send(new { type = "plc.mitsu.read.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.mitsu.read.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.mitsu.write":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.WriteMitsubishiAsync(root); Send(new { type = "plc.mitsu.write.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.mitsu.write.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.mitsu.test":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.TestMitsubishiAsync(root); Send(new { type = "plc.mitsu.test.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.mitsu.test.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.omron.read":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.ExecuteOmronAsync(root); Send(new { type = "plc.omron.read.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.omron.read.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.omron.write":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.WriteOmronAsync(root); Send(new { type = "plc.omron.write.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.omron.write.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.omron.test":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.TestOmronAsync(root); Send(new { type = "plc.omron.test.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.omron.test.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.keyence.read":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.ExecuteKeyenceAsync(root); Send(new { type = "plc.keyence.read.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.keyence.read.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.keyence.write":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.WriteKeyenceAsync(root); Send(new { type = "plc.keyence.write.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.keyence.write.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.keyence.test":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.TestKeyenceAsync(root); Send(new { type = "plc.keyence.test.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.keyence.test.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.delta.read":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.ExecuteDeltaAsync(root); Send(new { type = "plc.delta.read.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.delta.read.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.delta.write":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.WriteDeltaAsync(root); Send(new { type = "plc.delta.write.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.delta.write.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.delta.test":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.TestDeltaAsync(root); Send(new { type = "plc.delta.test.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.delta.test.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.ls.read":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.ExecuteLsAsync(root); Send(new { type = "plc.ls.read.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.ls.read.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.ls.write":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.WriteLsAsync(root); Send(new { type = "plc.ls.write.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.ls.write.reply", id = reqId, error = ex.Message }); }
+                        break;
+                    }
+                case "plc.ls.test":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        try { var res = await PlcMultiProtocol.TestLsAsync(root); Send(new { type = "plc.ls.test.reply", id = reqId, data = res }); }
+                        catch (Exception ex) { Send(new { type = "plc.ls.test.reply", id = reqId, error = ex.Message }); }
                         break;
                     }
                 case "tia.requestAdminPermission":

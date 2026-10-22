@@ -1,0 +1,167 @@
+{
+  "format_version": "1.0.0",
+  "generator": "OptiFlow Vision Studio",
+  "created_at": 1729177200.0,
+  "updated_at": 1729177200.0,
+  "metadata": {
+    "name": "Unilever Delta Packaging Inspection - SKU LB800",
+    "description": "High-speed 510 SPP visual inspection with PO1/PO2 orientation and Schneider SERT PLC protocol",
+    "author": "Kha Studio Automation",
+    "version": "1.0.0",
+    "tags": [
+      "packaging",
+      "industrial-vision",
+      "delta-robot",
+      "schneider-plc"
+    ]
+  },
+  "settings": {
+    "target_fps": 40.0,
+    "mode": "FULL_EDITOR",
+    "default_language": "vi",
+    "stop_on_error": false,
+    "diagnostic_logging": true,
+    "active_program_id": "prog_main"
+  },
+  "programs": [
+    {
+      "id": "prog_main",
+      "name": "Main Delta Robot Inspection Task",
+      "type": "MAIN_LOOP",
+      "nodes": [
+        {
+          "id": "node_cam_01",
+          "filter_type": "CameraAcquisition",
+          "label": "IDS GigE Camera (1936x1216 Mono8)",
+          "category": "Acquisition",
+          "position_x": 120.0,
+          "position_y": 200.0,
+          "inputs": {
+            "exposure_us": 1000,
+            "gain": 1.0,
+            "trigger_mode": "CONTINUOUS"
+          },
+          "outputs": {
+            "out_image": "image_ref_01"
+          },
+          "is_disabled": false,
+          "comment": "Continuous 40 FPS capture over Gigabit Ethernet"
+        },
+        {
+          "id": "node_remap_01",
+          "filter_type": "LensUndistortion",
+          "label": "Lens Undistort (CV_16SC2 Remap)",
+          "category": "Calibration",
+          "position_x": 480.0,
+          "position_y": 200.0,
+          "inputs": {
+            "in_image": "node_cam_01.out_image",
+            "calibration_file": "config/calibration_extracted.json"
+          },
+          "outputs": {
+            "out_undistorted": "image_ref_02"
+          },
+          "is_disabled": false,
+          "comment": "Precomputed 3.12ms undistortion matrix K & D"
+        },
+        {
+          "id": "node_blob_01",
+          "filter_type": "BottleClassifierPO1PO2",
+          "label": "PO1/PO2 Moment & Orientation Analyzer",
+          "category": "Analysis",
+          "position_x": 840.0,
+          "position_y": 200.0,
+          "inputs": {
+            "in_image": "node_remap_01.out_undistorted",
+            "roi": [180, 150, 1580, 920],
+            "threshold": 120,
+            "neck_ratio": 0.45
+          },
+          "outputs": {
+            "out_bottles": "bottle_list_01"
+          },
+          "is_disabled": false,
+          "comment": "Classifies cap-forward (PO1) vs base-forward (PO2) in < 6ms"
+        },
+        {
+          "id": "node_plc_01",
+          "filter_type": "SchneiderSertDispatcher",
+          "label": "Schneider SERT Dispatch (190.201.100.100:50001)",
+          "category": "Communication",
+          "position_x": 1220.0,
+          "position_y": 200.0,
+          "inputs": {
+            "in_bottles": "node_blob_01.out_bottles",
+            "model_code": "LB800",
+            "status": 1
+          },
+          "outputs": {
+            "tx_status": true
+          },
+          "is_disabled": false,
+          "comment": "Dispatches Vision<Status><Count:02d>A<Len><Model> packet"
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn_01",
+          "source_node_id": "node_cam_01",
+          "source_port": "out_image",
+          "target_node_id": "node_remap_01",
+          "target_port": "in_image"
+        },
+        {
+          "id": "conn_02",
+          "source_node_id": "node_remap_01",
+          "source_port": "out_undistorted",
+          "target_node_id": "node_blob_01",
+          "target_port": "in_image"
+        },
+        {
+          "id": "conn_03",
+          "source_node_id": "node_blob_01",
+          "source_port": "out_bottles",
+          "target_node_id": "node_plc_01",
+          "target_port": "in_bottles"
+        }
+      ]
+    }
+  ],
+  "macros": [],
+  "global_variables": {
+    "conveyor_speed_mm_s": 420.0,
+    "robot_count": 3
+  },
+  "operator_screens": [
+    {
+      "id": "screen_01",
+      "name": "Operator Line Overview",
+      "controls": [
+        {
+          "id": "ctrl_video",
+          "type": "video_box",
+          "title": "Conveyor Live Stream",
+          "x": 20,
+          "y": 20,
+          "width": 900,
+          "height": 550,
+          "bindings": {
+            "image": "node_remap_01.out_undistorted"
+          }
+        },
+        {
+          "id": "ctrl_lamp",
+          "type": "lamp",
+          "title": "PLC SERT Status",
+          "x": 940,
+          "y": 20,
+          "width": 180,
+          "height": 100,
+          "bindings": {
+            "state": "node_plc_01.tx_status"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+    "plc": {
+        "host": "190.201.100.100",
+        "port": 50001,
+        "reconnect_interval_sec": 2.0,
+        "mock_mode": true,
+        "protocol_variant": "FB_CognexCamera_SERT"
+    },
+    "camera": {
+        "width": 1936,
+        "height": 1216,
+        "target_fps": 40.0,
+        "exposure_us": 1000,
+        "gain": 1.0,
+        "trigger_mode": "CONTINUOUS",
+        "force_simulation": true
+    },
+    "active_recipe": "model_16_lb800.json",
+    "teaching_image": "config/Teaching.png",
+    "calibration_file": "config/calibration_extracted.json"
+}

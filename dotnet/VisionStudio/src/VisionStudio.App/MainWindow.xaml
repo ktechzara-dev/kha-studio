@@ -122,16 +122,47 @@
                             Content="📂 Nạp ảnh" Margin="0,0,6,0" Padding="10,4" FontSize="11.5"
                             ToolTip="Nạp tệp ảnh (PNG, JPG, BMP) từ máy tính để kiểm thử Pipeline"/>
 
-                    <!-- SAMPLE PIPELINE BUTTON -->
+                    <!-- PROMINENT 8 INDUSTRIAL SAMPLES BUTTON -->
+                    <Button Command="{Binding OpenQuickBuildWizardCommand}"
+                            Content="⚡ 8 KỊCH BẢN &amp; ẢNH MẪU" Margin="0,0,6,0" Padding="12,4" FontSize="11.5" FontWeight="Bold"
+                            Background="#0284C7" Foreground="#FFFFFF" BorderBrush="#38BDF8" BorderThickness="1.5"
+                            Cursor="Hand"
+                            ToolTip="Mở kho 8 kịch bản thị giác công nghiệp mẫu: Caliper, Barcode/QR, PCB Defect, Robot Gear, Đếm Thuốc, Nắp Chai, O-Ring, OCR EXP kèm ảnh mẫu"/>
+
+                    <!-- DIRECT ACCESS SAMPLES FOLDER -->
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenSampleImagesFolderCommand}"
+                            Content="📂 Thư Mục Ảnh Mẫu" Margin="0,0,6,0" Padding="9,4" FontSize="11"
+                            ToolTip="Mở thư mục chứa 8 ảnh test phôi công nghiệp thực tế (.png) trong Windows Explorer"/>
+
+                    <!-- RUN SAMPLE 1 DEMO QUICK -->
                     <Button Style="{StaticResource PlayButtonStyle}"
                             Command="{Binding LoadSamplePipelineCommand}"
-                            Content="⭐ Chương Trình Mẫu" Margin="0,0,8,0" Padding="10,4" FontSize="11.5"
-                            ToolTip="Nạp ngay chương trình thị giác mẫu hoàn chỉnh: Phôi cơ khí, Nhị phân, Thước đo Caliper Sub-pixel và SPC"/>
+                            Content="⭐ Mẫu 1 (Caliper)" Margin="0,0,8,0" Padding="10,4" FontSize="11.5"
+                            ToolTip="Nạp &amp; Chạy ngay kịch bản mẫu #1: Đo kích thước phôi cơ khí Sub-pixel và tính năng lực quá trình SPC (Cp/Cpk)"/>
 
                     <!-- Pipeline Execution Controls (Design Mode) -->
                     <Button Style="{StaticResource PlayButtonStyle}"
                             Command="{Binding DesignVm.RunPipelineCommand}"
                             Content="{Binding Loc[Btn_Run]}" Margin="0,0,4,0" ToolTip="Execute whole pipeline (F5)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding DesignVm.ToggleContinuousRunCommand}"
+                            Content="{Binding DesignVm.ContinuousRunButtonText}" Margin="0,0,4,0" ToolTip="Phát video liên tục / Continuous Run (tự động đếm thùng &amp; CPM theo thời gian thực)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding DesignVm.RestartVideoCommand}"
+                            Content="⏮️ Phát Lại" Margin="0,0,4,0"
+                            Visibility="{Binding DesignVm.HasVideoSource, Converter={StaticResource BoolToVisConverter}}"
+                            ToolTip="Phát lại video từ đầu (Frame #0) và đặt lại bộ đếm"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding DesignVm.StepBackwardVideoCommand}"
+                            Content="⏪ -1s" Margin="0,0,4,0"
+                            Visibility="{Binding DesignVm.HasVideoSource, Converter={StaticResource BoolToVisConverter}}"
+                            ToolTip="Tua lùi video 1 giây (30 frame)"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding DesignVm.StepForwardVideoCommand}"
+                            Content="⏩ +1s" Margin="0,0,4,0"
+                            Visibility="{Binding DesignVm.HasVideoSource, Converter={StaticResource BoolToVisConverter}}"
+                            ToolTip="Tua tới video 1 giây (30 frame)"/>
                     <Button Style="{StaticResource HeaderButtonStyle}"
                             Command="{Binding DesignVm.StepPipelineCommand}"
                             Content="{Binding Loc[Btn_Step]}" Margin="0,0,4,0" ToolTip="Execute next single node (F10)"/>
@@ -257,13 +288,18 @@
                     <!-- NHÓM 4: CÔNG CỤ NHANH -->
                     <TextBlock Text="TIỆN ÍCH:" Foreground="{StaticResource KsTextDim}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="2,0,6,0"/>
                     <Button Style="{StaticResource PlayButtonStyle}"
-                            Command="{Binding LoadSamplePipelineCommand}"
-                            Content="⭐ Nạp Mẫu Demo"
-                            Margin="0,0,4,0" ToolTip="Nạp chương trình mẫu kiểm tra phôi công nghiệp hoàn chỉnh (Caliper + SPC)"/>
-                    <Button Style="{StaticResource HeaderButtonStyle}"
                             Command="{Binding OpenQuickBuildWizardCommand}"
-                            Content="⚡ Quick Build"
-                            Margin="0,0,4,0" ToolTip="Khởi tạo nhanh 5 kịch bản Pipeline mẫu công nghiệp"/>
+                            Content="⚡ Kho 8 Kịch Bản Mẫu"
+                            Background="#0369A1" Foreground="White" FontWeight="Bold"
+                            Margin="0,0,4,0" ToolTip="Mở trình hướng dẫn nạp 8 kịch bản thị giác công nghiệp cùng bộ ảnh test tương ứng"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenSampleImagesFolderCommand}"
+                            Content="📂 Folder Ảnh Test"
+                            Margin="0,0,4,0" ToolTip="Mở thư mục 8 ảnh test công nghiệp thực tế trong Windows Explorer"/>
+                    <Button Style="{StaticResource HeaderButtonStyle}"
+                            Command="{Binding OpenSamplePipelinesFolderCommand}"
+                            Content="📁 Folder Kịch Bản"
+                            Margin="0,0,4,0" ToolTip="Mở thư mục các tệp kịch bản pipeline DAG (.vspipe.json) trong Windows Explorer"/>
                     <Button Style="{StaticResource HeaderButtonStyle}"
                             Command="{Binding OpenToolCompareCommand}"
                             Content="⚖️ So Sánh A/B"
@@ -291,13 +327,38 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="{Binding Loc[Toolbox_Header]}" FontWeight="Bold" Foreground="{StaticResource KsTextMuted}" FontSize="11" Margin="0,0,0,8"/>
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{Binding Loc[Toolbox_Header]}" FontWeight="Bold" Foreground="{StaticResource KsTextMuted}" FontSize="11" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Command="{Binding OpenSampleImagesFolderCommand}" Content="📂 Thư mục ảnh" Background="Transparent" Foreground="#38BDF8" BorderThickness="0" FontSize="10.5" Cursor="Hand" ToolTip="Mở thư mục ảnh test trong Windows Explorer"/>
+                    </Grid>
+
+                    <!-- QUICK SAMPLES BANNER -->
+                    <Border Grid.Row="1" Background="#1E293B" BorderBrush="#0284C7" BorderThickness="1.5" CornerRadius="6" Padding="8,6" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Button Grid.Row="0" Command="{Binding OpenQuickBuildWizardCommand}"
+                                    Background="#0284C7" Foreground="White" FontWeight="Bold" FontSize="11"
+                                    Padding="4,5" Cursor="Hand"
+                                    Content="⚡ KHO 8 KỊCH BẢN &amp; ẢNH MẪU ➔"
+                                    ToolTip="Nhấp vào đây để chọn 1 trong 8 bài toán thị giác máy mẫu có sẵn ảnh test"/>
+                            <TextBlock Grid.Row="1" Text="Caliper • Barcode • PCB • Robot • Thuốc • Màu • Polar • OCR"
+                                       Foreground="#38BDF8" FontSize="9.5" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap"/>
+                        </Grid>
+                    </Border>
 
                     <!-- Search Filter Box -->
-                    <Border Grid.Row="1" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="8,5" Margin="0,0,0,10">
+                    <Border Grid.Row="2" Background="{StaticResource KsBgSurface}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1" CornerRadius="6" Padding="8,5" Margin="0,0,0,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -310,7 +371,7 @@
                     </Border>
 
                     <!-- Filtered Tools List -->
-                    <ListBox Grid.Row="2" ItemsSource="{Binding DesignVm.FilteredTools}"
+                    <ListBox Grid.Row="3" ItemsSource="{Binding DesignVm.FilteredTools}"
                              SelectedItem="{Binding DesignVm.SelectedToolItem}"
                              Background="{StaticResource KsBgBase}" BorderBrush="{StaticResource KsBorder}" BorderThickness="1"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -390,11 +451,18 @@
                                          ToolTip="Bảng điều khiển giám sát truyền thông PLC, Robot, Thống kê OK/NG và Lưu ảnh"/>
                         </StackPanel>
 
-                        <!-- Quick Action Button in Tab Bar -->
-                        <Button HorizontalAlignment="Right" Style="{StaticResource KsPrimaryButton}"
-                                Command="{Binding ImportTestImageCommand}"
-                                Content="📂 Nạp ảnh..." Padding="10,4" FontSize="11"
-                                ToolTip="Nạp ảnh từ máy tính để thử nghiệm Pipeline"/>
+                        <!-- Quick Action Buttons in Tab Bar -->
+                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                            <Button Style="{StaticResource HeaderButtonStyle}"
+                                    Command="{Binding OpenQuickBuildWizardCommand}"
+                                    Content="⚡ 8 Kịch Bản &amp; Ảnh Mẫu" Padding="9,4" FontSize="11" Margin="0,0,6,0"
+                                    Foreground="#38BDF8" BorderBrush="#0284C7"
+                                    ToolTip="Mở kho 8 kịch bản Pipeline mẫu &amp; nạp ảnh test"/>
+                            <Button Style="{StaticResource KsPrimaryButton}"
+                                    Command="{Binding ImportTestImageCommand}"
+                                    Content="📂 Nạp ảnh..." Padding="10,4" FontSize="11"
+                                    ToolTip="Nạp ảnh từ máy tính để thử nghiệm Pipeline"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 

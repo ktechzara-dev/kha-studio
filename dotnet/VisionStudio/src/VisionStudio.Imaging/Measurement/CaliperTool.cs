@@ -50,15 +50,15 @@ public sealed class CaliperTool : VisionToolBase
 
     public CaliperTool() : base("Measurement.Caliper", "1D Caliper (Edge Pair)", "Measurement", "High precision sub-pixel caliper")
     {
-        _pX1 = AddParameter(new ToolParameter(ParamX1, "Start X", ParameterType.Double, 50.0));
-        _pY1 = AddParameter(new ToolParameter(ParamY1, "Start Y", ParameterType.Double, 100.0));
-        _pX2 = AddParameter(new ToolParameter(ParamX2, "End X", ParameterType.Double, 250.0));
-        _pY2 = AddParameter(new ToolParameter(ParamY2, "End Y", ParameterType.Double, 100.0));
+        _pX1 = AddParameter(new ToolParameter(ParamX1, "Start X", ParameterType.Double, 400.0, min: 0.0, max: 10000.0, unit: "px"));
+        _pY1 = AddParameter(new ToolParameter(ParamY1, "Start Y", ParameterType.Double, 120.0, min: 0.0, max: 10000.0, unit: "px"));
+        _pX2 = AddParameter(new ToolParameter(ParamX2, "End X", ParameterType.Double, 400.0, min: 0.0, max: 10000.0, unit: "px"));
+        _pY2 = AddParameter(new ToolParameter(ParamY2, "End Y", ParameterType.Double, 480.0, min: 0.0, max: 10000.0, unit: "px"));
         _pThresh = AddParameter(new ToolParameter(ParamThreshold, "Min Derivative Threshold", ParameterType.Double, 20.0, min: 1.0, max: 255.0));
         _pTrans = AddParameter(new ToolParameter(
             ParamTransition, "Transition Mode", ParameterType.Enum, "Any",
             enumOptions: new[] { "Any", "DarkToLight", "LightToDark" }));
-        _pScale = AddParameter(new ToolParameter(ParamScaleMm, "Scale (mm/px)", ParameterType.Double, 0.05, min: 0.0001, max: 100.0, unit: "mm/px"));
+        _pScale = AddParameter(new ToolParameter(ParamScaleMm, "Scale (mm/px)", ParameterType.Double, 0.1, min: 0.0001, max: 100.0, unit: "mm/px"));
 
         AddInput(new ToolPort(PortInImage, "Image In", PortType.Image, PortDirection.Input));
 
@@ -161,7 +161,9 @@ public sealed class CaliperTool : VisionToolBase
         }
 
         var overlays = new List<IOverlayPrimitive>();
-        var lineOv = new LineOverlay(new Point2f((float)p1.X, (float)p1.Y), new Point2f((float)p2.X, (float)p2.Y), new Scalar(255, 100, 0), Thickness: 1);
+        
+        // Scan axis guideline in bright cyan
+        var lineOv = new LineOverlay(new Point2f((float)p1.X, (float)p1.Y), new Point2f((float)p2.X, (float)p2.Y), new Scalar(255, 180, 0), Thickness: 2);
         overlays.Add(lineOv);
         lineOv.Render(annotated);
 
@@ -186,17 +188,31 @@ public sealed class CaliperTool : VisionToolBase
             var pt1 = new Point2f((float)e1x, (float)e1y);
             var pt2 = new Point2f((float)e2x, (float)e2y);
 
-            var c1 = new CrossOverlay(pt1, 10f, new Scalar(0, 255, 0), Thickness: 2);
-            var c2 = new CrossOverlay(pt2, 10f, new Scalar(0, 255, 0), Thickness: 2);
-            var textOv = new TextOverlay($"W={widthPx:F2}px ({widthMm:F3}mm)", new Point2f((float)((e1x + e2x) / 2.0), (float)((e1y + e2y) / 2.0 - 8)), new Scalar(0, 255, 255), FontScale: 0.5);
+            // Neon green measuring span
+            var spanLine = new LineOverlay(pt1, pt2, new Scalar(0, 255, 0), Thickness: 3);
+            var c1 = new CrossOverlay(pt1, 12f, new Scalar(0, 255, 0), Thickness: 2);
+            var c2 = new CrossOverlay(pt2, 12f, new Scalar(0, 255, 0), Thickness: 2);
+            var textOv = new TextOverlay($"📏 Caliper: {widthPx:F2} px ({widthMm:F3} mm)", 
+                new Point2f((float)((e1x + e2x) / 2.0), (float)((e1y + e2y) / 2.0 - 12)), 
+                new Scalar(0, 255, 255), FontScale: 0.6);
 
+            overlays.Add(spanLine);
             overlays.Add(c1);
             overlays.Add(c2);
             overlays.Add(textOv);
 
+            spanLine.Render(annotated);
             c1.Render(annotated);
             c2.Render(annotated);
             textOv.Render(annotated);
+        }
+        else
+        {
+            var warnOv = new TextOverlay($"⚠️ Caliper: {detectedEdges.Count} biên (Ngưỡng={thresh:F0})",
+                new Point2f((float)((p1.X + p2.X) / 2.0), (float)((p1.Y + p2.Y) / 2.0 - 10)),
+                new Scalar(0, 165, 255), FontScale: 0.55);
+            overlays.Add(warnOv);
+            warnOv.Render(annotated);
         }
 
         var outFrame = new ImageFrame(annotated, inputFrame.CameraId, inputFrame.FrameId, PixelFormat.Bgr24);

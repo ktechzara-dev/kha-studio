@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "2. Đọc Mã Vạch Công Nghiệp & Chấm Điểm ISO/IEC (Code Reader & Grading)",
+  "description": "Kịch bản nhận diện quang học mã 1D (Code128), 2D (DataMatrix, QR Code) và đánh giá chất lượng in ấn theo tiêu chuẩn ISO/IEC 15415/15416.",
+  "savedAt": "2026-10-14T14:45:00Z",
+  "nodes": [
+    {
+      "id": "Node_1_CameraGrab",
+      "toolId": "Acquisition.CameraGrab",
+      "title": "Camera Grab (Nhãn Mã Vạch)",
+      "x": 60,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "FilePath": "samples/images/02_industrial_codes_label.png",
+        "CameraId": "SIM_FILE_02"
+      }
+    },
+    {
+      "id": "Node_2_Grayscale",
+      "toolId": "Color.Grayscale",
+      "title": "Chuyển Đổi Mức Xám",
+      "x": 330,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {}
+    },
+    {
+      "id": "Node_3_Barcode",
+      "toolId": "Identification.BarcodeReader",
+      "title": "Đọc Mã 1D / 2D (Auto)",
+      "x": 600,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "CodeType": "Auto"
+      }
+    },
+    {
+      "id": "Node_4_Grade",
+      "toolId": "Grading.CodeQuality",
+      "title": "Chấm Điểm Chuẩn ISO/IEC",
+      "x": 870,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "MinAcceptableGrade": 2.5
+      }
+    },
+    {
+      "id": "Node_5_Judge",
+      "toolId": "Output.Judge",
+      "title": "Phán Quyết Điểm Đạt (Pass/Fail)",
+      "x": 1140,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "LowerLimit": 2.5,
+        "UpperLimit": 4.0
+      }
+    }
+  ],
+  "connections": [
+    {
+      "sourceNodeId": "Node_1_CameraGrab",
+      "sourcePortId": "Image",
+      "targetNodeId": "Node_2_Grayscale",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_2_Grayscale",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_3_Barcode",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_3_Barcode",
+      "sourcePortId": "AnnotatedImage",
+      "targetNodeId": "Node_4_Grade",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_4_Grade",
+      "sourcePortId": "NumericGrade",
+      "targetNodeId": "Node_5_Judge",
+      "targetPortId": "Value"
+    }
+  ]
+}

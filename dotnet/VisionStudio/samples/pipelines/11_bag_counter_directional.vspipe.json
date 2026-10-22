@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "11. Đếm Bao Bì Băng Tải Hai Chiều (AI-Powered Bag Counting In/Out)",
+  "description": "Kịch bản AI phát hiện và đếm các gói bao bì/túi cà phê đứng (như Tokyo Roast) trên băng tải, đếm chiều IN/OUT qua vạch ảo, hiển thị thẻ màu hồng tím rực rỡ ID: 7 và Top Banner HUD.",
+  "savedAt": "2026-10-16T23:21:00Z",
+  "nodes": [
+    {
+      "id": "Node_1_VideoFile",
+      "toolId": "Acquisition.VideoFile",
+      "title": "Video File (Băng Chuyền Túi/Bao Bì)",
+      "x": 60,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "FilePath": "samples/videos/09_conveyor_boxes_flow.avi",
+        "Loop": true
+      }
+    },
+    {
+      "id": "Node_2_BagCounter",
+      "toolId": "DeepLearning.CartonCounter",
+      "title": "AI-Powered Bag Counting (In/Out)",
+      "x": 480,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "TargetObjectType": "Bag_Package",
+        "TargetLabel": "Bag",
+        "EnableDefectDetection": false,
+        "HudDashboardLayout": "TopBanner",
+        "BadgeStyle": "VibrantPill",
+        "ShowMotionTrails": true,
+        "ConfidenceThreshold": 0.35,
+        "LineStartX": 80.0,
+        "LineStartY": 320.0,
+        "LineEndX": 640.0,
+        "LineEndY": 320.0,
+        "CountingDirection": "Any",
+        "WindowSeconds": 60.0,
+        "TargetCpm": 60.0,
+        "VideoFps": 30.0,
+        "MinBoxArea": 1000.0
+      }
+    },
+    {
+      "id": "Node_3_JudgeCpm",
+      "toolId": "Output.Judge",
+      "title": "Đánh Giá Năng Suất (Judge CPM)",
+      "x": 920,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "LowerLimit": 20.0,
+        "UpperLimit": 120.0
+      }
+    }
+  ],
+  "connections": [
+    {
+      "sourceNodeId": "Node_1_VideoFile",
+      "sourcePortId": "Image",
+      "targetNodeId": "Node_2_BagCounter",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_2_BagCounter",
+      "sourcePortId": "BoxesPerMinute",
+      "targetNodeId": "Node_3_JudgeCpm",
+      "targetPortId": "Value"
+    }
+  ]
+}

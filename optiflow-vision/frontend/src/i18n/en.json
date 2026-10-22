@@ -1,0 +1,81 @@
+{
+  "app": {
+    "title": "OptiFlow Vision Studio",
+    "subtitle": "Industrial Data-Flow Machine Vision IDE",
+    "version": "1.0.0 (M1 Skeleton)",
+    "offline_badge": "OFFLINE SECURE"
+  },
+  "menu": {
+    "file": "File",
+    "new_project": "New Project...",
+    "open_project": "Open Project (.vsproj)...",
+    "save_project": "Save Project",
+    "save_project_as": "Save Project As...",
+    "load_image": "Open Image File...",
+    "exit": "Exit",
+    "view": "View",
+    "fit_to_view": "Fit to View (Ctrl+0)",
+    "actual_size": "Actual Size (1:1)",
+    "toggle_histogram": "Histogram Panel",
+    "toggle_pixel_probe": "Pixel Inspector HUD",
+    "toggle_overlays": "Vector Overlays",
+    "mode": "Mode",
+    "mode_full": "1. Full Graph Editor",
+    "mode_simple": "2. Simple Operator Mode",
+    "mode_runtime": "3. Runtime Player",
+    "language": "Language",
+    "lang_en": "English",
+    "lang_vi": "Tiếng Việt"
+  },
+  "toolbar": {
+    "run_once": "Run Once",
+    "run_continuous": "Run Continuous",
+    "pause": "Pause",
+    "stop": "Stop",
+    "step": "Step",
+    "sample_bottle": "Sample: Bottle Line",
+    "sample_pcb": "Sample: PCB Surface",
+    "sample_calib": "Sample: Checkerboard"
+  },
+  "viewer": {
+    "pan_zoom_hint": "Scroll to Zoom • Drag to Pan • Click to Inspect Pixel",
+    "coord_hud": "Cursor",
+    "zoom_level": "Zoom",
+    "resolution": "Resolution",
+    "intensity": "Intensity",
+    "channels": "Channels",
+    "histogram_title": "Live Grayscale Intensity Distribution",
+    "stats_min": "Min",
+    "stats_max": "Max",
+    "stats_mean": "Mean",
+    "stats_std": "StdDev",
+    "pixel_probe_title": "7x7 Local Pixel Neighborhood",
+    "no_image": "No image loaded. Select a sample or load an image file.",
+    "overlay_roi": "INSPECTION ROI (1580x920)",
+    "overlay_bottle": "PART 01 [PASS] X:+420.5mm Y:+185.3mm",
+    "overlay_cap": "CAP ORIENTATION: +15.0°"
+  },
+  "project": {
+    "new_title": "Create New Vision Project",
+    "project_name": "Project Name",
+    "description": "Description",
+    "author": "Author / Organization",
+    "target_fps": "Target Cycle FPS",
+    "create_button": "Create Project",
+    "cancel_button": "Cancel",
+    "save_success": "Project saved successfully to disk!",
+    "save_error": "Failed to save project.",
+    "load_success": "Project loaded successfully!",
+    "load_error": "Failed to load project."
+  },
+  "status": {
+    "engine_online": "SIDE CAR ONLINE",
+    "engine_offline": "SIDECAR DISCONNECTED",
+    "engine_pid": "Engine PID",
+    "latency": "IPC Latency",
+    "memory": "Memory",
+    "fps": "Live FPS",
+    "cycle_time": "Cycle Time",
+    "m1_banner": "Milestone 1 Complete: Electron Shell + Python Sidecar IPC + .vsproj Save/Load + High-Performance 12MP Image Viewer"
+  }
+}

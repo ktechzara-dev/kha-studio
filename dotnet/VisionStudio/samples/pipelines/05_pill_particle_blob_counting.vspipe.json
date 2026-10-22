@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "5. Đếm Số Lượng Viên Thuốc & Phân Tích Kích Thước Hạt (Blob Analysis)",
+  "description": "Kịch bản đếm số lượng viên thuốc trên vỉ khay dược phẩm, xử lý hình thái học tách rời các hạt và phán quyết số lượng đủ/thiếu so với quy chuẩn.",
+  "savedAt": "2026-10-14T14:45:00Z",
+  "nodes": [
+    {
+      "id": "Node_1_CameraGrab",
+      "toolId": "Acquisition.CameraGrab",
+      "title": "Camera Grab (Khay Viên Thuốc)",
+      "x": 60,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "FilePath": "samples/images/05_pharmaceutical_tablets.png",
+        "CameraId": "SIM_FILE_05"
+      }
+    },
+    {
+      "id": "Node_2_Grayscale",
+      "toolId": "Color.Grayscale",
+      "title": "Chuyển Đổi Mức Xám",
+      "x": 330,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {}
+    },
+    {
+      "id": "Node_3_Threshold",
+      "toolId": "Segmentation.Threshold",
+      "title": "Nhị Phân Tách Nền",
+      "x": 600,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "Method": "Fixed",
+        "Threshold": 120.0,
+        "Invert": false
+      }
+    },
+    {
+      "id": "Node_4_Morphology",
+      "toolId": "Morphology.Basic",
+      "title": "Mở Hình Thái Học (Tách Hạt)",
+      "x": 870,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "Operation": "Open",
+        "KernelSize": 3
+      }
+    },
+    {
+      "id": "Node_5_BlobCount",
+      "toolId": "Blob.Analysis",
+      "title": "Đếm Số Lượng & Phân Tích Tròn",
+      "x": 1140,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "MinArea": 500.0,
+        "MaxArea": 50000.0,
+        "MinCircularity": 0.5,
+        "MaxBlobs": 100
+      }
+    },
+    {
+      "id": "Node_6_Judge",
+      "toolId": "Output.Judge",
+      "title": "Phán Quyết Đủ Số Lượng (8 Viên)",
+      "x": 1410,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "LowerLimit": 8.0,
+        "UpperLimit": 8.0
+      }
+    }
+  ],
+  "connections": [
+    {
+      "sourceNodeId": "Node_1_CameraGrab",
+      "sourcePortId": "Image",
+      "targetNodeId": "Node_2_Grayscale",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_2_Grayscale",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_3_Threshold",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_3_Threshold",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_4_Morphology",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_4_Morphology",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_5_BlobCount",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_5_BlobCount",
+      "sourcePortId": "BlobCount",
+      "targetNodeId": "Node_6_Judge",
+      "targetPortId": "Value"
+    }
+  ]
+}

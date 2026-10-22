@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "10. Đếm Táo & Kiểm Tra Lỗi Dập Xước (Apple Counter & Quality Inspection)",
+  "description": "Kịch bản AI phát hiện và đếm táo trên băng tải theo thời gian thực (Apple Counter), phân loại quả lành (Healthy) vs quả dập xước (Damaged Apple), vẽ quỹ đạo chuyển động (Motion Trails) và bảng điều khiển công nghiệp Right HUD Dashboard.",
+  "savedAt": "2026-10-16T23:20:00Z",
+  "nodes": [
+    {
+      "id": "Node_1_VideoFile",
+      "toolId": "Acquisition.VideoFile",
+      "title": "Video File (Băng Chuyền Táo)",
+      "x": 60,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "FilePath": "samples/videos/09_conveyor_boxes_flow.avi",
+        "Loop": true
+      }
+    },
+    {
+      "id": "Node_2_AppleCounter",
+      "toolId": "DeepLearning.CartonCounter",
+      "title": "Apple Counter & Quality Inspection",
+      "x": 480,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "TargetObjectType": "Apple_Fruit",
+        "TargetLabel": "Apple",
+        "EnableDefectDetection": true,
+        "DefectLabel": "Damaged Apple",
+        "DefectThreshold": 0.10,
+        "HudDashboardLayout": "RightDashboard",
+        "BadgeStyle": "VibrantPill",
+        "ShowMotionTrails": true,
+        "ConfidenceThreshold": 0.35,
+        "LineStartX": 80.0,
+        "LineStartY": 320.0,
+        "LineEndX": 640.0,
+        "LineEndY": 320.0,
+        "CountingDirection": "TopToBottom",
+        "WindowSeconds": 60.0,
+        "TargetCpm": 60.0,
+        "VideoFps": 30.0,
+        "MinBoxArea": 800.0
+      }
+    },
+    {
+      "id": "Node_3_JudgeQuality",
+      "toolId": "Output.Judge",
+      "title": "Đánh Giá Chất Lượng (Quality %)",
+      "x": 920,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "LowerLimit": 90.0,
+        "UpperLimit": 100.0
+      }
+    }
+  ],
+  "connections": [
+    {
+      "sourceNodeId": "Node_1_VideoFile",
+      "sourcePortId": "Image",
+      "targetNodeId": "Node_2_AppleCounter",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_2_AppleCounter",
+      "sourcePortId": "QualityPercent",
+      "targetNodeId": "Node_3_JudgeQuality",
+      "targetPortId": "Value"
+    }
+  ]
+}

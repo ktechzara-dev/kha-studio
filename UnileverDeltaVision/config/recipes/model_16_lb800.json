@@ -1,0 +1,15 @@
+{
+    "name": "Lifebuoy 800ml Pump Bottle",
+    "model_code": "LB800",
+    "roi": [150, 100, 1636, 1000],
+    "threshold_mode": "OTSU",
+    "binary_threshold": 120,
+    "invert_threshold": false,
+    "min_area": 12000.0,
+    "max_area": 95000.0,
+    "min_aspect_ratio": 1.45,
+    "max_aspect_ratio": 3.85,
+    "neck_sensitivity": 0.65,
+    "target_spp": 510,
+    "robot_tool_id": 1
+}

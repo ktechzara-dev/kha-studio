@@ -39,4 +39,10 @@
   <ItemGroup>
     <InternalsVisibleTo Include="VisionStudio.App.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\samples\**\*" LinkBase="samples">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

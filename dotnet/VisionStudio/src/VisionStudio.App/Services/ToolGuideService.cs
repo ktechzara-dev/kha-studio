@@ -1195,6 +1195,44 @@ public static class ToolGuideService
                 "│ Output: Cập nhật TotalRecordsLogged + Phân tích SPC    │\n" +
                 "└────────────────────────────────────────────────────────┘"
         );
+
+        // 30. Object & CPM Counter (Deep Learning)
+        Guides["DeepLearning.CartonCounter"] = new(
+            ToolId: "DeepLearning.CartonCounter",
+            DisplayNameVi: "Đếm vật thể (Táo, Túi, Thùng) & Đo tốc độ CPM (Deep Learning)",
+            DisplayNameEn: "AI Object, Fruit & CPM Counter",
+            CategoryVi: "Trí tuệ nhân tạo (Deep Learning)",
+            CategoryEn: "Deep Learning",
+            PrincipleVi: "Ứng dụng thị giác máy tính và Deep Learning nhận diện vật thể trên băng tải (Quả Táo/Trái Cây có phân loại hư hỏng, Túi/Bao Bì đứng Tokyo Roast, Thùng Carton, Chai/Lon, hoặc Mẫu dạy tùy chọn). Theo dõi quỹ đạo chuyển động (Motion Trails & Centroid MOT), kiểm tra cắt vạch ảo Tripwire theo hướng IN/OUT, đếm số lượng đạt/lỗi và hiển thị bảng HUD Industrial Dashboard hoặc Top Banner thời gian thực.",
+            PrincipleEn: "Utilizes computer vision and deep learning to detect and track conveyor objects (Apples with defect detection, standing bags/pouches, cartons, bottles, or custom taught exemplars) across an interactive virtual tripwire with directional IN/OUT counting and dual HUD dashboards.",
+            PortsGuideVi: "• ImageIn (Input): Khung hình ảnh hoặc luồng video băng chuyền.\n• Reset (Input): Xung kích hoạt đặt lại bộ đếm về 0.\n• AnnotatedImage (Output): Ảnh đã vẽ hộp bounding box, thẻ ID/nhãn, vạch đếm ảo và bảng HUD thống kê.\n• TotalCount (Output): Tổng số vật thể đã qua vạch đếm.\n• GoodCount (Output): Số lượng sản phẩm đạt chuẩn (Healthy/Good).\n• DefectCount (Output): Số lượng sản phẩm lỗi/hư hỏng (Damaged/Defect).\n• QualityPercent (Output): Tỷ lệ sản phẩm đạt chuẩn (% Quality).\n• InCount / OutCount (Output): Số lượng vật thể đi theo chiều IN hoặc chiều OUT.\n• BoxesPerMinute (Output): Tốc độ sản xuất trung bình (Vật thể/Phút - CPM).\n• InstantCpm (Output): Tốc độ tức thời giữa 2 vật thể kế tiếp.\n• CurrentInView (Output): Số vật thể đang xuất hiện trong tầm camera.\n• Passed (Output): Cờ báo đạt mục tiêu năng suất TargetCpm.\n• CountHistory (Output): Bảng dữ liệu VisionTable ghi nhận lịch sử đếm theo thời gian.",
+            PortsGuideEn: "• ImageIn: Input video frame.\n• Reset: Counter reset trigger.\n• AnnotatedImage: Output visualization frame.\n• TotalCount / GoodCount / DefectCount: Count breakdown.\n• QualityPercent: Good product percentage.\n• InCount / OutCount: Directional counts.\n• BoxesPerMinute: Rolling window throughput (CPM).\n• InstantCpm: Instantaneous throughput.\n• CurrentInView: Active objects in scene.\n• Passed: Productivity target boolean flag.\n• CountHistory: VisionTable log records.",
+            ParametersGuideVi: "• TargetObjectType: Chọn loại vật thể cần bắt (Apple_Fruit, Bag_Package, Carton_Box, Bottle_Can, CustomTaught, General).\n• EnableDefectDetection: Bật/tắt phân loại hư hỏng (Táo lành vs Táo dập xước, Túi rách...).\n• HudDashboardLayout: Giao diện bảng hiển thị (RightDashboard - Bảng công nghiệp bên phải như Apple Counter, TopBanner - Băng rôn trên như Bag Counter, OverlayOnly).\n• BadgeStyle: Kiểu thẻ nhãn (VibrantPill - Thẻ màu nổi bật như ID:7 hoặc #240 Apple, MinimalBadge).\n• ShowMotionTrails: Hiển thị vệt quỹ đạo di chuyển và mũi tên hướng đi.\n• LineStartX/Y, LineEndX/Y: Tọa độ hai đầu vạch đếm ảo (có thể kéo trực tiếp trên ảnh).\n• CountingDirection: Hướng đếm (TopToBottom, BottomToTop, LeftToRight, RightToLeft, Any).",
+            ParametersGuideEn: "• TargetObjectType: Target preset (Apple_Fruit, Bag_Package, Carton_Box, Bottle_Can, CustomTaught, General).\n• EnableDefectDetection: Defect inspection toggle.\n• HudDashboardLayout: RightDashboard, TopBanner, or OverlayOnly.\n• BadgeStyle: VibrantPill or MinimalBadge.\n• ShowMotionTrails: Motion trajectory trails with directional arrows.\n• LineStart/End: Virtual tripwire coordinates.\n• CountingDirection: Directional filter.",
+            IndustrialUseCasesVi: "Phân loại táo và trái cây tự động (đếm quả lành, quả dập xước), kiểm đếm bao bì đóng gói cà phê/bánh kẹo, kiểm soát kiện hàng thùng carton kho vận, tính năng suất OEE và gửi tín hiệu phân loại sang tay gắp robot / PLC gạt hàng.",
+            IndustrialUseCasesEn: "Apple and fruit grading (healthy vs damaged), standing pouch and bag counting, warehouse parcel monitoring, real-time OEE rate tracking, sorting ejection sync.",
+            QuickTipsVi: "Chọn 'Apple_Fruit' để nhận diện táo và tự động phát hiện quả dập lỗi; hoặc chọn 'Dạy Mẫu Vật Thể (Teach Target)' rồi kéo chuột khoanh vùng bất kỳ vật thể nào trên ảnh để học mẫu riêng biệt!",
+            QuickTipsEn: "Select 'Apple_Fruit' for instant fruit grading or use 'Teach Target' to drag an ROI box over any custom object to learn and detect it exclusively!",
+            IllustrationDiagram:
+                "┌────────────────────────────────────────────────────────┐\n" +
+                "│    SƠ ĐỒ NGUYÊN LÝ: ĐẾM VẬT THỂ & ĐO TỐC ĐỘ CPM        │\n" +
+                "├────────────────────────────────────────────────────────┤\n" +
+                "│ [Video Stream / Camera] ──► [Object & Defect Detector] │\n" +
+                "│                                     │                  │\n" +
+                "│                                     ▼                  │\n" +
+                "│ [MOT Tracker & Trails] ◄── [Class: Good / Defect]      │\n" +
+                "│         │                                              │\n" +
+                "│         ▼                                              │\n" +
+                "│ [Kiểm tra cắt vạch ảo Tripwire theo vector IN / OUT]   │\n" +
+                "│         │                                              │\n" +
+                "│         ├────────────────────────┬─────────────────────┤\n" +
+                "│         ▼                        ▼                     ▼\n" +
+                "│  GoodCount / DefectCount   CPM = 60 * N / Window   In / Out\n" +
+                "│         │                        │                     │\n" +
+                "│         └────────────────────────┴─────────────────────┘\n" +
+                "│        Vẽ Right HUD Dashboard / Top Banner & Pill Badges│\n" +
+                "└────────────────────────────────────────────────────────┘"
+        );
     }
 
     private static void RegisterAllSystemGuides()

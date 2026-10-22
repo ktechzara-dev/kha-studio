@@ -28,7 +28,41 @@ public partial class ParameterEditorViewModel : ObservableObject
     public bool IsFolderPath => false;
 
     public double MinValue => _parameter.Min ?? (IsInteger ? 0 : 0.0);
-    public double MaxValue => _parameter.Max ?? (IsInteger ? 100 : 100.0);
+    
+    public double MaxValue
+    {
+        get
+        {
+            if (_parameter.Max.HasValue)
+            {
+                return Math.Max(_parameter.Max.Value, Math.Ceiling(Math.Max(DoubleValue * 1.25, _parameter.Max.Value) / 100.0) * 100.0);
+            }
+
+            // Coordinate, dimension or spatial parameters without explicit Max
+            if (Name.Contains("X", StringComparison.OrdinalIgnoreCase) ||
+                Name.Contains("Y", StringComparison.OrdinalIgnoreCase) ||
+                Name.Contains("Width", StringComparison.OrdinalIgnoreCase) ||
+                Name.Contains("Height", StringComparison.OrdinalIgnoreCase) ||
+                Name.Contains("Radius", StringComparison.OrdinalIgnoreCase) ||
+                Name.Contains("Area", StringComparison.OrdinalIgnoreCase) ||
+                Name.Contains("Size", StringComparison.OrdinalIgnoreCase) ||
+                Name.Contains("Length", StringComparison.OrdinalIgnoreCase) ||
+                Name.Contains("Dist", StringComparison.OrdinalIgnoreCase) ||
+                Name.Contains("Roi", StringComparison.OrdinalIgnoreCase))
+            {
+                var cur = DoubleValue;
+                return Math.Max(2000.0, Math.Ceiling(Math.Max(cur * 1.5, 2000.0) / 100.0) * 100.0);
+            }
+
+            if (DoubleValue > 100.0)
+            {
+                return Math.Ceiling((DoubleValue * 1.5) / 100.0) * 100.0;
+            }
+
+            return IsInteger ? 100 : 100.0;
+        }
+    }
+
     public double Step => _parameter.Step ?? (IsInteger ? 1 : 0.1);
 
     public IReadOnlyList<string> EnumOptions => _parameter.EnumOptions ?? Array.Empty<string>();
@@ -57,6 +91,8 @@ public partial class ParameterEditorViewModel : ObservableObject
             OnPropertyChanged(nameof(IntValue));
             OnPropertyChanged(nameof(BoolValue));
             OnPropertyChanged(nameof(StringValue));
+            OnPropertyChanged(nameof(MaxValue));
+            OnPropertyChanged(nameof(MinValue));
 
             _onChanged(this);
         }

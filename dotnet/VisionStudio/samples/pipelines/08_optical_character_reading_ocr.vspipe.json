@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "8. Nhận Dạng Ký Tự Quang Học Hạn Sử Dụng (OCR / OCV Packaging Date)",
+  "description": "Kịch bản nhận diện chuỗi ký tự in phun công nghiệp mã ngày sản xuất, hạn sử dụng (MFG / EXP / LOT) trên bao bì thực phẩm và dược phẩm, đối chiếu chuỗi ký tự theo chuẩn OCV.",
+  "savedAt": "2026-10-14T14:45:00Z",
+  "nodes": [
+    {
+      "id": "Node_1_CameraGrab",
+      "toolId": "Acquisition.CameraGrab",
+      "title": "Camera Grab (Bao Bì Hạn Sử Dụng)",
+      "x": 60,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "FilePath": "samples/images/08_food_pack_expiry_date.png",
+        "CameraId": "SIM_FILE_08"
+      }
+    },
+    {
+      "id": "Node_2_Grayscale",
+      "toolId": "Color.Grayscale",
+      "title": "Chuyển Đổi Mức Xám",
+      "x": 330,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {}
+    },
+    {
+      "id": "Node_3_Sharpen",
+      "toolId": "Filter.Sharpen",
+      "title": "Làm Sắc Nét Nét Chữ",
+      "x": 600,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "Strength": 1.6
+      }
+    },
+    {
+      "id": "Node_4_Ocr",
+      "toolId": "Ocr.TrainableOcr",
+      "title": "Nhận Dạng Ký Tự & Đối Soát (OCR/OCV)",
+      "x": 870,
+      "y": 100,
+      "isEnabled": true,
+      "hasBreakpoint": false,
+      "parameters": {
+        "ExpectedString": "EXP: 2028-12-31",
+        "MinConfidence": 0.5
+      }
+    }
+  ],
+  "connections": [
+    {
+      "sourceNodeId": "Node_1_CameraGrab",
+      "sourcePortId": "Image",
+      "targetNodeId": "Node_2_Grayscale",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_2_Grayscale",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_3_Sharpen",
+      "targetPortId": "ImageIn"
+    },
+    {
+      "sourceNodeId": "Node_3_Sharpen",
+      "sourcePortId": "ImageOut",
+      "targetNodeId": "Node_4_Ocr",
+      "targetPortId": "ImageIn"
+    }
+  ]
+}

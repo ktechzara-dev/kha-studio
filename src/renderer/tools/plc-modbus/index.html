@@ -27,25 +27,45 @@
 
       <!-- Protocol Selection Tabs -->
       <div class="protocol-tabs">
-        <button class="proto-btn active" data-proto="tcp">
+        <button class="proto-btn active" data-proto="tcp" title="Modbus TCP qua cổng 502 (Universal)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
           Modbus TCP
         </button>
-        <button class="proto-btn" data-proto="rtu">
+        <button class="proto-btn" data-proto="rtu" title="Modbus RTU qua Serial COM RS-485">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 12h4m4 0h4"/></svg>
-          Modbus RTU (Serial)
+          Modbus RTU
         </button>
-        <button class="proto-btn" data-proto="s7">
+        <button class="proto-btn" data-proto="s7" title="Siemens S7-1200 / 1500 / 300 / 400 (ISO-on-TCP port 102)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Siemens S7 PLC
+          Siemens S7
         </button>
-        <button class="proto-btn" data-proto="opcua">
+        <button class="proto-btn" data-proto="opcua" title="Siemens OPC UA Server (Port 4840)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10M12 12l4-4M12 12v6"/></svg>
           Siemens OPC UA
         </button>
-        <button class="proto-btn" data-proto="sim">
+        <button class="proto-btn" data-proto="mitsu" title="Mitsubishi MELSEC FX5U / FX3U / Q-Series / iQ-R (MC Protocol port 5000)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 22h20L12 2z"/><path d="M12 7l5 10H7l5-10z"/></svg>
+          Mitsubishi (MC)
+        </button>
+        <button class="proto-btn" data-proto="omron" title="Omron CP1H / CJ1 / CJ2 / NX / NJ (FINS/TCP port 9600)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+          Omron (FINS)
+        </button>
+        <button class="proto-btn" data-proto="keyence" title="Keyence KV-8000 / 7500 / 5500 / Nano (KV UpperLink port 8501)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14l6-6 4 4 6-6"/><path d="M14 6h6v6"/></svg>
+          Keyence (KV)
+        </button>
+        <button class="proto-btn" data-proto="delta" title="Delta Electronics DVP & AS Series PLC">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3L2 21h20L12 3z"/></svg>
+          Delta (DVP/AS)
+        </button>
+        <button class="proto-btn" data-proto="ls" title="LS ELECTRIC / LG XGT & XGB Series PLC (Port 2004/502)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          LS ELECTRIC
+        </button>
+        <button class="proto-btn" data-proto="sim" title="Chế độ mô phỏng ảo không cần phần cứng">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>
-          Mô phỏng ảo (Simulator)
+          Mô phỏng ảo
         </button>
       </div>
 
@@ -139,6 +159,98 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           <span id="btnTestOpcUaText">Test kết nối OPC UA</span>
         </button>
+      <!-- Mitsubishi Params (Hidden by default) -->
+      <div id="cfgMitsu" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+        <span class="cfg-label">Dòng CPU:</span>
+        <select id="mitsuCpu" class="cfg-select w-md">
+          <option value="FX5U" selected>FX5U / iQ-F</option>
+          <option value="QSeries">Q-Series</option>
+          <option value="LSeries">L-Series</option>
+          <option value="iQR">iQ-R Series</option>
+          <option value="FX3U">FX3U (ENET)</option>
+        </select>
+        <span class="cfg-label">IP:</span>
+        <input type="text" id="mitsuHost" class="cfg-input w-lg" value="192.168.0.20">
+        <span class="cfg-label">Port:</span>
+        <input type="number" id="mitsuPort" class="cfg-input w-sm" value="5000">
+        <button id="btnTestMitsu" class="btn btn-warning" title="Test kết nối & bắt tay Qna-3E với PLC Mitsubishi">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span id="btnTestMitsuText">Test kết nối MC</span>
+        </button>
+      </div>
+
+      <!-- Omron Params (Hidden by default) -->
+      <div id="cfgOmron" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+        <span class="cfg-label">Dòng PLC:</span>
+        <select id="omronModel" class="cfg-select w-md">
+          <option value="CP1H" selected>CP1H / CP1L</option>
+          <option value="CJ2M">CJ1 / CJ2M</option>
+          <option value="CS1">CS1 Series</option>
+          <option value="NX">NX / NJ Series</option>
+        </select>
+        <span class="cfg-label">IP:</span>
+        <input type="text" id="omronHost" class="cfg-input w-lg" value="192.168.0.30">
+        <span class="cfg-label">Port:</span>
+        <input type="number" id="omronPort" class="cfg-input w-sm" value="9600">
+        <button id="btnTestOmron" class="btn btn-warning" title="Test kết nối & bắt tay FINS TCP Node với PLC Omron">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span id="btnTestOmronText">Test kết nối FINS</span>
+        </button>
+      </div>
+
+      <!-- Keyence Params (Hidden by default) -->
+      <div id="cfgKeyence" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+        <span class="cfg-label">Model KV:</span>
+        <select id="keyenceModel" class="cfg-select w-md">
+          <option value="KV8000" selected>KV-8000</option>
+          <option value="KV7500">KV-7500</option>
+          <option value="KV5500">KV-5500</option>
+          <option value="KVNano">KV-Nano</option>
+        </select>
+        <span class="cfg-label">IP:</span>
+        <input type="text" id="keyenceHost" class="cfg-input w-lg" value="192.168.0.40">
+        <span class="cfg-label">Port:</span>
+        <input type="number" id="keyencePort" class="cfg-input w-sm" value="8501">
+        <button id="btnTestKeyence" class="btn btn-warning" title="Test kết nối & truy vấn Model với PLC Keyence">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span id="btnTestKeyenceText">Test kết nối KV</span>
+        </button>
+      </div>
+
+      <!-- Delta Params (Hidden by default) -->
+      <div id="cfgDelta" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+        <span class="cfg-label">Series:</span>
+        <select id="deltaSeries" class="cfg-select w-md">
+          <option value="DVP" selected>DVP (ES2/SS2/SV2/SE)</option>
+          <option value="AS">AS Series (AS200/AS300)</option>
+        </select>
+        <span class="cfg-label">IP:</span>
+        <input type="text" id="deltaHost" class="cfg-input w-lg" value="192.168.0.50">
+        <span class="cfg-label">Port:</span>
+        <input type="number" id="deltaPort" class="cfg-input w-sm" value="502">
+        <span class="cfg-label">Slave ID:</span>
+        <input type="number" id="deltaSlaveId" class="cfg-input w-sm" value="1" min="1" max="255">
+        <button id="btnTestDelta" class="btn btn-warning" title="Test kết nối tới PLC Delta">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span id="btnTestDeltaText">Test kết nối Delta</span>
+        </button>
+      </div>
+
+      <!-- LS ELECTRIC Params (Hidden by default) -->
+      <div id="cfgLs" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+        <span class="cfg-label">Dòng PLC:</span>
+        <select id="lsSeries" class="cfg-select w-md">
+          <option value="XGB" selected>XGB (XBC/XEC)</option>
+          <option value="XGT">XGT (XGK/XGI)</option>
+        </select>
+        <span class="cfg-label">IP:</span>
+        <input type="text" id="lsHost" class="cfg-input w-lg" value="192.168.0.60">
+        <span class="cfg-label">Port:</span>
+        <input type="number" id="lsPort" class="cfg-input w-sm" value="2004">
+        <button id="btnTestLs" class="btn btn-warning" title="Test kết nối tới PLC LS ELECTRIC">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span id="btnTestLsText">Test kết nối LS</span>
+        </button>
       </div>
 
       <!-- Simulation Badge -->
@@ -228,6 +340,116 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             Duyệt cây biến
           </button>
+        </div>
+
+        <!-- Mitsubishi Query -->
+        <div id="mitsuQuery" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+          <span class="cfg-label">Vùng nhớ:</span>
+          <select id="mitsuArea" class="cfg-select w-md">
+            <option value="D" selected>D (Data Register)</option>
+            <option value="M">M (Internal Relay)</option>
+            <option value="X">X (Input Relay)</option>
+            <option value="Y">Y (Output Relay)</option>
+            <option value="W">W (Link Register)</option>
+            <option value="R">R (File Register)</option>
+            <option value="TN">TN (Timer Value)</option>
+            <option value="CN">CN (Counter Value)</option>
+          </select>
+          <span class="cfg-label">Địa chỉ bắt đầu:</span>
+          <input type="number" id="mitsuAddress" class="cfg-input w-sm" value="0" min="0">
+          <span class="cfg-label">Số lượng:</span>
+          <input type="number" id="mitsuCount" class="cfg-input w-sm" value="10" min="1" max="120">
+          <span class="cfg-label">Biến mẫu:</span>
+          <select id="mitsuPreset" class="cfg-select" style="width: 170px;">
+            <option value="0" selected>D0 - Thanh ghi gốc</option>
+            <option value="100">D100 - Thanh ghi dữ liệu</option>
+            <option value="500">D500 - Thông số cài đặt</option>
+            <option value="1000">D1000 - Recipe / Đơn hàng</option>
+          </select>
+        </div>
+
+        <!-- Omron Query -->
+        <div id="omronQuery" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+          <span class="cfg-label">Vùng nhớ:</span>
+          <select id="omronArea" class="cfg-select w-md">
+            <option value="DM" selected>DM (Data Memory)</option>
+            <option value="CIO">CIO (Core I/O)</option>
+            <option value="WR">WR (Work Area)</option>
+            <option value="HR">HR (Holding Area)</option>
+            <option value="AR">AR (Auxiliary Area)</option>
+          </select>
+          <span class="cfg-label">Địa chỉ bắt đầu:</span>
+          <input type="number" id="omronAddress" class="cfg-input w-sm" value="0" min="0">
+          <span class="cfg-label">Số lượng:</span>
+          <input type="number" id="omronCount" class="cfg-input w-sm" value="10" min="1" max="100">
+          <span class="cfg-label">Biến mẫu:</span>
+          <select id="omronPreset" class="cfg-select" style="width: 170px;">
+            <option value="0" selected>D0 - Dữ liệu chính</option>
+            <option value="100">D100 - Thông số quy trình</option>
+            <option value="200">D200 - Kết quả đo kiểm</option>
+          </select>
+        </div>
+
+        <!-- Keyence Query -->
+        <div id="keyenceQuery" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+          <span class="cfg-label">Vùng nhớ:</span>
+          <select id="keyenceArea" class="cfg-select w-md">
+            <option value="DM" selected>DM (Data Memory)</option>
+            <option value="MR">MR (Internal Relay)</option>
+            <option value="EM">EM (Extended Memory)</option>
+            <option value="R">R (File Register)</option>
+            <option value="T">T (Timer)</option>
+            <option value="C">C (Counter)</option>
+          </select>
+          <span class="cfg-label">Địa chỉ bắt đầu:</span>
+          <input type="number" id="keyenceAddress" class="cfg-input w-sm" value="0" min="0">
+          <span class="cfg-label">Số lượng:</span>
+          <input type="number" id="keyenceCount" class="cfg-input w-sm" value="10" min="1" max="100">
+          <span class="cfg-label">Biến mẫu:</span>
+          <select id="keyencePreset" class="cfg-select" style="width: 170px;">
+            <option value="0" selected>DM0 - Bộ nhớ chính</option>
+            <option value="100">DM100 - Counter sản phẩm</option>
+            <option value="1000">DM1000 - Cài đặt Camera</option>
+          </select>
+        </div>
+
+        <!-- Delta Query -->
+        <div id="deltaQuery" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+          <span class="cfg-label">Vùng nhớ Delta:</span>
+          <select id="deltaArea" class="cfg-select w-md">
+            <option value="D" selected>D (Data Register)</option>
+            <option value="M">M (Internal Relay)</option>
+            <option value="Y">Y (Output Coil)</option>
+            <option value="X">X (Input Contact)</option>
+            <option value="T">T (Timer PV)</option>
+            <option value="C">C (Counter PV)</option>
+          </select>
+          <span class="cfg-label">Địa chỉ bắt đầu:</span>
+          <input type="number" id="deltaAddress" class="cfg-input w-sm" value="0" min="0">
+          <span class="cfg-label">Số lượng:</span>
+          <input type="number" id="deltaCount" class="cfg-input w-sm" value="10" min="1" max="100">
+          <span class="cfg-label">Biến mẫu:</span>
+          <select id="deltaPreset" class="cfg-select" style="width: 170px;">
+            <option value="0" selected>D0 - Data gốc</option>
+            <option value="100">D100 - Cài đặt</option>
+            <option value="0_M">M0 - Relay cờ</option>
+          </select>
+        </div>
+
+        <!-- LS ELECTRIC Query -->
+        <div id="lsQuery" class="cfg-group" style="display: none; align-items: center; gap: 8px;">
+          <span class="cfg-label">Vùng nhớ LS:</span>
+          <select id="lsArea" class="cfg-select w-md">
+            <option value="%MW" selected>%MW (Word Memory)</option>
+            <option value="D">D (Data Register)</option>
+            <option value="M">M (Bit Relay)</option>
+            <option value="P">P (I/O Contact)</option>
+            <option value="K">K (Keep Relay)</option>
+          </select>
+          <span class="cfg-label">Địa chỉ bắt đầu:</span>
+          <input type="number" id="lsAddress" class="cfg-input w-sm" value="0" min="0">
+          <span class="cfg-label">Số lượng:</span>
+          <input type="number" id="lsCount" class="cfg-input w-sm" value="10" min="1" max="100">
         </div>
 
         <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
@@ -378,7 +600,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10M12 12l4-4M12 12v6"/></svg>
           </span>
           <div>
-            <div style="font-weight: 700; font-size: 15px; color: #fff;">Chẩn đoán kết nối OPC UA PLC Siemens</div>
+            <div style="font-weight: 700; font-size: 15px; color: #fff;" id="modalDiagTitle">Chẩn đoán kết nối OPC UA PLC Siemens</div>
             <div style="font-size: 11px; color: var(--text-dim);" id="modalOpcUaEndpointText">opc.tcp://192.168.0.1:4840</div>
           </div>
         </div>

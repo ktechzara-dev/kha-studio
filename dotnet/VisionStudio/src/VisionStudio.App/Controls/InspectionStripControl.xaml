@@ -11,7 +11,7 @@
 
     <UserControl.Resources>
         <conv:StatusToBrushConverter x:Key="StatusBrushConverter"/>
-        <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
+        <conv:NullToVisibilityConverter x:Key="NullToVisConverter"/>
     </UserControl.Resources>
 
     <Grid>
@@ -75,21 +75,10 @@
                                 <Border Grid.Row="1" Background="{StaticResource KsBgBase}" CornerRadius="4" BorderBrush="{StaticResource KsBorder}" BorderThickness="0.5" ClipToBounds="True">
                                     <Grid>
                                         <Image Source="{Binding Thumbnail}" Stretch="Uniform"
-                                               Visibility="{Binding Thumbnail, Converter={StaticResource BoolToVisConverter}}"/>
+                                               Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisConverter}}"/>
                                         <!-- Placeholder when no image -->
                                         <TextBlock Text="No Image" Foreground="{StaticResource KsTextDim}" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   Visibility="{Binding Thumbnail, Converter={StaticResource BoolToVisConverter}, ConverterParameter=Inverse}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                                                   Visibility="{Binding Thumbnail, Converter={StaticResource NullToVisConverter}, ConverterParameter=Inverse}"/>
                                     </Grid>
                                 </Border>
 

@@ -5,10 +5,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
+using Point = System.Windows.Point;
 using VisionStudio.App.Converters;
 using VisionStudio.App.Services;
 using VisionStudio.Core.Models;
 using VisionStudio.Core.Overlays;
+using System.IO;
+using VisionStudio.Core.Parameters;
 using VisionStudio.Core.Pipeline;
 using VisionStudio.Core.Tools;
 
@@ -18,6 +21,8 @@ public enum InteractiveToolMode
 {
     PanZoom,
     RectangleRoi,
+    TeachTarget,
+    Eraser,
     LineCaliper,
     PointPicker,
     PolygonRoi
@@ -81,10 +86,14 @@ public partial class DesignViewModel : ObservableObject
     public event Action? RequestSwitchToImageViewer;
 
     public bool SelectedNodeSupportsRoi => SelectedNode?.Parameters.Any(p => p.Name is "X" or "CenterX" or "RoiX" or "Width" or "Radius" or "OuterRadius" or "CropX" or "Left" or "TopLeftX" or "X1" or "RoiWidth") == true;
-    public bool SelectedNodeSupportsLine => SelectedNode?.Parameters.Any(p => p.Name is "StartX" or "StartY" or "EndX" or "EndY" or "X1" or "Y1" or "X2" or "Y2" or "BaseStartX") == true;
+    public bool SelectedNodeSupportsLine => SelectedNode?.Parameters.Any(p => p.Name is "StartX" or "StartY" or "EndX" or "EndY" or "X1" or "Y1" or "X2" or "Y2" or "BaseStartX" or "LineStartX") == true;
     public bool SelectedNodeSupportsPoint => SelectedNode?.Parameters.Any(p => p.Name is "CenterX" or "CenterY" or "X" or "Y" or "PointX" or "PointY" or "X1" or "Y1") == true;
     public bool SelectedNodeSupportsPolygon => SelectedNode?.Parameters.Any(p => p.Name is "Points" or "PolygonPoints") == true;
-    public bool SelectedNodeSupportsInteractiveSelection => SelectedNodeSupportsRoi || SelectedNodeSupportsLine || SelectedNodeSupportsPoint || SelectedNodeSupportsPolygon;
+    public bool SelectedNodeSupportsTeach => SelectedNode?.ToolId.Contains("CartonCounter", StringComparison.OrdinalIgnoreCase) == true
+        || SelectedNode?.Parameters.Any(p => p.Name is "TeachTarget" or "TeachTemplate") == true;
+    public bool SelectedNodeSupportsClearRoi => SelectedNodeSupportsRoi || SelectedNodeSupportsTeach || SelectedNodeSupportsPolygon;
+    public bool SelectedNodeSupportsInteractiveSelection => SelectedNodeSupportsRoi || SelectedNodeSupportsLine || SelectedNodeSupportsPoint || SelectedNodeSupportsPolygon || SelectedNodeSupportsTeach;
+    public bool SelectedNodeIsCounter => SelectedNode?.ToolId.Contains("CartonCounter", StringComparison.OrdinalIgnoreCase) == true;
 
     [ObservableProperty]
     private bool _isGridSnapEnabled = true;
@@ -94,6 +103,24 @@ public partial class DesignViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isRunning = false;
+
+    [ObservableProperty]
+    private bool _isContinuousRunning = false;
+
+    [ObservableProperty]
+    private string _continuousRunButtonText = "▶️ Phát Video";
+
+    [ObservableProperty]
+    private bool _hasVideoSource = false;
+
+    [ObservableProperty]
+    private int _videoCurrentFrame = 0;
+
+    [ObservableProperty]
+    private int _videoTotalFrames = 0;
+
+    [ObservableProperty]
+    private string _videoTimeInfo = string.Empty;
 
     [ObservableProperty]
     private string _toolSearchText = string.Empty;
@@ -246,6 +273,8 @@ public partial class DesignViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedNodeSupportsLine));
         OnPropertyChanged(nameof(SelectedNodeSupportsPoint));
         OnPropertyChanged(nameof(SelectedNodeSupportsPolygon));
+        OnPropertyChanged(nameof(SelectedNodeSupportsTeach));
+        OnPropertyChanged(nameof(SelectedNodeSupportsClearRoi));
         OnPropertyChanged(nameof(SelectedNodeSupportsInteractiveSelection));
     }
 
@@ -300,12 +329,190 @@ public partial class DesignViewModel : ObservableObject
 
     /// <summary>
     /// Loads a full industrial sample inspection program
-    /// (CameraGrab -> Grayscale -> Gaussian -> Sub-pixel Caliper -> SPC Process Capability),
+    public static string ResolveSampleImagePath(string fileName)
+    {
+        var cleanName = Path.GetFileName(fileName);
+        var p1 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "samples", "images", cleanName);
+        if (File.Exists(p1)) return p1;
+
+        var p2 = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../../samples/images", cleanName));
+        if (File.Exists(p2)) return p2;
+
+        var p3 = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../samples/images", cleanName));
+        if (File.Exists(p3)) return p3;
+
+        var p4 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
+        if (File.Exists(p4)) return p4;
+
+        return p1;
+    }
+
+    public static string ResolvePipelinePath(string fileName)
+    {
+        var cleanName = Path.GetFileName(fileName);
+        var p1 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "samples", "pipelines", cleanName);
+        if (File.Exists(p1)) return p1;
+
+        var p2 = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../../samples/pipelines", cleanName));
+        if (File.Exists(p2)) return p2;
+
+        var p3 = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../samples/pipelines", cleanName));
+        if (File.Exists(p3)) return p3;
+
+        return p1;
+    }
+
+    public static string ResolveSampleVideoPath(string fileName)
+    {
+        var cleanName = Path.GetFileName(fileName);
+        var p1 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "samples", "videos", cleanName);
+        if (File.Exists(p1)) return p1;
+
+        var p2 = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../../samples/videos", cleanName));
+        if (File.Exists(p2)) return p2;
+
+        var p3 = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../samples/videos", cleanName));
+        if (File.Exists(p3)) return p3;
+
+        var p4 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
+        if (File.Exists(p4)) return p4;
+
+        return p1;
+    }
+
+    /// <summary>
+    /// Loads a pipeline directly from a .vspipe.json document, resolving sample image paths and restoring all connections.
+    /// </summary>
+    public async Task<bool> LoadPipelineFileAsync(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath))
+            {
+                var candidate = ResolvePipelinePath(filePath);
+                if (File.Exists(candidate)) filePath = candidate;
+                else return false;
+            }
+
+            var json = await File.ReadAllTextAsync(filePath);
+            var doc = System.Text.Json.JsonSerializer.Deserialize<SerializedPipelineDocument>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (doc == null) return false;
+
+            var origAutoRun = IsAutoRunEnabled;
+            IsAutoRunEnabled = false;
+
+            try
+            {
+                ResetPipeline();
+                _undoRedo.Clear();
+
+                foreach (var c in Connections.ToList()) DisconnectPortsInternal(c);
+                foreach (var n in Nodes.ToList()) _graph.RemoveNode(n.NodeId);
+                Nodes.Clear();
+                InspectionStrip.Clear();
+                _nodeCounter = 1;
+
+                var nodeMap = new Dictionary<string, NodeViewModel>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var nodeDto in doc.Nodes)
+                {
+                    if (!_toolRegistry.HasTool(nodeDto.ToolId)) continue;
+                    var nodeVm = AddNodeInternal(nodeDto.ToolId, nodeDto.X, nodeDto.Y);
+                    nodeVm.HasBreakpoint = nodeDto.HasBreakpoint;
+
+                    if (nodeDto.Parameters != null)
+                    {
+                        foreach (var (pName, pVal) in nodeDto.Parameters)
+                        {
+                            var targetParam = nodeVm.Parameters.FirstOrDefault(p => p.Name.Equals(pName, StringComparison.OrdinalIgnoreCase));
+                            if (targetParam != null && pVal != null)
+                            {
+                                if (targetParam.IsFilePath || pName.Contains("File", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var fileStr = pVal.ToString() ?? "";
+                                    var ext = Path.GetExtension(fileStr).ToLowerInvariant();
+                                    var resolved = (ext is ".avi" or ".mp4" or ".mkv" or ".mov" or ".wmv")
+                                        ? ResolveSampleVideoPath(fileStr)
+                                        : ResolveSampleImagePath(fileStr);
+                                    targetParam.StringValue = File.Exists(resolved) ? resolved : fileStr;
+                                }
+                                else if (pVal is System.Text.Json.JsonElement je)
+                                {
+                                    if (targetParam.IsDouble && je.TryGetDouble(out var d)) targetParam.DoubleValue = d;
+                                    else if (targetParam.IsInteger && je.TryGetInt32(out var i)) targetParam.IntValue = i;
+                                    else if (targetParam.IsBoolean) targetParam.BoolValue = je.GetBoolean();
+                                    else targetParam.StringValue = je.GetString() ?? je.ToString();
+                                }
+                                else
+                                {
+                                    if (targetParam.IsDouble) targetParam.DoubleValue = Convert.ToDouble(pVal);
+                                    else if (targetParam.IsInteger) targetParam.IntValue = Convert.ToInt32(pVal);
+                                    else if (targetParam.IsBoolean) targetParam.BoolValue = Convert.ToBoolean(pVal);
+                                    else targetParam.StringValue = pVal.ToString() ?? "";
+                                }
+                            }
+                        }
+                    }
+
+                    nodeMap[nodeDto.Id] = nodeVm;
+                }
+
+                foreach (var connDto in doc.Connections)
+                {
+                    if (nodeMap.TryGetValue(connDto.SourceNodeId, out var srcNode) &&
+                        nodeMap.TryGetValue(connDto.TargetNodeId, out var dstNode))
+                    {
+                        try
+                        {
+                            ConnectPortsInternal(srcNode, connDto.SourcePortId, dstNode, connDto.TargetPortId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to connect {Src} -> {Dst}", connDto.SourcePortId, connDto.TargetPortId);
+                        }
+                    }
+                }
+
+                SelectedNode = Nodes.FirstOrDefault(n => n.ToolId.Contains("CartonCounter"))
+                    ?? Nodes.LastOrDefault(n => !n.ToolId.Contains("CameraGrab") && !n.ToolId.Contains("Judge") && !n.ToolId.Contains("Output"))
+                    ?? Nodes.LastOrDefault(n => !n.ToolId.Contains("CameraGrab"))
+                    ?? Nodes.LastOrDefault();
+            }
+            finally
+            {
+                IsAutoRunEnabled = origAutoRun;
+            }
+
+            await RunPipelineAsync();
+            if (SelectedNode != null)
+            {
+                UpdateViewerFromNode(SelectedNode);
+            }
+
+            _logger.LogInformation("Successfully loaded pipeline file {Path}", filePath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load pipeline file {Path}", filePath);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Loads a full industrial sample inspection program
+    /// (CameraGrab with real sample test image -> Grayscale -> Gaussian -> Sub-pixel Caliper -> SPC Process Capability),
     /// wires all ports, runs execution immediately, and highlights the measurement result.
     /// </summary>
     [RelayCommand]
     public async Task LoadSampleInspectionPipelineAsync()
     {
+        // First try to load from the .vspipe.json file
+        if (await LoadPipelineFileAsync("01_caliper_dimension_measurement.vspipe.json"))
+        {
+            return;
+        }
+
         try
         {
             var origAutoRun = IsAutoRunEnabled;
@@ -333,8 +540,12 @@ public partial class DesignViewModel : ObservableObject
                 _nodeCounter = 1;
 
                 // 2. Instantiate and position nodes
-                // Node 1: Camera Acquisition (Synthetic Machined Part with circular bores)
+                // Node 1: Camera Acquisition (with real sample stepped shaft image)
                 var n1 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
+                var sampleImg = ResolveSampleImagePath("01_stepped_shaft_dimension.png");
+                var pFilePath = n1.Parameters.FirstOrDefault(p => p.Name == "FilePath");
+                if (pFilePath != null && File.Exists(sampleImg)) pFilePath.StringValue = sampleImg;
+
                 var pCamPattern = n1.Parameters.FirstOrDefault(p => p.Name == "Pattern");
                 if (pCamPattern != null) pCamPattern.StringValue = "TargetPart";
 
@@ -359,10 +570,10 @@ public partial class DesignViewModel : ObservableObject
                     var pY2 = n4.Parameters.FirstOrDefault(p => p.Name == "EndY");
                     var pScale = n4.Parameters.FirstOrDefault(p => p.Name == "ScaleMmPerPixel");
 
-                    if (pX1 != null) pX1.DoubleValue = 140.0;
-                    if (pY1 != null) pY1.DoubleValue = 240.0;
-                    if (pX2 != null) pX2.DoubleValue = 500.0;
-                    if (pY2 != null) pY2.DoubleValue = 240.0;
+                    if (pX1 != null) pX1.DoubleValue = 400.0;
+                    if (pY1 != null) pY1.DoubleValue = 120.0;
+                    if (pX2 != null) pX2.DoubleValue = 400.0;
+                    if (pY2 != null) pY2.DoubleValue = 480.0;
                     if (pScale != null) pScale.DoubleValue = 0.1; // 1 px = 0.1 mm
                 }
 
@@ -372,8 +583,8 @@ public partial class DesignViewModel : ObservableObject
                 {
                     var pLsl = n5.Parameters.FirstOrDefault(p => p.Name == "LowerSpecLimit");
                     var pUsl = n5.Parameters.FirstOrDefault(p => p.Name == "UpperSpecLimit");
-                    if (pLsl != null) pLsl.DoubleValue = 30.0;
-                    if (pUsl != null) pUsl.DoubleValue = 34.0;
+                    if (pLsl != null) pLsl.DoubleValue = 19.0;
+                    if (pUsl != null) pUsl.DoubleValue = 21.0;
                 }
 
                 // 3. Connect all ports
@@ -406,12 +617,34 @@ public partial class DesignViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Loads one of the 5 industrial application wizard presets.
+    /// Loads one of the 8 industrial application wizard presets with matching real test images.
     /// </summary>
     public async Task LoadPresetPipelineAsync(string presetType)
     {
         try
         {
+            string fileName = presetType switch
+            {
+                "MeasureDistance" or "01" or "Caliper" => "01_caliper_dimension_measurement.vspipe.json",
+                "ReadCodeAndGrade" or "02" or "Barcode" => "02_barcode_qr_and_iso_grading.vspipe.json",
+                "SurfaceDefect" or "03" or "PcbDefect" => "03_pcb_surface_defect_detection.vspipe.json",
+                "LocateAndPick" or "04" or "RobotGuidance" => "04_geometric_pattern_alignment_and_pick.vspipe.json",
+                "PillCounting" or "05" or "Tablets" => "05_pill_particle_blob_counting.vspipe.json",
+                "PresenceCheck" or "ColorCheck" or "06" => "06_color_sorting_presence_check.vspipe.json",
+                "PolarUnwrap" or "07" or "SealRing" => "07_bottle_cap_polar_inspection.vspipe.json",
+                "OcrExpiryDate" or "08" or "Ocr" => "08_optical_character_reading_ocr.vspipe.json",
+                "CartonCounter" or "BoxCounting" or "09" => "09_carton_deeplearning_cpm_counter.vspipe.json",
+                "AppleCounter" or "FruitCounting" or "10" => "10_apple_counter_quality_inspection.vspipe.json",
+                "BagCounter" or "BagCounting" or "11" => "11_bag_counter_directional.vspipe.json",
+                _ => "01_caliper_dimension_measurement.vspipe.json"
+            };
+
+            // Attempt file loading first
+            if (await LoadPipelineFileAsync(fileName))
+            {
+                return;
+            }
+
             var origAutoRun = IsAutoRunEnabled;
             IsAutoRunEnabled = false;
 
@@ -436,57 +669,238 @@ public partial class DesignViewModel : ObservableObject
                 switch (presetType)
                 {
                     case "MeasureDistance":
+                    case "01":
                         await LoadSampleInspectionPipelineAsync();
                         return;
 
-                    case "PresenceCheck":
-                        var cam1 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
-                        var gray1 = _toolRegistry.HasTool("Color.Grayscale") ? AddNodeInternal("Color.Grayscale", 320, 90) : null;
-                        var thresh1 = _toolRegistry.HasTool("Segmentation.Threshold") ? AddNodeInternal("Segmentation.Threshold", 590, 90) : null;
-                        var caliper1 = _toolRegistry.HasTool("Measurement.Caliper") ? AddNodeInternal("Measurement.Caliper", 860, 90) : null;
-
-                        if (cam1 != null && gray1 != null) ConnectPortsInternal(cam1, "Image", gray1, "ImageIn");
-                        if (gray1 != null && thresh1 != null) ConnectPortsInternal(gray1, "ImageOut", thresh1, "ImageIn");
-                        if (gray1 != null && caliper1 != null) ConnectPortsInternal(gray1, "ImageOut", caliper1, "ImageIn");
-                        SelectedNode = caliper1 ?? thresh1 ?? cam1;
-                        break;
-
                     case "ReadCodeAndGrade":
+                    case "02":
                         var cam2 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
+                        var img2 = ResolveSampleImagePath("02_industrial_codes_label.png");
+                        if (File.Exists(img2)) cam2.Parameters.FirstOrDefault(p => p.Name == "FilePath")!.StringValue = img2;
+
                         var gray2 = _toolRegistry.HasTool("Color.Grayscale") ? AddNodeInternal("Color.Grayscale", 320, 90) : null;
                         var barcode2 = _toolRegistry.HasTool("Identification.BarcodeReader") ? AddNodeInternal("Identification.BarcodeReader", 590, 90) : null;
                         var grade2 = _toolRegistry.HasTool("Grading.CodeQuality") ? AddNodeInternal("Grading.CodeQuality", 860, 90) : null;
 
                         if (cam2 != null && gray2 != null) ConnectPortsInternal(cam2, "Image", gray2, "ImageIn");
                         if (gray2 != null && barcode2 != null) ConnectPortsInternal(gray2, "ImageOut", barcode2, "ImageIn");
-                        if (barcode2 != null && grade2 != null) ConnectPortsInternal(barcode2, "AnnotatedImage", grade2, "ImageIn");
-                        SelectedNode = barcode2 ?? cam2;
-                        break;
-
-                    case "LocateAndPick":
-                        var cam3 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
-                        var gray3 = _toolRegistry.HasTool("Color.Grayscale") ? AddNodeInternal("Color.Grayscale", 320, 90) : null;
-                        var match3 = _toolRegistry.HasTool("Matching.GeometricMatcher") ? AddNodeInternal("Matching.GeometricMatcher", 590, 90)
-                                   : _toolRegistry.HasTool("Matching.TemplateMatch") ? AddNodeInternal("Matching.TemplateMatch", 590, 90) : null;
-                        var align3 = _toolRegistry.HasTool("Matching.PatternAlign") ? AddNodeInternal("Matching.PatternAlign", 860, 90) : null;
-
-                        if (cam3 != null && gray3 != null) ConnectPortsInternal(cam3, "Image", gray3, "ImageIn");
-                        if (gray3 != null && match3 != null) ConnectPortsInternal(gray3, "ImageOut", match3, "ImageIn");
-                        if (match3 != null && align3 != null) ConnectPortsInternal(match3, "OutputImage", align3, "ImageIn");
-                        SelectedNode = match3 ?? cam3;
+                        if (barcode2 != null && grade2 != null)
+                        {
+                            ConnectPortsInternal(barcode2, "ImageOut", grade2, "ImageIn");
+                            ConnectPortsInternal(barcode2, "DecodedText", grade2, "DecodedTextIn");
+                        }
+                        SelectedNode = grade2 ?? barcode2 ?? cam2;
                         break;
 
                     case "SurfaceDefect":
-                    default:
+                    case "03":
+                        var cam3 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
+                        var img3 = ResolveSampleImagePath("03_pcb_circuit_defect.png");
+                        if (File.Exists(img3)) cam3.Parameters.FirstOrDefault(p => p.Name == "FilePath")!.StringValue = img3;
+
+                        var gray3 = _toolRegistry.HasTool("Color.Grayscale") ? AddNodeInternal("Color.Grayscale", 320, 90) : null;
+                        var sharpen3 = _toolRegistry.HasTool("Filter.Sharpen") ? AddNodeInternal("Filter.Sharpen", 590, 90) : null;
+                        var thresh3 = _toolRegistry.HasTool("Segmentation.Threshold") ? AddNodeInternal("Segmentation.Threshold", 860, 90) : null;
+                        var blob3 = _toolRegistry.HasTool("Blob.Analysis") ? AddNodeInternal("Blob.Analysis", 1130, 90) : null;
+
+                        if (cam3 != null && gray3 != null) ConnectPortsInternal(cam3, "Image", gray3, "ImageIn");
+                        if (gray3 != null && sharpen3 != null) ConnectPortsInternal(gray3, "ImageOut", sharpen3, "ImageIn");
+                        if (sharpen3 != null && thresh3 != null) ConnectPortsInternal(sharpen3, "ImageOut", thresh3, "ImageIn");
+                        if (thresh3 != null && blob3 != null) ConnectPortsInternal(thresh3, "ImageOut", blob3, "ImageIn");
+                        SelectedNode = blob3 ?? thresh3 ?? cam3;
+                        break;
+
+                    case "LocateAndPick":
+                    case "04":
                         var cam4 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
+                        var img4 = ResolveSampleImagePath("04_gear_part_alignment.png");
+                        if (File.Exists(img4)) cam4.Parameters.FirstOrDefault(p => p.Name == "FilePath")!.StringValue = img4;
+
                         var gray4 = _toolRegistry.HasTool("Color.Grayscale") ? AddNodeInternal("Color.Grayscale", 320, 90) : null;
-                        var sharpen4 = _toolRegistry.HasTool("Filter.Sharpen") ? AddNodeInternal("Filter.Sharpen", 590, 90) : null;
-                        var thresh4 = _toolRegistry.HasTool("Segmentation.Threshold") ? AddNodeInternal("Segmentation.Threshold", 860, 90) : null;
+                        var thresh4 = _toolRegistry.HasTool("Segmentation.Threshold") ? AddNodeInternal("Segmentation.Threshold", 590, 90) : null;
+                        var blob4 = _toolRegistry.HasTool("Blob.Analysis") ? AddNodeInternal("Blob.Analysis", 860, 90) : null;
+                        var align4 = _toolRegistry.HasTool("Matching.PatternAlign") ? AddNodeInternal("Matching.PatternAlign", 1130, 90) : null;
 
                         if (cam4 != null && gray4 != null) ConnectPortsInternal(cam4, "Image", gray4, "ImageIn");
-                        if (gray4 != null && sharpen4 != null) ConnectPortsInternal(gray4, "ImageOut", sharpen4, "ImageIn");
-                        if (sharpen4 != null && thresh4 != null) ConnectPortsInternal(sharpen4, "ImageOut", thresh4, "ImageIn");
-                        SelectedNode = thresh4 ?? sharpen4 ?? cam4;
+                        if (gray4 != null && thresh4 != null) ConnectPortsInternal(gray4, "ImageOut", thresh4, "ImageIn");
+                        if (thresh4 != null && blob4 != null) ConnectPortsInternal(thresh4, "ImageOut", blob4, "ImageIn");
+                        if (blob4 != null && align4 != null)
+                        {
+                            ConnectPortsInternal(blob4, "PrimaryCenterX", align4, "CurrentX");
+                            ConnectPortsInternal(blob4, "PrimaryCenterY", align4, "CurrentY");
+                        }
+                        SelectedNode = align4 ?? blob4 ?? cam4;
+                        break;
+
+                    case "PillCounting":
+                    case "05":
+                        var cam5 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
+                        var img5 = ResolveSampleImagePath("05_pharmaceutical_tablets.png");
+                        if (File.Exists(img5)) cam5.Parameters.FirstOrDefault(p => p.Name == "FilePath")!.StringValue = img5;
+
+                        var gray5 = _toolRegistry.HasTool("Color.Grayscale") ? AddNodeInternal("Color.Grayscale", 320, 90) : null;
+                        var thresh5 = _toolRegistry.HasTool("Segmentation.Threshold") ? AddNodeInternal("Segmentation.Threshold", 590, 90) : null;
+                        var morph5 = _toolRegistry.HasTool("Morphology.Basic") ? AddNodeInternal("Morphology.Basic", 860, 90) : null;
+                        var blob5 = _toolRegistry.HasTool("Blob.Analysis") ? AddNodeInternal("Blob.Analysis", 1130, 90) : null;
+
+                        if (cam5 != null && gray5 != null) ConnectPortsInternal(cam5, "Image", gray5, "ImageIn");
+                        if (gray5 != null && thresh5 != null) ConnectPortsInternal(gray5, "ImageOut", thresh5, "ImageIn");
+                        if (thresh5 != null && morph5 != null) ConnectPortsInternal(thresh5, "ImageOut", morph5, "ImageIn");
+                        if (morph5 != null && blob5 != null) ConnectPortsInternal(morph5, "ImageOut", blob5, "ImageIn");
+                        SelectedNode = blob5 ?? thresh5 ?? cam5;
+                        break;
+
+                    case "PresenceCheck":
+                    case "ColorCheck":
+                    case "06":
+                        var cam6 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
+                        var img6 = ResolveSampleImagePath("06_colored_bottle_caps.png");
+                        if (File.Exists(img6)) cam6.Parameters.FirstOrDefault(p => p.Name == "FilePath")!.StringValue = img6;
+
+                        var crop6 = _toolRegistry.HasTool("Geometry.Crop") ? AddNodeInternal("Geometry.Crop", 320, 90) : null;
+                        var color6 = _toolRegistry.HasTool("Identification.ColorCheck") ? AddNodeInternal("Identification.ColorCheck", 590, 90) : null;
+                        var pres6 = _toolRegistry.HasTool("Identification.PresenceAbsence") ? AddNodeInternal("Identification.PresenceAbsence", 860, 90) : null;
+
+                        if (cam6 != null && crop6 != null) ConnectPortsInternal(cam6, "Image", crop6, "ImageIn");
+                        if (crop6 != null && color6 != null) ConnectPortsInternal(crop6, "ImageOut", color6, "ImageIn");
+                        if (crop6 != null && pres6 != null) ConnectPortsInternal(crop6, "ImageOut", pres6, "ImageIn");
+                        SelectedNode = color6 ?? pres6 ?? crop6 ?? cam6;
+                        break;
+
+                    case "PolarUnwrap":
+                    case "07":
+                        var cam7 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
+                        var img7 = ResolveSampleImagePath("07_circular_seal_ring.png");
+                        if (File.Exists(img7)) cam7.Parameters.FirstOrDefault(p => p.Name == "FilePath")!.StringValue = img7;
+
+                        var gray7 = _toolRegistry.HasTool("Color.Grayscale") ? AddNodeInternal("Color.Grayscale", 320, 90) : null;
+                        var polar7 = _toolRegistry.HasTool("Geometry.PolarUnwrap") ? AddNodeInternal("Geometry.PolarUnwrap", 590, 90) : null;
+                        if (polar7 != null) polar7.Parameters.FirstOrDefault(p => p.Name == "MaxRadius")!.DoubleValue = 260.0;
+
+                        var gaus7 = _toolRegistry.HasTool("Filter.Gaussian") ? AddNodeInternal("Filter.Gaussian", 860, 90) : null;
+                        var caliper7 = _toolRegistry.HasTool("Measurement.Caliper") ? AddNodeInternal("Measurement.Caliper", 1130, 90) : null;
+
+                        if (cam7 != null && gray7 != null) ConnectPortsInternal(cam7, "Image", gray7, "ImageIn");
+                        if (gray7 != null && polar7 != null) ConnectPortsInternal(gray7, "ImageOut", polar7, "ImageIn");
+                        if (polar7 != null && gaus7 != null) ConnectPortsInternal(polar7, "ImageOut", gaus7, "ImageIn");
+                        if (gaus7 != null && caliper7 != null) ConnectPortsInternal(gaus7, "ImageOut", caliper7, "ImageIn");
+                        SelectedNode = caliper7 ?? polar7 ?? cam7;
+                        break;
+
+                    case "OcrExpiryDate":
+                    case "08":
+                    default:
+                        var cam8 = AddNodeInternal("Acquisition.CameraGrab", 50, 90);
+                        var img8 = ResolveSampleImagePath("08_food_pack_expiry_date.png");
+                        if (File.Exists(img8)) cam8.Parameters.FirstOrDefault(p => p.Name == "FilePath")!.StringValue = img8;
+
+                        var gray8 = _toolRegistry.HasTool("Color.Grayscale") ? AddNodeInternal("Color.Grayscale", 320, 90) : null;
+                        var sharp8 = _toolRegistry.HasTool("Filter.Sharpen") ? AddNodeInternal("Filter.Sharpen", 590, 90) : null;
+                        var ocr8 = _toolRegistry.HasTool("Ocr.TrainableOcr") ? AddNodeInternal("Ocr.TrainableOcr", 860, 90) : null;
+                        if (ocr8 != null) ocr8.Parameters.FirstOrDefault(p => p.Name == "ExpectedString")!.StringValue = "EXP: 2028-12-31";
+
+                        if (cam8 != null && gray8 != null) ConnectPortsInternal(cam8, "Image", gray8, "ImageIn");
+                        if (gray8 != null && sharp8 != null) ConnectPortsInternal(gray8, "ImageOut", sharp8, "ImageIn");
+                        if (sharp8 != null && ocr8 != null) ConnectPortsInternal(sharp8, "ImageOut", ocr8, "ImageIn");
+                        SelectedNode = ocr8 ?? sharp8 ?? cam8;
+                        break;
+
+                    case "CartonCounter":
+                    case "BoxCounting":
+                    case "09":
+                        var cam9 = _toolRegistry.HasTool("Acquisition.VideoFile")
+                            ? AddNodeInternal("Acquisition.VideoFile", 60, 90)
+                            : AddNodeInternal("Acquisition.CameraGrab", 60, 90);
+                        var video9 = ResolveSampleVideoPath("09_conveyor_boxes_flow.avi");
+                        if (File.Exists(video9) && cam9 != null)
+                        {
+                            var pPath = cam9.Parameters.FirstOrDefault(p => p.Name == "FilePath");
+                            if (pPath != null) pPath.StringValue = video9;
+                        }
+
+                        var carton9 = _toolRegistry.HasTool("DeepLearning.CartonCounter")
+                            ? AddNodeInternal("DeepLearning.CartonCounter", 480, 90)
+                            : null;
+                        var judge9 = _toolRegistry.HasTool("Output.Judge")
+                            ? AddNodeInternal("Output.Judge", 900, 90)
+                            : null;
+
+                        if (cam9 != null && carton9 != null)
+                        {
+                            ConnectPortsInternal(cam9, "Image", carton9, "ImageIn");
+                        }
+                        if (carton9 != null && judge9 != null)
+                        {
+                            ConnectPortsInternal(carton9, "BoxesPerMinute", judge9, "Value");
+                        }
+                        SelectedNode = carton9 ?? judge9 ?? cam9;
+                        break;
+
+                    case "AppleCounter":
+                    case "FruitCounting":
+                    case "10":
+                        var cam10 = _toolRegistry.HasTool("Acquisition.VideoFile")
+                            ? AddNodeInternal("Acquisition.VideoFile", 60, 90)
+                            : AddNodeInternal("Acquisition.CameraGrab", 60, 90);
+                        var apple10 = _toolRegistry.HasTool("DeepLearning.CartonCounter")
+                            ? AddNodeInternal("DeepLearning.CartonCounter", 480, 90)
+                            : null;
+                        if (apple10 != null)
+                        {
+                            var pObj = apple10.Parameters.FirstOrDefault(p => p.Name == "TargetObjectType");
+                            if (pObj != null) pObj.StringValue = "Apple_Fruit";
+                            var pHud = apple10.Parameters.FirstOrDefault(p => p.Name == "HudDashboardLayout");
+                            if (pHud != null) pHud.StringValue = "RightDashboard";
+                            var pBadge = apple10.Parameters.FirstOrDefault(p => p.Name == "BadgeStyle");
+                            if (pBadge != null) pBadge.StringValue = "VibrantPill";
+                        }
+                        var judge10 = _toolRegistry.HasTool("Output.Judge")
+                            ? AddNodeInternal("Output.Judge", 920, 90)
+                            : null;
+
+                        if (cam10 != null && apple10 != null)
+                        {
+                            ConnectPortsInternal(cam10, "Image", apple10, "ImageIn");
+                        }
+                        if (apple10 != null && judge10 != null)
+                        {
+                            ConnectPortsInternal(apple10, "QualityPercent", judge10, "Value");
+                        }
+                        SelectedNode = apple10 ?? judge10 ?? cam10;
+                        break;
+
+                    case "BagCounter":
+                    case "BagCounting":
+                    case "11":
+                        var cam11 = _toolRegistry.HasTool("Acquisition.VideoFile")
+                            ? AddNodeInternal("Acquisition.VideoFile", 60, 90)
+                            : AddNodeInternal("Acquisition.CameraGrab", 60, 90);
+                        var bag11 = _toolRegistry.HasTool("DeepLearning.CartonCounter")
+                            ? AddNodeInternal("DeepLearning.CartonCounter", 480, 90)
+                            : null;
+                        if (bag11 != null)
+                        {
+                            var pObj = bag11.Parameters.FirstOrDefault(p => p.Name == "TargetObjectType");
+                            if (pObj != null) pObj.StringValue = "Bag_Package";
+                            var pHud = bag11.Parameters.FirstOrDefault(p => p.Name == "HudDashboardLayout");
+                            if (pHud != null) pHud.StringValue = "TopBanner";
+                            var pBadge = bag11.Parameters.FirstOrDefault(p => p.Name == "BadgeStyle");
+                            if (pBadge != null) pBadge.StringValue = "VibrantPill";
+                        }
+                        var judge11 = _toolRegistry.HasTool("Output.Judge")
+                            ? AddNodeInternal("Output.Judge", 920, 90)
+                            : null;
+
+                        if (cam11 != null && bag11 != null)
+                        {
+                            ConnectPortsInternal(cam11, "Image", bag11, "ImageIn");
+                        }
+                        if (bag11 != null && judge11 != null)
+                        {
+                            ConnectPortsInternal(bag11, "BoxesPerMinute", judge11, "Value");
+                        }
+                        SelectedNode = bag11 ?? judge11 ?? cam11;
                         break;
                 }
             }
@@ -511,17 +925,29 @@ public partial class DesignViewModel : ObservableObject
 
     #region Pipeline Execution
 
+    private bool _hasPendingRun;
+    private CancellationTokenSource? _continuousCts;
+
     [RelayCommand]
     public async Task RunPipelineAsync()
     {
-        if (IsRunning) return;
-        IsRunning = true;
+        if (IsRunning)
+        {
+            _hasPendingRun = true;
+            return;
+        }
 
+        IsRunning = true;
         try
         {
-            _runCts = new CancellationTokenSource();
-            var report = await _executor.ExecuteAsync(_graph, stopAtBreakpoints: false, _runCts.Token);
-            ApplyExecutionReport(report);
+            do
+            {
+                _hasPendingRun = false;
+                _runCts = new CancellationTokenSource();
+                foreach (var n in _graph.Nodes) n.MarkDirty();
+                var report = await _executor.ExecuteAsync(_graph, stopAtBreakpoints: false, _runCts.Token);
+                ApplyExecutionReport(report);
+            } while (_hasPendingRun);
         }
         catch (Exception ex)
         {
@@ -530,6 +956,194 @@ public partial class DesignViewModel : ObservableObject
         finally
         {
             IsRunning = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task ToggleContinuousRunAsync()
+    {
+        if (IsContinuousRunning)
+        {
+            StopContinuousRun();
+            return;
+        }
+
+        IsContinuousRunning = true;
+        ContinuousRunButtonText = "⏹️ Dừng Video";
+        _continuousCts = new CancellationTokenSource();
+        var ct = _continuousCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!ct.IsCancellationRequested && IsContinuousRunning)
+                {
+                    foreach (var n in _graph.Nodes) n.MarkDirty();
+
+                    var report = await _executor.ExecuteAsync(_graph, stopAtBreakpoints: false, ct);
+
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        ApplyExecutionReport(report);
+                        if (SelectedNode != null)
+                        {
+                            UpdateViewerFromNode(SelectedNode);
+                        }
+                    });
+
+                    var delay = Math.Max(10, 33 - (int)report.TotalTime.TotalMilliseconds);
+                    await Task.Delay(delay, ct);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Continuous video playback loop error.");
+            }
+            finally
+            {
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    IsContinuousRunning = false;
+                    ContinuousRunButtonText = "▶️ Phát Video";
+                });
+            }
+        }, ct);
+    }
+
+    public void StopContinuousRun()
+    {
+        if (!IsContinuousRunning) return;
+        _continuousCts?.Cancel();
+        IsContinuousRunning = false;
+        ContinuousRunButtonText = "▶️ Phát Video";
+    }
+
+    public IVideoSeekable? GetActiveVideoSource()
+    {
+        foreach (var node in _graph.Nodes)
+        {
+            if (node.Tool is IVideoSeekable seekable)
+            {
+                return seekable;
+            }
+        }
+        return null;
+    }
+
+    public void UpdateVideoState()
+    {
+        var v = GetActiveVideoSource();
+        if (v != null && v.IsVideoLoaded)
+        {
+            HasVideoSource = true;
+            VideoCurrentFrame = v.CurrentFrame;
+            VideoTotalFrames = Math.Max(VideoCurrentFrame, v.TotalFrames);
+
+            double fps = v.Fps > 0 ? v.Fps : 30.0;
+            var curTime = TimeSpan.FromSeconds(v.CurrentFrame / fps);
+            var totTime = TimeSpan.FromSeconds(VideoTotalFrames / fps);
+            VideoTimeInfo = $"{curTime:mm\\:ss\\.f} / {totTime:mm\\:ss\\.f} (Frame #{v.CurrentFrame}/{VideoTotalFrames})";
+        }
+        else
+        {
+            HasVideoSource = v != null;
+            if (v != null)
+            {
+                VideoCurrentFrame = v.CurrentFrame;
+                VideoTotalFrames = v.TotalFrames;
+            }
+        }
+    }
+
+    public void PreviewSeekTime(int targetFrame)
+    {
+        var v = GetActiveVideoSource();
+        if (v != null)
+        {
+            double fps = v.Fps > 0 ? v.Fps : 30.0;
+            int total = Math.Max(targetFrame, VideoTotalFrames);
+            var curTime = TimeSpan.FromSeconds(targetFrame / fps);
+            var totTime = TimeSpan.FromSeconds(total / fps);
+            VideoTimeInfo = $"{curTime:mm\\:ss\\.f} / {totTime:mm\\:ss\\.f} (Tua tới #{targetFrame}/{total})";
+        }
+    }
+
+    [RelayCommand]
+    public void RestartVideo()
+    {
+        var v = GetActiveVideoSource();
+        if (v != null)
+        {
+            v.Restart();
+            foreach (var n in _graph.Nodes)
+            {
+                n.CachedResult = null;
+                n.IsDirty = true;
+                if (n.Tool is not IVideoSeekable)
+                {
+                    try { n.Tool?.Reset(); } catch { }
+                }
+            }
+            if (!IsContinuousRunning)
+            {
+                _ = RunPipelineAsync();
+            }
+            UpdateVideoState();
+            InteractiveStatusHint = "⏮️ Đã phát lại video từ đầu (Frame #0) và đặt lại bộ đếm!";
+        }
+        else
+        {
+            ResetPipeline();
+            if (!IsContinuousRunning)
+            {
+                _ = RunPipelineAsync();
+            }
+            InteractiveStatusHint = "⏮️ Đã đặt lại trạng thái xử lý kịch bản!";
+        }
+    }
+
+    [RelayCommand]
+    public void StepForwardVideo()
+    {
+        SeekVideoTo(VideoCurrentFrame + 30);
+    }
+
+    [RelayCommand]
+    public void StepBackwardVideo()
+    {
+        SeekVideoTo(Math.Max(0, VideoCurrentFrame - 30));
+    }
+
+    public void SeekVideoTo(int targetFrame)
+    {
+        var v = GetActiveVideoSource();
+        if (v != null)
+        {
+            v.Seek(targetFrame);
+            // If seeking, reset downstream trackers so counts don't jump wildly
+            foreach (var n in _graph.Nodes)
+            {
+                if (n.Tool is not IVideoSeekable)
+                {
+                    n.CachedResult = null;
+                    n.IsDirty = true;
+                    try { n.Tool?.Reset(); } catch { }
+                }
+                else
+                {
+                    n.CachedResult = null;
+                    n.IsDirty = true;
+                }
+            }
+
+            if (!IsContinuousRunning)
+            {
+                _ = RunPipelineAsync();
+            }
+            UpdateVideoState();
+            InteractiveStatusHint = $"⏩ Đã tua tới Frame #{targetFrame}/{VideoTotalFrames}";
         }
     }
 
@@ -620,6 +1234,19 @@ public partial class DesignViewModel : ObservableObject
             }
         }
 
+        // Ensure every node in the pipeline has a valid thumbnail (fallback to associated upstream image)
+        foreach (var nodeVm in Nodes)
+        {
+            if (nodeVm.Thumbnail == null)
+            {
+                var frame = FindAssociatedImageFrame(nodeVm);
+                if (frame != null && !frame.Mat.IsDisposed)
+                {
+                    nodeVm.Thumbnail = ImageConversionHelper.CreateThumbnail(frame.Mat, 96);
+                }
+            }
+        }
+
         foreach (var item in InspectionStrip)
         {
             item.Refresh();
@@ -630,6 +1257,8 @@ public partial class DesignViewModel : ObservableObject
         {
             UpdateViewerFromNode(targetNode);
         }
+
+        UpdateVideoState();
     }
 
     [RelayCommand]
@@ -651,6 +1280,7 @@ public partial class DesignViewModel : ObservableObject
         {
             pNode.CachedResult = null;
             pNode.IsDirty = true;
+            try { pNode.Tool?.Reset(); } catch { }
         }
 
         foreach (var n in Nodes)
@@ -697,18 +1327,9 @@ public partial class DesignViewModel : ObservableObject
 
         var res = node.LastResult;
         DisplayedTitle = $"{node.DisplayName} ({node.NodeId})";
-        DisplayedOverlays = res.Overlays;
 
-        // Find primary output image
-        ImageFrame? frame = null;
-        foreach (var val in res.Outputs.Values)
-        {
-            if (val is ImageFrame f)
-            {
-                frame = f;
-                break;
-            }
-        }
+        // Find primary output image directly or trace upstream through the DAG
+        var frame = FindAssociatedImageFrame(node);
 
         if (frame != null && !frame.Mat.IsDisposed)
         {
@@ -720,6 +1341,142 @@ public partial class DesignViewModel : ObservableObject
             DisplayedImage = null;
             DisplayedImageInfo = $"{res.ExecutionTime.TotalMilliseconds:F1} ms | Outputs: {res.Outputs.Count} | Status: {res.Status}";
         }
+
+        // Overlays: If current node has its own overlays (e.g. SPC text box, Caliper lines, Bounding boxes), show them!
+        if (res.Overlays != null && res.Overlays.Count > 0)
+        {
+            DisplayedOverlays = res.Overlays;
+        }
+        else
+        {
+            // If current node has no overlays of its own, check if the upstream node that produced the image has overlays
+            DisplayedOverlays = FindUpstreamOverlays(node);
+        }
+    }
+
+    /// <summary>
+    /// Finds the active image frame associated with a node:
+    /// 1. Direct output ImageFrame from this node.
+    /// 2. Upstream DAG incoming connections trace.
+    /// 3. Backwards sequence fallback.
+    /// 4. Any camera or image node in the active graph.
+    /// </summary>
+    public ImageFrame? FindAssociatedImageFrame(NodeViewModel? node)
+    {
+        if (node == null) return null;
+
+        // 1. Direct output from node itself
+        if (node.LastResult != null)
+        {
+            foreach (var val in node.LastResult.Outputs.Values)
+            {
+                if (val is ImageFrame f && !f.Mat.IsDisposed) return f;
+            }
+        }
+
+        // 2. Upstream DAG search via incoming connections (BFS)
+        var visited = new HashSet<string> { node.NodeId };
+        var queue = new Queue<NodeViewModel>();
+
+        foreach (var conn in Connections)
+        {
+            if (conn.TargetPort?.Node?.NodeId == node.NodeId && conn.SourcePort?.Node != null)
+            {
+                if (visited.Add(conn.SourcePort.Node.NodeId))
+                {
+                    queue.Enqueue(conn.SourcePort.Node);
+                }
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            var curr = queue.Dequeue();
+            if (curr.LastResult != null)
+            {
+                foreach (var val in curr.LastResult.Outputs.Values)
+                {
+                    if (val is ImageFrame f && !f.Mat.IsDisposed) return f;
+                }
+            }
+
+            foreach (var conn in Connections)
+            {
+                if (conn.TargetPort?.Node?.NodeId == curr.NodeId && conn.SourcePort?.Node != null)
+                {
+                    if (visited.Add(conn.SourcePort.Node.NodeId))
+                    {
+                        queue.Enqueue(conn.SourcePort.Node);
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback: Search backwards in Nodes list
+        int idx = Nodes.IndexOf(node);
+        if (idx > 0)
+        {
+            for (int i = idx - 1; i >= 0; i--)
+            {
+                var prev = Nodes[i];
+                if (prev.LastResult != null)
+                {
+                    foreach (var val in prev.LastResult.Outputs.Values)
+                    {
+                        if (val is ImageFrame f && !f.Mat.IsDisposed) return f;
+                    }
+                }
+            }
+        }
+
+        // 4. Fallback: Any node in the entire graph with an active image (e.g. CameraGrab)
+        foreach (var n in Nodes)
+        {
+            if (n.LastResult != null)
+            {
+                foreach (var val in n.LastResult.Outputs.Values)
+                {
+                    if (val is ImageFrame f && !f.Mat.IsDisposed) return f;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private IReadOnlyList<IOverlayPrimitive>? FindUpstreamOverlays(NodeViewModel node)
+    {
+        var visited = new HashSet<string> { node.NodeId };
+        var queue = new Queue<NodeViewModel>();
+
+        foreach (var conn in Connections)
+        {
+            if (conn.TargetPort?.Node?.NodeId == node.NodeId && conn.SourcePort?.Node != null)
+            {
+                if (visited.Add(conn.SourcePort.Node.NodeId))
+                    queue.Enqueue(conn.SourcePort.Node);
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            var curr = queue.Dequeue();
+            if (curr.LastResult?.Overlays != null && curr.LastResult.Overlays.Count > 0)
+            {
+                return curr.LastResult.Overlays;
+            }
+
+            foreach (var conn in Connections)
+            {
+                if (conn.TargetPort?.Node?.NodeId == curr.NodeId && conn.SourcePort?.Node != null)
+                {
+                    if (visited.Add(conn.SourcePort.Node.NodeId))
+                        queue.Enqueue(conn.SourcePort.Node);
+                }
+            }
+        }
+
+        return null;
     }
 
     public void SamplePixelAt(int x, int y)
@@ -733,11 +1490,7 @@ public partial class DesignViewModel : ObservableObject
             return;
         }
 
-        ImageFrame? frame = null;
-        foreach (var v in SelectedNode.LastResult.Outputs.Values)
-        {
-            if (v is ImageFrame f) { frame = f; break; }
-        }
+        var frame = FindAssociatedImageFrame(SelectedNode);
 
         if (frame != null && !frame.Mat.IsDisposed)
         {
@@ -763,10 +1516,26 @@ public partial class DesignViewModel : ObservableObject
         switch (mode)
         {
             case InteractiveToolMode.RectangleRoi:
-                InteractiveModeText = "Chế độ: Vùng chọn hình chữ nhật ROI";
+                InteractiveModeText = "Chế độ: Vùng Quét Kiểm Tra ROI (Scan ROI)";
                 InteractiveStatusHint = SelectedNode != null
-                    ? $"Kéo chuột trái trên ảnh để gán ROI cho [{SelectedNode.DisplayName}]"
-                    : "Kéo chuột trái trên ảnh để vẽ vùng chọn ROI";
+                    ? $"Kéo chuột trái trên ảnh để gán VÙNG QUÉT ROI cho [{SelectedNode.DisplayName}]"
+                    : "Kéo chuột trái trên ảnh để vẽ vùng quét ROI";
+                RequestSwitchToImageViewer?.Invoke();
+                break;
+
+            case InteractiveToolMode.TeachTarget:
+                InteractiveModeText = "Chế độ: Dạy Mẫu Vật Thể (Teach Target)";
+                InteractiveStatusHint = SelectedNode != null
+                    ? $"👉 Kéo chuột trái khoanh mẫu vật thể chuẩn trên ảnh để Dạy Mẫu cho [{SelectedNode.DisplayName}]"
+                    : "Kéo chuột trái khoanh mẫu vật thể chuẩn để Dạy Mẫu (Teach Target)";
+                RequestSwitchToImageViewer?.Invoke();
+                break;
+
+            case InteractiveToolMode.Eraser:
+                InteractiveModeText = "Chế độ: Cục Tẩy Xóa Vùng Quét ROI (Eraser)";
+                InteractiveStatusHint = SelectedNode != null
+                    ? $"🧽 Nhấp chuột trái trên ảnh để TẨY SẠCH vùng quét ROI lỡ khoanh của [{SelectedNode.DisplayName}]"
+                    : "Nhấp chuột trái trên ảnh để tẩy sạch vùng quét ROI";
                 RequestSwitchToImageViewer?.Invoke();
                 break;
 
@@ -805,6 +1574,130 @@ public partial class DesignViewModel : ObservableObject
     public void SelectRoiOnImage() => SetInteractionMode(InteractiveToolMode.RectangleRoi);
 
     [RelayCommand]
+    public void TeachSelectedNodeTarget()
+    {
+        if (SelectedNode == null) return;
+        SetInteractionMode(InteractiveToolMode.TeachTarget);
+        InteractiveStatusHint = $"👉 Kéo chuột trái khoanh mẫu vật thể chuẩn trên ảnh: Hệ thống sẽ tạo VÙNG MẪU DẠY RIÊNG BIỆT và khóa nhận diện ngay!";
+    }
+
+    [RelayCommand]
+    public void EraseSelectedNodeScanRoi()
+    {
+        if (SelectedNode == null) return;
+
+        var origAuto = IsAutoRunEnabled;
+        try
+        {
+            IsAutoRunEnabled = false;
+            foreach (var name in new[] { "RoiX", "RoiY", "RoiWidth", "RoiHeight", "ScanRoiX", "ScanRoiY", "ScanRoiWidth", "ScanRoiHeight" })
+            {
+                var p = SelectedNode.Parameters.FirstOrDefault(param => param.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (p != null) p.DoubleValue = 0.0;
+            }
+        }
+        finally
+        {
+            IsAutoRunEnabled = origAuto;
+        }
+
+        var pNode = _graph.GetNode(SelectedNode.NodeId);
+        if (pNode?.Tool is VisionStudio.DeepLearning.Tools.CartonThroughputCounterTool cartonTool)
+        {
+            cartonTool.ResetScanRoi();
+        }
+
+        SetInteractionMode(InteractiveToolMode.PanZoom);
+        pNode?.MarkDirty();
+        _ = RunPipelineAsync();
+        InteractiveStatusHint = $"🧽 ĐÃ TẨY VÙNG QUÉT ROI của [{SelectedNode.DisplayName}]! Quay lại quét toàn màn hình.";
+    }
+
+    [RelayCommand]
+    public void ClearSelectedNodeRoi()
+    {
+        if (SelectedNode == null) return;
+
+        var origAuto = IsAutoRunEnabled;
+        try
+        {
+            IsAutoRunEnabled = false;
+
+            // Clear box & ROI coordinates
+            foreach (var name in new[] { "RoiX", "RoiY", "RoiWidth", "RoiHeight",
+                                         "X", "Y", "Width", "Height",
+                                         "OriginX", "OriginY", "CropX", "CropY", "Left", "Top", "TopLeftX", "TopLeftY",
+                                         "CenterX", "CenterY", "Radius", "OuterRadius", "InnerRadius" })
+            {
+                var p = SelectedNode.Parameters.FirstOrDefault(param => param.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (p != null) p.DoubleValue = 0.0;
+            }
+
+            // If node is a pure line/caliper tool without box ROI, clear line coords
+            if (SelectedNodeSupportsLine && !SelectedNodeSupportsRoi)
+            {
+                foreach (var name in new[] { "StartX", "StartY", "EndX", "EndY", "X1", "Y1", "X2", "Y2", "BaseStartX", "BaseStartY", "BaseEndX", "BaseEndY" })
+                {
+                    var p = SelectedNode.Parameters.FirstOrDefault(param => param.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                    if (p != null) p.DoubleValue = 0.0;
+                }
+            }
+
+            var pTeach = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TeachTarget" or "TeachTemplate");
+            if (pTeach != null) pTeach.BoolValue = false;
+
+            var pIsTeached = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "IsTeached");
+            if (pIsTeached != null) pIsTeached.BoolValue = false;
+
+            var pTargetType = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TargetObjectType");
+            if (pTargetType != null && pTargetType.StringValue == "CustomTaught") pTargetType.StringValue = "General";
+        }
+        finally
+        {
+            IsAutoRunEnabled = origAuto;
+        }
+
+        var pNode = _graph.GetNode(SelectedNode.NodeId);
+        if (pNode?.Tool is VisionStudio.DeepLearning.Tools.CartonThroughputCounterTool cartonTool)
+        {
+            cartonTool.ResetTeach();
+            cartonTool.Reset();
+        }
+
+        SetInteractionMode(InteractiveToolMode.PanZoom);
+
+        pNode?.MarkDirty();
+        _ = RunPipelineAsync();
+        InteractiveStatusHint = $"🧹 Đã xóa sạch vùng chọn ROI và hủy mẫu dạy của [{SelectedNode.DisplayName}]!";
+    }
+
+    [RelayCommand]
+    public void ResetSelectedNodeTeach()
+    {
+        if (SelectedNode == null) return;
+
+        var pTeach = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TeachTarget" or "TeachTemplate");
+        if (pTeach != null) pTeach.BoolValue = false;
+
+        var pIsTeached = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "IsTeached");
+        if (pIsTeached != null) pIsTeached.BoolValue = false;
+
+        var pTargetType = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TargetObjectType");
+        if (pTargetType != null) pTargetType.StringValue = "General";
+
+        var pNode = _graph.GetNode(SelectedNode.NodeId);
+        if (pNode?.Tool is VisionStudio.DeepLearning.Tools.CartonThroughputCounterTool cartonTool)
+        {
+            cartonTool.ResetTeach();
+            cartonTool.Reset();
+        }
+
+        pNode?.MarkDirty();
+        _ = RunPipelineAsync();
+        InteractiveStatusHint = $"🔄 Đã hủy mẫu đã dạy của [{SelectedNode.DisplayName}]! Quay lại chế độ nhận diện tự động tổng quát.";
+    }
+
+    [RelayCommand]
     public void SelectLineOnImage() => SetInteractionMode(InteractiveToolMode.LineCaliper);
 
     [RelayCommand]
@@ -815,6 +1708,90 @@ public partial class DesignViewModel : ObservableObject
 
     [RelayCommand]
     public void ResetInteractionMode() => SetInteractionMode(InteractiveToolMode.PanZoom);
+
+    public (Point P1, Point P2)? GetSelectedNodeLinePoints()
+    {
+        if (SelectedNode == null) return null;
+        var pStartX = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "StartX" or "X1" or "Start_X" or "BaseStartX" or "LineStartX");
+        var pStartY = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "StartY" or "Y1" or "Start_Y" or "BaseStartY" or "LineStartY");
+        var pEndX = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "EndX" or "X2" or "End_X" or "BaseEndX" or "LineEndX");
+        var pEndY = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "EndY" or "Y2" or "End_Y" or "BaseEndY" or "LineEndY");
+
+        if (pStartX != null && pStartY != null && pEndX != null && pEndY != null)
+        {
+            if (pStartX.DoubleValue == 0 && pStartY.DoubleValue == 0 && pEndX.DoubleValue == 0 && pEndY.DoubleValue == 0)
+                return null;
+
+            return (new Point(pStartX.DoubleValue, pStartY.DoubleValue), new Point(pEndX.DoubleValue, pEndY.DoubleValue));
+        }
+        return null;
+    }
+
+    [RelayCommand]
+    public void NudgeLine(string direction)
+    {
+        var pts = GetSelectedNodeLinePoints();
+        if (pts == null) return;
+        double step = 10.0;
+        double dx = 0, dy = 0;
+        switch (direction?.ToLowerInvariant())
+        {
+            case "up": dy = -step; break;
+            case "down": dy = step; break;
+            case "left": dx = -step; break;
+            case "right": dx = step; break;
+            case "extend":
+                var d = pts.Value.P2 - pts.Value.P1;
+                var len = d.Length;
+                if (len > 1.0)
+                {
+                    var u = d / len;
+                    ApplyInteractiveLine(pts.Value.P1.X - u.X * 15, pts.Value.P1.Y - u.Y * 15, pts.Value.P2.X + u.X * 15, pts.Value.P2.Y + u.Y * 15);
+                }
+                return;
+            case "shorten":
+                var d2 = pts.Value.P2 - pts.Value.P1;
+                var len2 = d2.Length;
+                if (len2 > 40.0)
+                {
+                    var u2 = d2 / len2;
+                    ApplyInteractiveLine(pts.Value.P1.X + u2.X * 15, pts.Value.P1.Y + u2.Y * 15, pts.Value.P2.X - u2.X * 15, pts.Value.P2.Y - u2.Y * 15);
+                }
+                return;
+        }
+
+        ApplyInteractiveLine(pts.Value.P1.X + dx, pts.Value.P1.Y + dy, pts.Value.P2.X + dx, pts.Value.P2.Y + dy);
+    }
+
+    [RelayCommand]
+    public void SetLineHorizontal()
+    {
+        var pts = GetSelectedNodeLinePoints();
+        double midY = pts.HasValue ? (pts.Value.P1.Y + pts.Value.P2.Y) / 2.0 : 300.0;
+        double minX = pts.HasValue ? Math.Min(pts.Value.P1.X, pts.Value.P2.X) : 60.0;
+        double maxX = pts.HasValue ? Math.Max(pts.Value.P1.X, pts.Value.P2.X) : 740.0;
+        if (maxX - minX < 80.0)
+        {
+            minX = 60.0;
+            maxX = 740.0;
+        }
+        ApplyInteractiveLine(minX, midY, maxX, midY);
+    }
+
+    [RelayCommand]
+    public void SetLineVertical()
+    {
+        var pts = GetSelectedNodeLinePoints();
+        double midX = pts.HasValue ? (pts.Value.P1.X + pts.Value.P2.X) / 2.0 : 400.0;
+        double minY = pts.HasValue ? Math.Min(pts.Value.P1.Y, pts.Value.P2.Y) : 60.0;
+        double maxY = pts.HasValue ? Math.Max(pts.Value.P1.Y, pts.Value.P2.Y) : 540.0;
+        if (maxY - minY < 80.0)
+        {
+            minY = 60.0;
+            maxY = 540.0;
+        }
+        ApplyInteractiveLine(midX, minY, midX, maxY);
+    }
 
     public bool ApplyInteractiveRoi(double x, double y, double w, double h)
     {
@@ -836,75 +1813,172 @@ public partial class DesignViewModel : ObservableObject
         var pX2 = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "X2" or "EndX" or "BaseEndX");
         var pY2 = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "Y2" or "EndY" or "BaseEndY");
 
-        if (pX != null && pY != null)
+        var origAuto = IsAutoRunEnabled;
+        try
         {
-            pX.DoubleValue = Math.Round(x);
-            pY.DoubleValue = Math.Round(y);
-            updated = true;
-        }
-        else if (pRoiX != null && pRoiY != null)
-        {
-            pRoiX.DoubleValue = Math.Round(x);
-            pRoiY.DoubleValue = Math.Round(y);
-            updated = true;
-        }
+            IsAutoRunEnabled = false;
 
-        if (pCx != null && pCy != null)
-        {
-            pCx.DoubleValue = Math.Round(x + w / 2.0);
-            pCy.DoubleValue = Math.Round(y + h / 2.0);
-            updated = true;
-        }
+            if (pX != null && pY != null)
+            {
+                pX.DoubleValue = Math.Round(x);
+                pY.DoubleValue = Math.Round(y);
+                updated = true;
+            }
+            else if (pRoiX != null && pRoiY != null)
+            {
+                pRoiX.DoubleValue = Math.Round(x);
+                pRoiY.DoubleValue = Math.Round(y);
+                updated = true;
+            }
 
-        if (pW != null && pH != null)
-        {
-            pW.DoubleValue = Math.Max(1, Math.Round(w));
-            pH.DoubleValue = Math.Max(1, Math.Round(h));
-            updated = true;
-        }
+            if (pCx != null && pCy != null)
+            {
+                pCx.DoubleValue = Math.Round(x + w / 2.0);
+                pCy.DoubleValue = Math.Round(y + h / 2.0);
+                updated = true;
+            }
 
-        if (pRadius != null)
-        {
-            pRadius.DoubleValue = Math.Max(1, Math.Round(Math.Min(w, h) / 2.0));
-            updated = true;
-        }
+            if (pW != null && pH != null)
+            {
+                pW.DoubleValue = Math.Max(1, Math.Round(w));
+                pH.DoubleValue = Math.Max(1, Math.Round(h));
+                updated = true;
+            }
 
-        // If tool has X1, Y1, X2, Y2 (e.g. Caliper or Box region)
-        if (pX1 != null && pY1 != null && pX2 != null && pY2 != null)
+            if (pRadius != null)
+            {
+                pRadius.DoubleValue = Math.Max(1, Math.Round(Math.Min(w, h) / 2.0));
+                updated = true;
+            }
+
+            // If tool has X1, Y1, X2, Y2 (e.g. Caliper or Box region)
+            if (pX1 != null && pY1 != null && pX2 != null && pY2 != null)
+            {
+                pX1.DoubleValue = Math.Round(x);
+                pY1.DoubleValue = Math.Round(y + h / 2.0);
+                pX2.DoubleValue = Math.Round(x + w);
+                pY2.DoubleValue = Math.Round(y + h / 2.0);
+                updated = true;
+            }
+        }
+        finally
         {
-            pX1.DoubleValue = Math.Round(x);
-            pY1.DoubleValue = Math.Round(y + h / 2.0);
-            pX2.DoubleValue = Math.Round(x + w);
-            pY2.DoubleValue = Math.Round(y + h / 2.0);
-            updated = true;
+            IsAutoRunEnabled = origAuto;
         }
 
         if (updated)
         {
-            InteractiveStatusHint = $"Đã gán ROI [X:{(int)x}, Y:{(int)y}, W:{(int)w}, H:{(int)h}] cho [{SelectedNode.DisplayName}]";
-            OnNodeParameterChanged(SelectedNode);
+            var isCounter = SelectedNode.ToolId.Contains("CartonCounter", StringComparison.OrdinalIgnoreCase);
+            if (isCounter)
+            {
+                InteractiveStatusHint = $"🔲 ĐÃ GÁN VÙNG QUÉT KIỂM TRA ROI [X:{(int)x}, Y:{(int)y}, W:{(int)w}, H:{(int)h}] cho [{SelectedNode.DisplayName}]! Hệ thống chỉ quét tìm vật thể trong vùng này.";
+            }
+            else
+            {
+                InteractiveStatusHint = $"Đã gán ROI [X:{(int)x}, Y:{(int)y}, W:{(int)w}, H:{(int)h}] cho [{SelectedNode.DisplayName}]";
+            }
+
+            SetInteractionMode(InteractiveToolMode.PanZoom);
+
+            var pNodeToRun = _graph.GetNode(SelectedNode.NodeId);
+            pNodeToRun?.MarkDirty();
+            _ = RunPipelineAsync();
         }
         return updated;
+    }
+
+    public bool ApplyInteractiveTeachTarget(double x, double y, double w, double h)
+    {
+        if (SelectedNode == null) return false;
+
+        var pTx = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TeachRoiX");
+        var pTy = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TeachRoiY");
+        var pTw = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TeachRoiWidth");
+        var pTh = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TeachRoiHeight");
+
+        var origAuto = IsAutoRunEnabled;
+        try
+        {
+            IsAutoRunEnabled = false;
+            if (pTx != null) pTx.DoubleValue = Math.Round(x);
+            if (pTy != null) pTy.DoubleValue = Math.Round(y);
+            if (pTw != null) pTw.DoubleValue = Math.Round(w);
+            if (pTh != null) pTh.DoubleValue = Math.Round(h);
+        }
+        finally
+        {
+            IsAutoRunEnabled = origAuto;
+        }
+
+        var pNode = _graph.GetNode(SelectedNode.NodeId);
+        var cartonTool = pNode?.Tool as VisionStudio.DeepLearning.Tools.CartonThroughputCounterTool;
+        var activeFrame = FindAssociatedImageFrame(SelectedNode);
+
+        if (w >= 15 && h >= 15)
+        {
+            if (activeFrame != null && !activeFrame.Mat.IsDisposed && cartonTool != null)
+            {
+                cartonTool.TeachFromRoi(activeFrame.Mat, x, y, w, h);
+            }
+
+            var pTeach = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TeachTarget" or "TeachTemplate");
+            if (pTeach != null) pTeach.BoolValue = false;
+
+            var pIsTeached = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "IsTeached");
+            if (pIsTeached != null) pIsTeached.BoolValue = true;
+
+            var pTargetType = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "TargetObjectType");
+            if (pTargetType != null) pTargetType.StringValue = "CustomTaught";
+
+            InteractiveStatusHint = $"🎯 ĐÃ DẠY MẪU VẬT THỂ THÀNH CÔNG [{(int)w}x{(int)h}px] cho [{SelectedNode.DisplayName}]! Đã lưu vùng mẫu dạy riêng biệt, không đè vùng quét ROI.";
+        }
+        else
+        {
+            InteractiveStatusHint = $"⚠️ Vùng khoanh mẫu quá nhỏ (W:{(int)w}x{(int)h}px < 15px), vui lòng khoanh trọn vật thể để học mẫu!";
+        }
+
+        SetInteractionMode(InteractiveToolMode.PanZoom);
+
+        var pNodeToRun = _graph.GetNode(SelectedNode.NodeId);
+        pNodeToRun?.MarkDirty();
+        _ = RunPipelineAsync();
+        return true;
     }
 
     public bool ApplyInteractiveLine(double x1, double y1, double x2, double y2)
     {
         if (SelectedNode == null) return false;
 
-        var pStartX = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "StartX" or "X1" or "Start_X" or "BaseStartX");
-        var pStartY = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "StartY" or "Y1" or "Start_Y" or "BaseStartY");
-        var pEndX = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "EndX" or "X2" or "End_X" or "BaseEndX");
-        var pEndY = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "EndY" or "Y2" or "End_Y" or "BaseEndY");
+        var pStartX = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "StartX" or "X1" or "Start_X" or "BaseStartX" or "LineStartX");
+        var pStartY = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "StartY" or "Y1" or "Start_Y" or "BaseStartY" or "LineStartY");
+        var pEndX = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "EndX" or "X2" or "End_X" or "BaseEndX" or "LineEndX");
+        var pEndY = SelectedNode.Parameters.FirstOrDefault(p => p.Name is "EndY" or "Y2" or "End_Y" or "BaseEndY" or "LineEndY");
 
         if (pStartX != null && pStartY != null && pEndX != null && pEndY != null)
         {
-            pStartX.DoubleValue = Math.Round(x1, 1);
-            pStartY.DoubleValue = Math.Round(y1, 1);
-            pEndX.DoubleValue = Math.Round(x2, 1);
-            pEndY.DoubleValue = Math.Round(y2, 1);
+            var origAuto = IsAutoRunEnabled;
+            try
+            {
+                IsAutoRunEnabled = false;
+                pStartX.DoubleValue = Math.Round(x1, 1);
+                pStartY.DoubleValue = Math.Round(y1, 1);
+                pEndX.DoubleValue = Math.Round(x2, 1);
+                pEndY.DoubleValue = Math.Round(y2, 1);
+            }
+            finally
+            {
+                IsAutoRunEnabled = origAuto;
+            }
+
             var len = Math.Sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-            InteractiveStatusHint = $"Đã gán thước Caliper L:{len:F1}px [({(int)x1},{(int)y1}) -> ({(int)x2},{(int)y2})] cho [{SelectedNode.DisplayName}]";
-            OnNodeParameterChanged(SelectedNode);
+            var isCounter = SelectedNode.ToolId.Contains("CartonCounter", StringComparison.OrdinalIgnoreCase);
+            InteractiveStatusHint = isCounter
+                ? $"Đã gán vạch đếm thùng L:{len:F1}px [({(int)x1},{(int)y1}) -> ({(int)x2},{(int)y2})] cho [{SelectedNode.DisplayName}]"
+                : $"Đã gán thước Caliper L:{len:F1}px [({(int)x1},{(int)y1}) -> ({(int)x2},{(int)y2})] cho [{SelectedNode.DisplayName}]";
+            
+            var pNode = _graph.GetNode(SelectedNode.NodeId);
+            pNode?.MarkDirty();
+            _ = RunPipelineAsync();
             return true;
         }
         return false;

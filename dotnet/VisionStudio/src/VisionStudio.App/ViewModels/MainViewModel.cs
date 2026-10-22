@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -363,10 +365,22 @@ public partial class MainViewModel : ObservableObject
                 new("🎯", "Mẫu Hình Học (Geometric Matcher)", "Trình tạo mẫu biên dạng hình học và toạ độ fixturing", "Thuật Toán", OpenModelEditor),
                 new("📦", "Thư Viện Khối Macro", "Quản lý các khối Macro sub-pipeline tái sử dụng", "Mô-đun", OpenMacroLibrary),
                 new("🎛️", "Quản Lý Recipe Sản Phẩm", "Tạo, chỉnh sửa và chuyển đổi công thức mã hàng", "Sản Xuất", OpenRecipeManager),
-                new("⭐", "Nạp Chương Trình Mẫu (Sample Demo)", "Khởi tạo chương trình thị giác mẫu: Kiểm tra phôi cơ khí & đo Caliper Sub-pixel", "Chương Trình Mẫu", () => { _ = LoadSamplePipelineAsync(); }),
-                new("⚡", "Quick Build Wizards", "Trình hướng dẫn thiết lập nhanh 5 kịch bản ứng dụng mẫu", "Tiện Ích", OpenQuickBuildWizard),
+                new("⚡", "Kho 8 Kịch Bản & Ảnh Mẫu (Quick Build)", "Mở bảng chọn trực quan 8 chuyên đề thị giác công nghiệp kèm ảnh mẫu", "Mẫu Công Nghiệp", OpenQuickBuildWizard),
+                new("📐", "1. Đo Caliper & Năng Lực SPC (Trục bậc)", "Nạp mẫu đo kích thước phôi cơ khí Sub-pixel và tính Cp/Cpk (01_stepped_shaft_dimension.png)", "Kịch Bản Mẫu", () => { _ = DesignVm.LoadPresetPipelineAsync("measure"); }),
+                new("🏷️", "2. Barcode, QR & Phân Cấp ISO/IEC (Bao bì)", "Nạp mẫu đọc mã vạch công nghiệp, DataMatrix, QR và ISO grading (02_industrial_codes_label.png)", "Kịch Bản Mẫu", () => { _ = DesignVm.LoadPresetPipelineAsync("barcode"); }),
+                new("🔬", "3. Phát Hiện Khuyết Tật Bo Mạch SMT (PCB)", "Nạp mẫu phát hiện đứt đường mạch, hàn chập PCB (03_pcb_circuit_defect.png)", "Kịch Bản Mẫu", () => { _ = DesignVm.LoadPresetPipelineAsync("pcb"); }),
+                new("🎯", "4. Định Vị Khớp Mẫu Robot Pick & Place (Gear)", "Nạp mẫu tìm toạ độ khớp mẫu bánh răng xoay 360 độ (04_gear_part_alignment.png)", "Kịch Bản Mẫu", () => { _ = DesignVm.LoadPresetPipelineAsync("alignment"); }),
+                new("💊", "5. Đếm Hạt & Kích Thước Vỉ Thuốc (Dược phẩm)", "Nạp mẫu đếm số lượng viên thuốc nén, diện tích và phân loại hạt (05_pharmaceutical_tablets.png)", "Kịch Bản Mẫu", () => { _ = DesignVm.LoadPresetPipelineAsync("blob_counting"); }),
+                new("🎨", "6. Phân Loại Màu Sắc CIE Delta-E (Nắp chai)", "Nạp mẫu phân loại màu sắc nắp chai đồ uống, kiểm tra lắp thiếu (06_colored_bottle_caps.png)", "Kịch Bản Mẫu", () => { _ = DesignVm.LoadPresetPipelineAsync("color_presence"); }),
+                new("🔄", "7. Trải Phẳng Toạ Độ Cực Polar Unwrap (O-Ring)", "Nạp mẫu mở phẳng 360 độ gioăng cao su O-Ring tròn sang hình chữ nhật (07_circular_seal_ring.png)", "Kịch Bản Mẫu", () => { _ = DesignVm.LoadPresetPipelineAsync("polar_unwrap"); }),
+                new("🔤", "8. Nhận Dạng Ký Tự Quang Học OCR/OCV (Hạn Dùng)", "Nạp mẫu đọc hạn dùng EXP/LOT in phun công nghiệp (08_food_pack_expiry_date.png)", "Kịch Bản Mẫu", () => { _ = DesignVm.LoadPresetPipelineAsync("ocr_expiry"); }),
+                new("📦", "9. Đếm Thùng & Tốc Độ Thùng/Phút (AI Conveyor CPM)", "Nạp mẫu nhận dạng đếm thùng carton qua vạch và đo tốc độ CPM từ video (09_conveyor_boxes_flow.avi)", "Kịch Bản Mẫu", () => { _ = DesignVm.LoadPresetPipelineAsync("CartonCounter"); }),
+                new("📂", "Mở Thư Mục Ảnh Test Mẫu (.png)", "Mở thư mục 8 tệp ảnh test độ phân giải cao trong Windows Explorer", "Tài Liệu Mẫu", OpenSampleImagesFolder),
+                new("🎬", "Mở Thư Mục Video Test Mẫu (.avi)", "Mở thư mục video băng chuyền công nghiệp trong Windows Explorer", "Tài Liệu Mẫu", OpenSampleVideosFolder),
+                new("📁", "Mở Thư Mục Kịch Bản Mẫu (.vspipe.json)", "Mở thư mục kịch bản pipeline đồ thị DAG trong Windows Explorer", "Tài Liệu Mẫu", OpenSamplePipelinesFolder),
                 new("⚖️", "So Sánh Thuật Toán (Tool Compare A/B)", "So sánh song song 2 bộ tham số trên cùng ảnh kiểm", "Đo Kiểm", OpenToolCompare),
-                new("▶️", "Chạy Pipeline (Run Once)", "Thực thi toàn bộ pipeline DAG hiện tại 1 chu kỳ", "Vận Hành", () => { _ = DesignVm.RunPipelineCommand.ExecuteAsync(null); })
+                new("▶️", "Chạy Pipeline (Run Once)", "Thực thi toàn bộ pipeline DAG hiện tại 1 chu kỳ", "Vận Hành", () => { _ = DesignVm.RunPipelineCommand.ExecuteAsync(null); }),
+                new("🔄", "Phát / Dừng Video Liên Tục (Play Video CPM)", "Chạy liên tục chuỗi video và cập nhật tốc độ thùng/phút live", "Vận Hành", () => { _ = DesignVm.ToggleContinuousRunCommand.ExecuteAsync(null); })
             };
 
             var paletteWin = new Controls.CommandPaletteWindow(items)
@@ -386,6 +400,87 @@ public partial class MainViewModel : ObservableObject
     {
         await DesignVm.LoadSampleInspectionPipelineAsync();
         StatusMessage = "⭐ Đã nạp thành công Chương Trình Mẫu: Kiểm Tra Ngoại Quan & Đo Caliper Sub-pixel!";
+    }
+
+    [RelayCommand]
+    private void OpenSampleImagesFolder()
+    {
+        try
+        {
+            var sampleFile = DesignViewModel.ResolveSampleImagePath("01_stepped_shaft_dimension.png");
+            var dir = Path.GetDirectoryName(sampleFile);
+            if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = dir,
+                    UseShellExecute = true
+                });
+                StatusMessage = $"📂 Đã mở thư mục ảnh test mẫu: {dir}";
+            }
+            else
+            {
+                StatusMessage = "⚠️ Không tìm thấy thư mục samples/images.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to open sample images folder.");
+        }
+    }
+
+    [RelayCommand]
+    private void OpenSamplePipelinesFolder()
+    {
+        try
+        {
+            var samplePipe = DesignViewModel.ResolvePipelinePath("01_caliper_dimension_measurement.vspipe.json");
+            var dir = Path.GetDirectoryName(samplePipe);
+            if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = dir,
+                    UseShellExecute = true
+                });
+                StatusMessage = $"📁 Đã mở thư mục kịch bản mẫu: {dir}";
+            }
+            else
+            {
+                StatusMessage = "⚠️ Không tìm thấy thư mục samples/pipelines.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to open sample pipelines folder.");
+        }
+    }
+
+    [RelayCommand]
+    private void OpenSampleVideosFolder()
+    {
+        try
+        {
+            var sampleVideo = DesignViewModel.ResolveSampleVideoPath("09_conveyor_boxes_flow.avi");
+            var dir = Path.GetDirectoryName(sampleVideo);
+            if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = dir,
+                    UseShellExecute = true
+                });
+                StatusMessage = $"🎬 Đã mở thư mục video mẫu: {dir}";
+            }
+            else
+            {
+                StatusMessage = "⚠️ Không tìm thấy thư mục samples/videos.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to open sample videos folder.");
+        }
     }
 
     [RelayCommand]

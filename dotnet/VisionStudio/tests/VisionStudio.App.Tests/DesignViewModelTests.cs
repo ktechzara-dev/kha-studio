@@ -284,6 +284,30 @@ public class DesignViewModelTests
         vm.ActiveInteractionMode.Should().Be(InteractiveToolMode.RectangleRoi);
         tabSwitchRequested.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task LoadPresetPipelineAsync_Preset09_LoadsCartonCounterAndRuns()
+    {
+        _toolRegistry.RegisterAssembly(typeof(VisionStudio.DeepLearning.Tools.CartonThroughputCounterTool).Assembly);
+        var vm = new DesignViewModel(NullLogger<DesignViewModel>.Instance, _toolRegistry);
+
+        await vm.LoadPresetPipelineAsync("09");
+
+        vm.Nodes.Should().Contain(n => n.ToolId == "DeepLearning.CartonCounter");
+        vm.SelectedNode.Should().NotBeNull();
+        vm.SelectedNodeSupportsLine.Should().BeTrue();
+
+        // Test drawing interactive tripwire line on CartonCounter
+        bool appliedLine = vm.ApplyInteractiveLine(320, 20, 320, 460);
+        appliedLine.Should().BeTrue();
+
+        var pStartX = vm.SelectedNode!.Parameters.First(p => p.Name == "LineStartX");
+        pStartX.DoubleValue.Should().Be(320);
+
+        // Run pipeline
+        await vm.RunPipelineAsync();
+        vm.Nodes.First(n => n.ToolId == "DeepLearning.CartonCounter").Status.Should().Be(ToolStatus.Ok);
+    }
 }
 
 

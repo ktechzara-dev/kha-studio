@@ -293,5 +293,166 @@ export class PlcMockEngine {
       simulated: true
     };
   }
+
+  // Giả lập Mitsubishi MC Protocol
+  readMitsu(area = 'D', address = 0, count = 10) {
+    this.step();
+    const simulatedLatency = Math.floor(6 + Math.random() * 10);
+    const values = [];
+    for (let i = 0; i < count; i++) {
+      const idx = (address + i) % this.holdingRegisters.length;
+      values.push(this.holdingRegisters[idx]);
+    }
+    return { success: true, latencyMs: simulatedLatency, values, simulated: true };
+  }
+
+  writeMitsu(area, address, value) {
+    const idx = address % this.holdingRegisters.length;
+    this.holdingRegisters[idx] = Number(value) & 0xFFFF;
+    return { success: true, latencyMs: Math.floor(6 + Math.random() * 10), simulated: true };
+  }
+
+  testMitsu(host = '192.168.0.20', port = 5000, cpu = 'FX5U') {
+    return {
+      success: true,
+      latencyMs: Math.floor(6 + Math.random() * 8),
+      host,
+      port,
+      cpu,
+      model: `Mitsubishi MELSEC ${cpu}`,
+      protocol: 'MC Protocol Qna-3E Binary',
+      status: 'Online / Running (Mô phỏng)',
+      message: `Bắt tay thành công với PLC Mitsubishi ${cpu} (${host}:${port})!`,
+      simulated: true
+    };
+  }
+
+  // Giả lập Omron FINS/TCP
+  readOmron(area = 'DM', address = 0, count = 10) {
+    this.step();
+    const simulatedLatency = Math.floor(8 + Math.random() * 10);
+    const values = [];
+    for (let i = 0; i < count; i++) {
+      const idx = (address + i) % this.holdingRegisters.length;
+      values.push(this.holdingRegisters[idx]);
+    }
+    return { success: true, latencyMs: simulatedLatency, values, clientNode: 1, serverNode: 30, simulated: true };
+  }
+
+  writeOmron(area, address, value) {
+    const idx = address % this.holdingRegisters.length;
+    this.holdingRegisters[idx] = Number(value) & 0xFFFF;
+    return { success: true, latencyMs: Math.floor(8 + Math.random() * 10), simulated: true };
+  }
+
+  testOmron(host = '192.168.0.30', port = 9600) {
+    return {
+      success: true,
+      latencyMs: Math.floor(8 + Math.random() * 8),
+      host,
+      port,
+      model: 'Omron CP1H / CJ2M / NX Series',
+      protocol: 'FINS / TCP',
+      status: 'Online / Running (Mô phỏng)',
+      message: `Bắt tay FINS/TCP thành công với PLC Omron (${host}:${port})!`,
+      simulated: true
+    };
+  }
+
+  // Giả lập Keyence KV
+  readKeyence(area = 'DM', address = 0, count = 10) {
+    this.step();
+    const simulatedLatency = Math.floor(5 + Math.random() * 8);
+    const values = [];
+    for (let i = 0; i < count; i++) {
+      const idx = (address + i) % this.holdingRegisters.length;
+      values.push(this.holdingRegisters[idx]);
+    }
+    return { success: true, latencyMs: simulatedLatency, values, simulated: true };
+  }
+
+  writeKeyence(area, address, value) {
+    const idx = address % this.holdingRegisters.length;
+    this.holdingRegisters[idx] = Number(value) & 0xFFFF;
+    return { success: true, latencyMs: Math.floor(5 + Math.random() * 8), simulated: true };
+  }
+
+  testKeyence(host = '192.168.0.40', port = 8501) {
+    return {
+      success: true,
+      latencyMs: Math.floor(5 + Math.random() * 6),
+      host,
+      port,
+      model: 'Keyence KV-8000 Series',
+      protocol: 'KV UpperLink Ethernet',
+      status: 'Online / Running (Mô phỏng)',
+      message: `Kết nối thành công tới Keyence KV-8000 (${host}:${port})!`,
+      simulated: true
+    };
+  }
+
+  // Giả lập Delta
+  readDelta(series = 'DVP', area = 'D', address = 0, count = 10) {
+    this.step();
+    const simulatedLatency = Math.floor(7 + Math.random() * 10);
+    const values = [];
+    for (let i = 0; i < count; i++) {
+      const idx = (address + i) % this.holdingRegisters.length;
+      values.push(this.holdingRegisters[idx]);
+    }
+    return { success: true, latencyMs: simulatedLatency, values, simulated: true };
+  }
+
+  writeDelta(series, area, address, value) {
+    const idx = address % this.holdingRegisters.length;
+    this.holdingRegisters[idx] = Number(value) & 0xFFFF;
+    return { success: true, latencyMs: Math.floor(7 + Math.random() * 10), simulated: true };
+  }
+
+  testDelta(host = '192.168.0.50', port = 502, series = 'DVP') {
+    return {
+      success: true,
+      latencyMs: Math.floor(7 + Math.random() * 8),
+      host,
+      port,
+      model: `Delta ${series} Series PLC`,
+      protocol: 'Modbus TCP (Delta Smart Mapping)',
+      status: 'Online / Running (Mô phỏng)',
+      message: `Kết nối thành công tới PLC Delta ${series} (${host}:${port})!`,
+      simulated: true
+    };
+  }
+
+  // Giả lập LS ELECTRIC
+  readLs(area = '%MW', address = 0, count = 10) {
+    this.step();
+    const simulatedLatency = Math.floor(8 + Math.random() * 10);
+    const values = [];
+    for (let i = 0; i < count; i++) {
+      const idx = (address + i) % this.holdingRegisters.length;
+      values.push(this.holdingRegisters[idx]);
+    }
+    return { success: true, latencyMs: simulatedLatency, values, simulated: true };
+  }
+
+  writeLs(area, address, value) {
+    const idx = address % this.holdingRegisters.length;
+    this.holdingRegisters[idx] = Number(value) & 0xFFFF;
+    return { success: true, latencyMs: Math.floor(8 + Math.random() * 10), simulated: true };
+  }
+
+  testLs(host = '192.168.0.60', port = 2004) {
+    return {
+      success: true,
+      latencyMs: Math.floor(8 + Math.random() * 8),
+      host,
+      port,
+      model: 'LS ELECTRIC XGT / XGB PLC',
+      protocol: 'LS FEnet / Modbus',
+      status: 'Online / Running (Mô phỏng)',
+      message: `Kết nối thành công tới PLC LS ELECTRIC (${host}:${port})!`,
+      simulated: true
+    };
+  }
 }
 

@@ -89,7 +89,18 @@ public sealed record TextOverlay(string Text, Point2f Org, Scalar Color, double 
 {
     public void Render(Mat canvas)
     {
-        Cv2.PutText(canvas, Text, (Point)Org, HersheyFonts.HersheySimplex, FontScale, Color, Thickness, LineTypes.AntiAlias);
+        if (string.IsNullOrEmpty(Text)) return;
+        try
+        {
+            // Cv2.PutText P/Invoke uses ANSI marshaler which crashes on emojis/non-ASCII.
+            // Sanitize for OpenCV Mat rendering; WPF UI viewer uses full Unicode text directly.
+            var ascii = System.Text.RegularExpressions.Regex.Replace(Text, @"[^\u0020-\u007E]+", " ");
+            Cv2.PutText(canvas, ascii, (Point)Org, HersheyFonts.HersheySimplex, FontScale, Color, Thickness, LineTypes.AntiAlias);
+        }
+        catch
+        {
+            // Suppress marshaling errors on OpenCV rasterization
+        }
     }
 }
 

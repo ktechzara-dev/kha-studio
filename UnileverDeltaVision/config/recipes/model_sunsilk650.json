@@ -1,0 +1,15 @@
+{
+    "name": "Sunsilk 650ml Slender Bottle",
+    "model_code": "SUNSILK650",
+    "roi": [150, 120, 1636, 960],
+    "threshold_mode": "OTSU",
+    "binary_threshold": 130,
+    "invert_threshold": false,
+    "min_area": 9500.0,
+    "max_area": 75000.0,
+    "min_aspect_ratio": 1.85,
+    "max_aspect_ratio": 4.50,
+    "neck_sensitivity": 0.60,
+    "target_spp": 510,
+    "robot_tool_id": 2
+}

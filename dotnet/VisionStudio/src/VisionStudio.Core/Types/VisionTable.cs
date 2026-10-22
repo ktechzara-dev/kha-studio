@@ -136,6 +136,11 @@ public sealed class VisionTable
         return row;
     }
 
+    public void Clear()
+    {
+        _rows.Clear();
+    }
+
     public TableRow AddRowFromDictionary(IReadOnlyDictionary<string, object?> dict)
     {
         var rowValues = new object?[_columns.Count];

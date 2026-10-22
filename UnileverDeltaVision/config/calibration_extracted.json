@@ -1,0 +1,23 @@
+{
+    "version": "2.4",
+    "description": "Unilever Delta Robot Line #3 - Extracted Calibration Matrix",
+    "camera_resolution": [1936, 1216],
+    "rms_error_mm": 0.185,
+    "quality_status": "PASS_EXCELLENT (< 0.3mm)",
+    "camera_matrix_K": [
+        [1365.2500, 0.0000, 968.0000],
+        [0.0000, 1365.2500, 608.0000],
+        [0.0000, 0.0000, 1.0000]
+    ],
+    "distortion_coefficients_D": [
+        -0.0825, 0.0410, 0.0002, -0.0001, 0.0000
+    ],
+    "homography_matrix_H": [
+        [0.521500, -0.002100, -312.4000],
+        [0.001900, 0.521800, -185.6000],
+        [0.0000001, -0.0000002, 1.0000]
+    ],
+    "robot_work_plane_z_mm": 0.0,
+    "conveyor_direction": "LEFT_TO_RIGHT",
+    "timestamp": "2026-10-17 11:30:00"
+}

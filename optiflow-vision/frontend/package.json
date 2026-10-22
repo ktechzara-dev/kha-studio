@@ -1,0 +1,12 @@
+{
+  "name": "optiflow-vision-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "vite build && electron electron/main.cjs",
+    "electron": "electron electron/main.cjs"
+  }
+}
