@@ -69,4 +69,134 @@ assert.strictEqual(canDeleteUser(adminUser, 'usr_eng'), true, 'Admin can delete 
 assert.strictEqual(canDeleteUser(engUser, 'usr_eng'), false, 'Engineer cannot delete users');
 console.log('✓ User management safety constraints passed');
 
-console.log('🎉 All Auth & RBAC unit tests passed 100%!');
+// Test 4: Registration & Approval Workflow
+console.log('\n--- Testing Registration & Approval Workflow ---');
+
+let pendingRequests = [];
+
+function submitRegistration({ username, name, password, department, phone, note }) {
+  username = String(username || '').trim().toLowerCase();
+  name = String(name || '').trim();
+  if (!username || !/^[a-z0-9_.-]{3,30}$/.test(username)) {
+    throw new Error('Tên đăng nhập không hợp lệ');
+  }
+  if (!name) throw new Error('Họ tên không được để trống');
+  if (users.some(u => u.username.toLowerCase() === username)) {
+    throw new Error('Tên đăng nhập đã tồn tại trong hệ thống');
+  }
+  if (pendingRequests.some(r => r.username.toLowerCase() === username && r.status === 'pending')) {
+    throw new Error('Tên đăng nhập đang có yêu cầu chờ duyệt');
+  }
+
+  const req = {
+    id: 'req_' + Date.now(),
+    username,
+    name,
+    department: department || '',
+    phone: phone || '',
+    note: note || '',
+    passwordHash: hashPasswordNode(password),
+    requestedAt: new Date().toISOString(),
+    status: 'pending',
+    allowedTools: ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
+    approvedAt: null,
+    approvedBy: null
+  };
+  pendingRequests.push(req);
+  return req;
+}
+
+function checkLogin(username, password) {
+  username = username.toLowerCase();
+  const u = users.find(x => x.username.toLowerCase() === username);
+  if (!u) {
+    const p = pendingRequests.find(x => x.username.toLowerCase() === username);
+    if (p) {
+      if (p.status === 'pending') {
+        throw new Error(`Tài khoản "@${username}" đang chờ Sếp Kha phê duyệt`);
+      }
+      if (p.status === 'rejected') {
+        throw new Error(`Yêu cầu đăng ký tài khoản "@${username}" đã bị từ chối`);
+      }
+    }
+    throw new Error('Tài khoản không tồn tại');
+  }
+  const match = verifyPasswordNode(password, u.passwordHash);
+  if (!match) throw new Error('Mật khẩu không chính xác');
+  return u;
+}
+
+function approveRequest(admin, reqId, allowedTools = null) {
+  if (admin.role !== 'admin') throw new Error('Chỉ Admin mới có quyền duyệt');
+  const req = pendingRequests.find(r => r.id === reqId);
+  if (!req) throw new Error('Không tìm thấy yêu cầu');
+  req.status = 'approved';
+  req.approvedAt = new Date().toISOString();
+  req.approvedBy = admin.name || admin.username;
+  if (allowedTools) req.allowedTools = allowedTools;
+
+  const newUser = {
+    id: 'usr_' + Date.now(),
+    username: req.username,
+    name: req.name,
+    role: 'engineer',
+    allowedTools: req.allowedTools,
+    passwordHash: req.passwordHash,
+    createdAt: req.approvedAt
+  };
+  users.push(newUser);
+  return newUser;
+}
+
+function rejectRequest(admin, reqId, reason = '') {
+  if (admin.role !== 'admin') throw new Error('Chỉ Admin mới có quyền từ chối');
+  const req = pendingRequests.find(r => r.id === reqId);
+  if (!req) throw new Error('Không tìm thấy yêu cầu');
+  req.status = 'rejected';
+  req.rejectedAt = new Date().toISOString();
+  req.rejectionReason = reason;
+  return req;
+}
+
+// 4.1. Người dùng đăng ký thành công
+const reg1 = submitRegistration({
+  username: 'tuan.le',
+  name: 'Lê Quốc Tuấn',
+  password: 'mypassword123',
+  department: 'Kỹ thuật PLC',
+  phone: '0901234567'
+});
+assert.strictEqual(reg1.status, 'pending');
+assert.strictEqual(reg1.username, 'tuan.le');
+console.log('✓ Registration request submission passed');
+
+// 4.2. Đăng nhập khi chưa duyệt -> Bị chặn
+assert.throws(() => checkLogin('tuan.le', 'mypassword123'), /đang chờ Sếp Kha phê duyệt/);
+console.log('✓ Login blocking for pending user passed');
+
+// 4.3. Người khác (không phải Admin) không được duyệt
+assert.throws(() => approveRequest(engUser, reg1.id), /Chỉ Admin/);
+console.log('✓ Permission guard for approving passed');
+
+// 4.4. Sếp Kha duyệt tài khoản và cấp quyền công cụ
+const approvedUser = approveRequest(adminUser, reg1.id, ['apm', 'vision-studio', 'plc-modbus']);
+assert.strictEqual(approvedUser.username, 'tuan.le');
+assert.deepStrictEqual(approvedUser.allowedTools, ['apm', 'vision-studio', 'plc-modbus']);
+console.log('✓ Admin approval & tool permission granting passed');
+
+// 4.5. Sau khi Sếp Kha duyệt -> Đăng nhập thành công!
+const loggedIn = checkLogin('tuan.le', 'mypassword123');
+assert.strictEqual(loggedIn.username, 'tuan.le');
+console.log('✓ Successful login after admin approval passed');
+
+// 4.6. Test từ chối đăng ký
+const reg2 = submitRegistration({
+  username: 'spammer',
+  name: 'Spam User',
+  password: 'badpassword'
+});
+rejectRequest(adminUser, reg2.id, 'Thông tin không hợp lệ');
+assert.throws(() => checkLogin('spammer', 'badpassword'), /đã bị từ chối/);
+console.log('✓ Rejection workflow passed');
+
+console.log('🎉 All Auth, RBAC & Approval unit tests passed 100%!');

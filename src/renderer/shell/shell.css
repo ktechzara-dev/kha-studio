@@ -867,7 +867,33 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 .login-header h2 { margin: 0; font: 700 24px/1.2 var(--font-display); color: #fff; letter-spacing: -0.3px; }
 .login-subtitle { margin: 6px 0 0; font-size: 13px; color: var(--text-2); }
 
-.login-form { display: flex; flex-direction: column; gap: 16px; }
+/* Login / Register Tab Switcher */
+.login-tabs {
+  display: flex; gap: 6px; padding: 4px; margin-bottom: 20px;
+  background: rgba(10, 15, 28, 0.65); border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.login-tab-btn {
+  flex: 1; height: 36px; border: 0; background: transparent; color: var(--text-2);
+  font: 600 13px/1 var(--font-display); border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all var(--t-fast);
+}
+.login-tab-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
+.login-tab-btn.active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(2, 132, 199, 0.9));
+  color: #fff; box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.5);
+}
+
+.login-form { display: flex; flex-direction: column; gap: 14px; }
+.form-row-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.reg-mini-input {
+  width: 100%; height: 38px; padding: 0 12px; border-radius: var(--r-sm);
+  background: rgba(10, 15, 28, 0.7); border: 1px solid var(--border);
+  color: #fff; font-size: 13px; font-family: var(--font); outline: none;
+  transition: all var(--t-fast);
+}
+.reg-mini-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-softer); }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
 .input-icon-wrap { position: relative; display: flex; align-items: center; }
@@ -908,7 +934,81 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 
 .login-footer { margin-top: 24px; text-align: center; font-size: 11.5px; color: var(--text-3); }
 
-/* ---------- Modals ---------- */
+/* Registration Pending Confirmation Card */
+.reg-pending-card {
+  text-align: center; padding: 10px 4px 6px; animation: card-in .35s var(--ease);
+}
+.pending-icon-glow {
+  width: 60px; height: 60px; margin: 0 auto 14px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.05) 70%);
+  border: 1px solid rgba(245, 158, 11, 0.4); color: #F59E0B;
+  display: grid; place-items: center; box-shadow: 0 0 24px rgba(245, 158, 11, 0.35);
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(245, 158, 11, 0.35); }
+  50% { transform: scale(1.05); box-shadow: 0 0 32px rgba(245, 158, 11, 0.6); }
+}
+.reg-pending-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 700; color: #fff; }
+.pending-desc { font-size: 13px; color: var(--text-2); line-height: 1.5; margin: 0 0 16px; }
+.pending-info-box {
+  background: rgba(10, 15, 28, 0.7); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 12px 14px; margin-bottom: 14px; text-align: left; display: flex; flex-direction: column; gap: 8px;
+}
+.pi-row { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text-2); }
+.pi-row b { color: var(--text); }
+.badge-status-pending {
+  padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
+  background: rgba(245, 158, 11, 0.18); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.badge-status-approved {
+  padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
+  background: rgba(16, 185, 129, 0.18); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.badge-status-rejected {
+  padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
+  background: rgba(239, 68, 68, 0.18); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.35);
+}
+.pending-tip { font-size: 12px; color: var(--text-3); margin-bottom: 18px; line-height: 1.4; }
+.pending-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* Approval Button & Badges on Titlebar */
+.tb-btn-approval {
+  color: #F59E0B !important;
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+.tb-btn-approval:hover {
+  background: rgba(245, 158, 11, 0.22) !important;
+  color: #FBBF24 !important;
+}
+.badge-approval {
+  position: absolute; top: -3px; right: -4px;
+  background: linear-gradient(135deg, #EF4444, #DC2626) !important;
+  color: #fff !important; font-size: 10px !important; font-weight: 700 !important;
+  min-width: 17px; height: 17px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+  animation: badge-pulse 1.8s infinite;
+}
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+.menu-badge {
+  margin-left: auto; background: #EF4444; color: #fff; font-size: 10px;
+  font-weight: 700; padding: 2px 6px; border-radius: 10px;
+}
+
+/* Approvals List Modal Table */
+.approvals-list-wrap {
+  max-height: 380px; overflow-y: auto; border: 1px solid var(--border);
+  border-radius: var(--r-sm); margin-top: 10px;
+}
+.approvals-empty {
+  padding: 36px 20px; text-align: center; color: var(--text-3); font-size: 13px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center;
   background: rgba(2, 6, 16, 0.65); backdrop-filter: blur(8px); padding: 20px;

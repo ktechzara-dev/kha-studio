@@ -1,13 +1,53 @@
 /**
- * Kha Studio — Authentication & Role-Based Access Control (RBAC) Module
- * Sử dụng Web Crypto API chuẩn (PBKDF2 HMAC-SHA256, 100,000 iterations, random salt)
+ * Kha Studio — Authentication, RBAC & User Approval Module
+ * Chuẩn Web Crypto API (PBKDF2 HMAC-SHA256, 100,000 iterations, random salt)
+ * Hỗ trợ Đăng ký tài khoản, gửi duyệt về tài khoản Sếp Kha (Admin),
+ * và đồng bộ Hybrid qua Cloud Online + LAN nội bộ.
  */
 (function (global) {
   'use strict';
 
   const STORAGE_USERS_KEY = 'ks_users';
   const STORAGE_SESSION_KEY = 'ks_session';
+  const STORAGE_PENDING_KEY = 'ks_pending_requests';
+  const STORAGE_MY_REG_KEY = 'ks_my_registration';
+  const STORAGE_CLOUD_CONFIG_KEY = 'ks_auth_cloud_config';
   const PBKDF2_ITERATIONS = 100000;
+
+  // Âm thanh chuông thông báo (Web Audio API ding-dong)
+  function playChimeSound() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const now = ctx.currentTime;
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+
+      // Nốt E5 (659Hz) -> A5 (880Hz)
+      osc1.frequency.setValueAtTime(659.25, now);
+      osc2.frequency.setValueAtTime(880.0, now + 0.14);
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.28, now + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(now);
+      osc1.stop(now + 0.16);
+      osc2.start(now + 0.14);
+      osc2.stop(now + 0.75);
+    } catch (_) {}
+  }
 
   // Tiện ích chuyển đổi Buffer <-> Hex
   function bufToHex(buf) {
@@ -98,6 +138,8 @@
 
   class AuthManager {
     constructor() {
+      this._pollTimer = null;
+      this._lastKnownPendingCount = 0;
       this._init();
     }
 
@@ -108,7 +150,6 @@
         if (!raw) {
           localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(INITIAL_USERS));
         } else {
-          // Nâng cấp dữ liệu cũ nếu chưa có allowedTools hoặc thiếu vision-studio
           const users = JSON.parse(raw);
           let changed = false;
           users.forEach(u => {
@@ -125,6 +166,16 @@
       } catch (e) {
         console.warn('Lỗi khởi tạo danh sách users:', e);
       }
+
+      // Khởi tạo bảng pending_requests nếu chưa có
+      try {
+        if (!localStorage.getItem(STORAGE_PENDING_KEY)) {
+          localStorage.setItem(STORAGE_PENDING_KEY, JSON.stringify([]));
+        }
+      } catch (_) {}
+
+      // Bật sync nền nếu đang ở vai trò admin
+      this.startBackgroundSync();
     }
 
     getUsers() {
@@ -148,14 +199,472 @@
       localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
     }
 
-    // Lấy thông tin user đang đăng nhập
+    // =========================================================================
+    // YÊU CẦU ĐĂNG KÝ & DUYỆT TÀI KHOẢN (REGISTRATION & APPROVAL WORKFLOW)
+    // =========================================================================
+
+    getPendingRequests() {
+      try {
+        const raw = localStorage.getItem(STORAGE_PENDING_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    _savePendingRequests(list) {
+      localStorage.setItem(STORAGE_PENDING_KEY, JSON.stringify(list));
+      const pendingCount = list.filter(r => r.status === 'pending').length;
+      window.dispatchEvent(new CustomEvent('ks:auth:pending_changed', {
+        detail: { count: pendingCount, list }
+      }));
+    }
+
+    getMyRegistration() {
+      try {
+        const raw = localStorage.getItem(STORAGE_MY_REG_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    setMyRegistration(reg) {
+      if (reg) {
+        localStorage.setItem(STORAGE_MY_REG_KEY, JSON.stringify(reg));
+      } else {
+        localStorage.removeItem(STORAGE_MY_REG_KEY);
+      }
+    }
+
+    getCloudConfig() {
+      try {
+        const raw = localStorage.getItem(STORAGE_CLOUD_CONFIG_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (_) {}
+      return {
+        cloudUrl: 'https://kha-studio-auth-default-rtdb.firebaseio.com',
+        lanUrl: '',
+        autoSync: true,
+        pollIntervalMs: 15000
+      };
+    }
+
+    saveCloudConfig(cfg) {
+      localStorage.setItem(STORAGE_CLOUD_CONFIG_KEY, JSON.stringify(cfg));
+    }
+
+    // Người dùng đăng ký tài khoản từ app
+    async submitRegistrationRequest({ username, name, department, phone, note, password }) {
+      username = String(username || '').trim().toLowerCase();
+      name = String(name || '').trim();
+      department = String(department || '').trim();
+      phone = String(phone || '').trim();
+      note = String(note || '').trim();
+      password = String(password || '');
+
+      if (!username || !/^[a-z0-9_.-]{3,30}$/.test(username)) {
+        throw new Error('Tên đăng nhập từ 3-30 ký tự, không dấu và không chứa ký tự đặc biệt');
+      }
+      if (!name) {
+        throw new Error('Họ và tên hiển thị không được để trống');
+      }
+      if (!password || password.length < 4) {
+        throw new Error('Mật khẩu tối thiểu 4 ký tự');
+      }
+
+      // Kiểm tra xem username đã tồn tại trong danh sách người dùng chính thức chưa
+      const users = this.getUsers();
+      if (users.some(u => u.username.toLowerCase() === username)) {
+        throw new Error(`Tên đăng nhập "${username}" đã có người sử dụng`);
+      }
+
+      // Kiểm tra trong danh sách yêu cầu chờ duyệt
+      const pendingList = this.getPendingRequests();
+      const existingReq = pendingList.find(r => r.username.toLowerCase() === username);
+      if (existingReq && existingReq.status === 'pending') {
+        throw new Error(`Tên đăng nhập "${username}" đang có yêu cầu chờ Sếp Kha duyệt`);
+      }
+
+      const passwordHash = await hashPassword(password);
+      const newRequest = {
+        id: 'req_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
+        username,
+        name,
+        department,
+        phone,
+        note,
+        passwordHash,
+        requestedAt: new Date().toISOString(),
+        status: 'pending', // 'pending' | 'approved' | 'rejected'
+        allowedTools: ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
+        approvedAt: null,
+        approvedBy: null,
+        rejectionReason: null
+      };
+
+      // Cập nhật local
+      if (existingReq) {
+        Object.assign(existingReq, newRequest);
+      } else {
+        pendingList.push(newRequest);
+      }
+      this._savePendingRequests(pendingList);
+      this.setMyRegistration(newRequest);
+
+      // Đồng bộ bất đồng bộ ra Network (LAN + Cloud)
+      this._syncRequestToNetwork(newRequest).catch(() => {});
+
+      return newRequest;
+    }
+
+    // Tra cứu trạng thái duyệt của một username
+    async checkRegistrationStatus(username) {
+      username = String(username || '').trim().toLowerCase();
+      if (!username) return { status: 'none' };
+
+      // 1. Thử fetch từ mạng để cập nhật bản mới nhất
+      await this.fetchNetworkPendingRequests().catch(() => {});
+
+      // 2. Tra cứu trong bảng users chính thức
+      const users = this.getUsers();
+      const activeUser = users.find(u => u.username.toLowerCase() === username);
+      if (activeUser) {
+        return { status: 'approved', user: activeUser };
+      }
+
+      // 3. Tra cứu trong pending requests
+      const req = this.getPendingRequests().find(r => r.username.toLowerCase() === username);
+      if (!req) return { status: 'not_found' };
+
+      // Nếu trạng thái đã là approved mà chưa có trong users local, tự động thêm vào
+      if (req.status === 'approved') {
+        const newUser = {
+          id: 'usr_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
+          username: req.username,
+          name: req.name,
+          role: 'engineer',
+          allowedTools: req.allowedTools || ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
+          createdAt: req.approvedAt || new Date().toISOString(),
+          passwordHash: req.passwordHash
+        };
+        users.push(newUser);
+        this._saveUsers(users);
+        return { status: 'approved', user: newUser, request: req };
+      }
+
+      return { status: req.status, request: req };
+    }
+
+    // Phê duyệt tài khoản (Chỉ Admin)
+    async approveRegistrationRequest(id, { allowedTools, role } = {}) {
+      if (!this.hasRole('admin')) {
+        throw new Error('Chỉ Administrator (Sếp Kha) mới có quyền phê duyệt tài khoản');
+      }
+
+      const pendingList = this.getPendingRequests();
+      const req = pendingList.find(r => r.id === id);
+      if (!req) throw new Error('Không tìm thấy yêu cầu đăng ký');
+
+      const tools = Array.isArray(allowedTools) && allowedTools.length
+        ? allowedTools
+        : (req.allowedTools || ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal']);
+
+      const userRole = role === 'admin' ? 'admin' : 'engineer';
+      const currentUser = this.getCurrentUser();
+
+      // Cập nhật trạng thái yêu cầu
+      req.status = 'approved';
+      req.approvedAt = new Date().toISOString();
+      req.approvedBy = currentUser?.name || currentUser?.username || 'Sếp Kha';
+      req.allowedTools = tools;
+
+      // Thêm người dùng vào danh sách chính thức
+      const users = this.getUsers();
+      let user = users.find(u => u.username.toLowerCase() === req.username.toLowerCase());
+      if (!user) {
+        user = {
+          id: 'usr_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
+          username: req.username,
+          name: req.name,
+          role: userRole,
+          allowedTools: userRole === 'admin' ? ['*'] : tools,
+          createdAt: new Date().toISOString(),
+          passwordHash: req.passwordHash
+        };
+        users.push(user);
+        this._saveUsers(users);
+      } else {
+        user.allowedTools = tools;
+        this._saveUsers(users);
+      }
+
+      this._savePendingRequests(pendingList);
+
+      // Đồng bộ phê duyệt ra Network (LAN + Cloud)
+      this._syncApprovalToNetwork(req, user).catch(() => {});
+
+      return { request: req, user };
+    }
+
+    // Từ chối yêu cầu đăng ký (Chỉ Admin)
+    async rejectRegistrationRequest(id, reason = '') {
+      if (!this.hasRole('admin')) {
+        throw new Error('Chỉ Administrator mới có quyền từ chối yêu cầu');
+      }
+
+      const pendingList = this.getPendingRequests();
+      const req = pendingList.find(r => r.id === id);
+      if (!req) throw new Error('Không tìm thấy yêu cầu đăng ký');
+
+      req.status = 'rejected';
+      req.rejectedAt = new Date().toISOString();
+      req.rejectionReason = String(reason || 'Yêu cầu không được phê duyệt').trim();
+
+      this._savePendingRequests(pendingList);
+
+      // Đồng bộ ra Network
+      this._syncRejectionToNetwork(req).catch(() => {});
+
+      return req;
+    }
+
+    // Xóa yêu cầu khỏi danh sách
+    deleteRegistrationRequest(id) {
+      if (!this.hasRole('admin')) throw new Error('Chỉ Administrator mới có quyền xóa yêu cầu');
+      let list = this.getPendingRequests();
+      list = list.filter(r => r.id !== id);
+      this._savePendingRequests(list);
+      return true;
+    }
+
+    // Đồng bộ yêu cầu đăng ký mới lên Network
+    async _syncRequestToNetwork(request) {
+      // 1. LAN Server
+      try {
+        const lanBase = (window.location && window.location.port)
+          ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
+          : 'http://localhost:5055';
+        await fetch(`${lanBase}/api/auth/register-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        }).catch(() => {});
+      } catch (_) {}
+
+      // 2. Cloud Endpoint
+      try {
+        const cfg = this.getCloudConfig();
+        if (cfg && cfg.cloudUrl) {
+          const base = cfg.cloudUrl.replace(/\/+$/, '');
+          await fetch(`${base}/registrations/${request.id}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+          }).catch(() => {});
+        }
+      } catch (_) {}
+    }
+
+    // Đồng bộ trạng thái phê duyệt lên Network
+    async _syncApprovalToNetwork(request, approvedUser) {
+      // 1. LAN Server
+      try {
+        const lanBase = (window.location && window.location.port)
+          ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
+          : 'http://localhost:5055';
+        await fetch(`${lanBase}/api/auth/approve-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ request, user: approvedUser })
+        }).catch(() => {});
+      } catch (_) {}
+
+      // 2. Cloud Endpoint
+      try {
+        const cfg = this.getCloudConfig();
+        if (cfg && cfg.cloudUrl) {
+          const base = cfg.cloudUrl.replace(/\/+$/, '');
+          await fetch(`${base}/registrations/${request.id}.json`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'approved',
+              approvedAt: request.approvedAt,
+              approvedBy: request.approvedBy,
+              allowedTools: request.allowedTools
+            })
+          }).catch(() => {});
+
+          await fetch(`${base}/users/${approvedUser.username}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(approvedUser)
+          }).catch(() => {});
+        }
+      } catch (_) {}
+    }
+
+    // Đồng bộ từ chối lên Network
+    async _syncRejectionToNetwork(request) {
+      try {
+        const lanBase = (window.location && window.location.port)
+          ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
+          : 'http://localhost:5055';
+        await fetch(`${lanBase}/api/auth/reject-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: request.id, reason: request.rejectionReason })
+        }).catch(() => {});
+      } catch (_) {}
+
+      try {
+        const cfg = this.getCloudConfig();
+        if (cfg && cfg.cloudUrl) {
+          const base = cfg.cloudUrl.replace(/\/+$/, '');
+          await fetch(`${base}/registrations/${request.id}.json`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'rejected',
+              rejectedAt: request.rejectedAt,
+              rejectionReason: request.rejectionReason
+            })
+          }).catch(() => {});
+        }
+      } catch (_) {}
+    }
+
+    // Kéo dữ liệu yêu cầu từ Network về máy hiện tại (dành cho Admin hoặc Client check)
+    async fetchNetworkPendingRequests() {
+      let networkList = [];
+
+      // 1. Kéo từ LAN WebServer
+      try {
+        const lanBase = (window.location && window.location.port)
+          ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
+          : 'http://localhost:5055';
+        const res = await fetch(`${lanBase}/api/auth/pending-requests`, { method: 'GET' }).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) networkList.push(...data);
+        }
+      } catch (_) {}
+
+      // 2. Kéo từ Cloud Endpoint
+      try {
+        const cfg = this.getCloudConfig();
+        if (cfg && cfg.cloudUrl) {
+          const base = cfg.cloudUrl.replace(/\/+$/, '');
+          const res = await fetch(`${base}/registrations.json`, { method: 'GET' }).catch(() => null);
+          if (res && res.ok) {
+            const data = await res.json();
+            if (data && typeof data === 'object') {
+              Object.values(data).forEach(item => {
+                if (item && item.username) networkList.push(item);
+              });
+            }
+          }
+
+          // Kéo thêm danh sách users đã duyệt trên cloud
+          const uRes = await fetch(`${base}/users.json`, { method: 'GET' }).catch(() => null);
+          if (uRes && uRes.ok) {
+            const uData = await uRes.json();
+            if (uData && typeof uData === 'object') {
+              const localUsers = this.getUsers();
+              let updatedUsers = false;
+              Object.values(uData).forEach(remoteUser => {
+                if (remoteUser && remoteUser.username) {
+                  const existing = localUsers.find(u => u.username.toLowerCase() === remoteUser.username.toLowerCase());
+                  if (!existing) {
+                    localUsers.push(remoteUser);
+                    updatedUsers = true;
+                  }
+                }
+              });
+              if (updatedUsers) this._saveUsers(localUsers);
+            }
+          }
+        }
+      } catch (_) {}
+
+      if (!networkList.length) return this.getPendingRequests();
+
+      // Hợp nhất danh sách local và network
+      const localList = this.getPendingRequests();
+      let changed = false;
+
+      networkList.forEach(netItem => {
+        const idx = localList.findIndex(l => l.id === netItem.id || l.username.toLowerCase() === netItem.username.toLowerCase());
+        if (idx === -1) {
+          localList.push(netItem);
+          changed = true;
+        } else {
+          // Cập nhật nếu bản ghi trên mạng mới hơn hoặc đã approved
+          if (netItem.status !== localList[idx].status || (netItem.approvedAt && !localList[idx].approvedAt)) {
+            localList[idx] = Object.assign({}, localList[idx], netItem);
+            changed = true;
+          }
+        }
+      });
+
+      if (changed) {
+        this._savePendingRequests(localList);
+      }
+
+      return localList;
+    }
+
+    // Bắt đầu chu kỳ đồng bộ nền
+    startBackgroundSync() {
+      if (this._pollTimer) clearInterval(this._pollTimer);
+      const cfg = this.getCloudConfig();
+      const interval = Math.max(5000, cfg.pollIntervalMs || 15000);
+
+      this._pollTimer = setInterval(async () => {
+        const currentUser = this.getCurrentUser();
+        // Chỉ kéo & phát âm thanh khi đã đăng nhập Admin hoặc có đăng ký chờ
+        const myReg = this.getMyRegistration();
+        if ((currentUser && currentUser.role === 'admin') || (myReg && myReg.status === 'pending')) {
+          try {
+            const list = await this.fetchNetworkPendingRequests();
+            const pendingCount = list.filter(r => r.status === 'pending').length;
+
+            if (currentUser && currentUser.role === 'admin') {
+              // Nếu có yêu cầu mới xuất hiện so với lần trước -> phát chuông & báo động
+              if (pendingCount > this._lastKnownPendingCount && this._lastKnownPendingCount >= 0) {
+                playChimeSound();
+                window.dispatchEvent(new CustomEvent('ks:auth:new_registration_alert', {
+                  detail: { count: pendingCount }
+                }));
+              }
+              this._lastKnownPendingCount = pendingCount;
+            }
+
+            // Nếu người này là client chờ duyệt, tự kiểm tra trạng thái
+            if (myReg && myReg.username) {
+              const updated = list.find(r => r.username.toLowerCase() === myReg.username.toLowerCase());
+              if (updated && updated.status !== myReg.status) {
+                this.setMyRegistration(updated);
+                window.dispatchEvent(new CustomEvent('ks:auth:my_reg_status_change', {
+                  detail: updated
+                }));
+              }
+            }
+          } catch (_) {}
+        }
+      }, interval);
+    }
+
+    // =========================================================================
+    // PHIÊN LÀM VIỆC & ĐĂNG NHẬP (SESSION & LOGIN)
+    // =========================================================================
+
     getCurrentUser() {
       try {
-        // Kiểm tra session
         const raw = sessionStorage.getItem(STORAGE_SESSION_KEY) || localStorage.getItem(STORAGE_SESSION_KEY);
         if (!raw) return null;
         const session = JSON.parse(raw);
-        // Xác thực lại với danh sách users xem còn tồn tại không
         const users = this.getUsers();
         const user = users.find(u => u.id === session.id && u.username === session.username);
         if (!user) {
@@ -181,9 +690,28 @@
       username = String(username || '').trim().toLowerCase();
       password = String(password || '');
 
-      const users = this.getUsers();
-      const user = users.find(u => u.username.toLowerCase() === username);
+      // Trước khi báo không tồn tại, thử fetch network xem vừa được duyệt chưa
+      let users = this.getUsers();
+      let user = users.find(u => u.username.toLowerCase() === username);
+
       if (!user) {
+        await this.checkRegistrationStatus(username).catch(() => {});
+        users = this.getUsers();
+        user = users.find(u => u.username.toLowerCase() === username);
+      }
+
+      if (!user) {
+        // Kiểm tra xem có đang nằm trong danh sách chờ duyệt không
+        const pendingList = this.getPendingRequests();
+        const pending = pendingList.find(p => p.username.toLowerCase() === username);
+        if (pending) {
+          if (pending.status === 'pending') {
+            throw new Error(`Tài khoản "@${username}" đang chờ Sếp Kha phê duyệt. Vui lòng liên hệ quản trị viên.`);
+          } else if (pending.status === 'rejected') {
+            const reason = pending.rejectionReason ? ` (Lý do: ${pending.rejectionReason})` : '';
+            throw new Error(`Yêu cầu tài khoản "@${username}" đã bị từ chối${reason}.`);
+          }
+        }
         throw new Error('Tài khoản không tồn tại trên hệ thống');
       }
 
@@ -217,22 +745,19 @@
       return sessionData;
     }
 
-    // Đăng xuất
     logout() {
       sessionStorage.removeItem(STORAGE_SESSION_KEY);
       localStorage.removeItem(STORAGE_SESSION_KEY);
       window.dispatchEvent(new CustomEvent('ks:auth:change', { detail: null }));
     }
 
-    // Kiểm tra quyền (RBAC)
     hasRole(requiredRole) {
       const user = this.getCurrentUser();
       if (!user) return false;
-      if (user.role === 'admin') return true; // Admin có toàn quyền
+      if (user.role === 'admin') return true;
       return user.role === requiredRole;
     }
 
-    // Kiểm tra quyền truy cập công cụ theo toolId
     canAccessTool(toolId, user = null) {
       if (!toolId) return false;
       const targetUser = user || this.getCurrentUser();
@@ -244,7 +769,6 @@
       return list.includes(toolId);
     }
 
-    // Đổi mật khẩu của chính user đang đăng nhập
     async changePassword(currentPassword, newPassword) {
       const current = this.getCurrentUser();
       if (!current) throw new Error('Chưa đăng nhập');
@@ -264,7 +788,7 @@
       return true;
     }
 
-    // Tạo người dùng mới (Chỉ dành cho Admin)
+    // Tạo người dùng mới thủ công (Chỉ dành cho Admin)
     async createUser({ username, name, role, allowedTools, password }) {
       if (!this.hasRole('admin')) throw new Error('Chỉ Administrator mới có quyền tạo người dùng');
       username = String(username || '').trim().toLowerCase();
@@ -302,7 +826,6 @@
       return newUser;
     }
 
-    // Cập nhật người dùng (Chỉ Admin)
     async updateUser(id, { name, role, allowedTools, password }) {
       if (!this.hasRole('admin')) throw new Error('Chỉ Administrator mới có quyền cập nhật người dùng');
       const users = this.getUsers();
@@ -311,7 +834,6 @@
 
       if (name) user.name = String(name).trim();
       if (role && (role === 'admin' || role === 'engineer')) {
-        // Không cho phép hạ quyền tài khoản admin gốc duy nhất
         const adminCount = users.filter(u => u.role === 'admin').length;
         if (user.role === 'admin' && role !== 'admin' && adminCount <= 1) {
           throw new Error('Hệ thống phải có ít nhất 1 tài khoản Administrator');
@@ -331,7 +853,6 @@
 
       this._saveUsers(users);
 
-      // Đồng bộ lại session hiện tại nếu vừa cập nhật chính user đang đăng nhập
       const cur = this.getCurrentUser();
       if (cur && cur.id === user.id) {
         const sessionData = {
@@ -354,7 +875,6 @@
       return user;
     }
 
-    // Xóa người dùng (Chỉ Admin)
     deleteUser(id) {
       if (!this.hasRole('admin')) throw new Error('Chỉ Administrator mới có quyền xóa người dùng');
       const current = this.getCurrentUser();
@@ -376,7 +896,10 @@
     }
   }
 
+  // Tiện ích âm thanh công khai
+  AuthManager.playChime = playChimeSound;
+
   // Xuất instance toàn cục
   global.Auth = new AuthManager();
 
-})(window);
+})(typeof window !== 'undefined' ? window : global);

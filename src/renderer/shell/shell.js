@@ -1383,6 +1383,46 @@
   // ==========================================================================
   // AUTHENTICATION & RBAC CONTROLLER
   // ==========================================================================
+  function updateApprovalBadge(count = null) {
+    const currentUser = window.Auth?.getCurrentUser();
+    const btnApprovals = document.getElementById('btn-pending-approvals');
+    const badge = document.getElementById('approval-badge');
+    const menuApprovals = document.getElementById('btn-menu-pending-approvals');
+    const menuBadge = document.getElementById('menu-approval-count');
+    const setPendingCount = document.getElementById('set-pending-count');
+
+    if (!currentUser || currentUser.role !== 'admin') {
+      if (btnApprovals) btnApprovals.style.display = 'none';
+      if (menuApprovals) menuApprovals.hidden = true;
+      return;
+    }
+
+    if (count === null) {
+      const pendingList = window.Auth ? window.Auth.getPendingRequests() : [];
+      count = pendingList.filter(r => r.status === 'pending').length;
+    }
+
+    if (btnApprovals) {
+      btnApprovals.style.display = 'flex';
+      btnApprovals.title = count > 0
+        ? `Có ${count} yêu cầu đăng ký tài khoản đang chờ Sếp Kha duyệt!`
+        : 'Yêu cầu đăng ký tài khoản chờ duyệt';
+    }
+    if (menuApprovals) menuApprovals.hidden = false;
+
+    if (badge) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = count > 0 ? 'flex' : 'none';
+    }
+    if (menuBadge) {
+      menuBadge.textContent = count > 99 ? '99+' : count;
+      menuBadge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+    if (setPendingCount) {
+      setPendingCount.textContent = count;
+    }
+  }
+
   function updateAuthUI() {
     const user = window.Auth?.getCurrentUser();
     const loginScreen = document.getElementById('login-screen');
@@ -1394,11 +1434,40 @@
       // Chưa đăng nhập -> Hiện màn hình Login
       if (loginScreen) {
         loginScreen.hidden = false;
-        const userInput = document.getElementById('login-username');
-        if (userInput) setTimeout(() => userInput.focus(), 100);
+        // Kiểm tra xem máy này có yêu cầu đăng ký đang chờ duyệt không
+        const myReg = window.Auth?.getMyRegistration();
+        const regPendingCard = document.getElementById('register-pending-card');
+        const loginForm = document.getElementById('login-form');
+        const regForm = document.getElementById('register-form');
+        const tabLoginBtn = document.getElementById('tab-login-btn');
+        const tabRegisterBtn = document.getElementById('tab-register-btn');
+
+        if (myReg && myReg.status === 'pending') {
+          if (regPendingCard) {
+            regPendingCard.hidden = false;
+            const pUser = document.getElementById('pending-card-username');
+            const pName = document.getElementById('pending-card-name');
+            const pTime = document.getElementById('pending-card-time');
+            if (pUser) pUser.textContent = `@${myReg.username}`;
+            if (pName) pName.textContent = myReg.name;
+            if (pTime) pTime.textContent = new Date(myReg.requestedAt).toLocaleString('vi-VN');
+          }
+          if (loginForm) loginForm.hidden = true;
+          if (regForm) regForm.hidden = true;
+        } else {
+          if (regPendingCard) regPendingCard.hidden = true;
+          if (loginForm) loginForm.hidden = false;
+          if (regForm) regForm.hidden = true;
+          if (tabLoginBtn) tabLoginBtn.classList.add('active');
+          if (tabRegisterBtn) tabRegisterBtn.classList.remove('active');
+          const userInput = document.getElementById('login-username');
+          if (userInput) setTimeout(() => userInput.focus(), 100);
+        }
       }
       if (userProfileWrap) userProfileWrap.style.display = 'none';
       if (userDropdown) userDropdown.hidden = true;
+      const btnApprovals = document.getElementById('btn-pending-approvals');
+      if (btnApprovals) btnApprovals.style.display = 'none';
       broadcastUserToTools(null);
       return;
     }
@@ -1414,6 +1483,7 @@
     const menuFullName = document.getElementById('menu-user-fullname');
     const menuRoleDesc = document.getElementById('menu-user-role-desc');
     const menuManageUsers = document.getElementById('btn-menu-manage-users');
+    const menuPendingApprovals = document.getElementById('btn-menu-pending-approvals');
 
     const initial = (user.name || user.username || 'U').trim().charAt(0).toUpperCase();
     if (avatarEl) avatarEl.textContent = initial;
@@ -1435,6 +1505,17 @@
     }
     if (menuManageUsers) {
       menuManageUsers.hidden = user.role !== 'admin';
+    }
+    if (menuPendingApprovals) {
+      menuPendingApprovals.hidden = user.role !== 'admin';
+    }
+
+    // Cập nhật huy hiệu phê duyệt cho Admin
+    if (user.role === 'admin') {
+      updateApprovalBadge();
+    } else {
+      const btnApprovals = document.getElementById('btn-pending-approvals');
+      if (btnApprovals) btnApprovals.style.display = 'none';
     }
 
     // Cập nhật Settings section RBAC
@@ -1471,6 +1552,7 @@
       adminMgmt.style.display = (user && user.role === 'admin') ? 'block' : 'none';
       if (user && user.role === 'admin') {
         renderUserManagementTable();
+        updateApprovalBadge();
       }
     }
   }
@@ -1855,6 +1937,401 @@
         }
       };
     }
+
+    // 8. Đăng ký tài khoản mới & Chờ duyệt
+    const tabLoginBtn = document.getElementById('tab-login-btn');
+    const tabRegisterBtn = document.getElementById('tab-register-btn');
+    const regForm = document.getElementById('register-form');
+    const regPendingCard = document.getElementById('register-pending-card');
+    const regErr = document.getElementById('reg-error-msg');
+
+    function switchLoginTab(tab) {
+      if (tab === 'login') {
+        if (tabLoginBtn) tabLoginBtn.classList.add('active');
+        if (tabRegisterBtn) tabRegisterBtn.classList.remove('active');
+        if (loginForm) loginForm.hidden = false;
+        if (regForm) regForm.hidden = true;
+        if (regPendingCard) regPendingCard.hidden = true;
+        if (loginErr) loginErr.hidden = true;
+        const userInput = document.getElementById('login-username');
+        if (userInput) userInput.focus();
+      } else {
+        if (tabLoginBtn) tabLoginBtn.classList.remove('active');
+        if (tabRegisterBtn) tabRegisterBtn.classList.add('active');
+        if (loginForm) loginForm.hidden = true;
+        if (regForm) regForm.hidden = false;
+        if (regPendingCard) regPendingCard.hidden = true;
+        if (regErr) regErr.hidden = true;
+        const regUserInput = document.getElementById('reg-username');
+        if (regUserInput) regUserInput.focus();
+      }
+    }
+
+    if (tabLoginBtn) tabLoginBtn.onclick = () => switchLoginTab('login');
+    if (tabRegisterBtn) tabRegisterBtn.onclick = () => switchLoginTab('register');
+
+    const btnToggleRegPwd = document.getElementById('btn-toggle-reg-pwd');
+    if (btnToggleRegPwd) {
+      btnToggleRegPwd.onclick = () => {
+        const pwdInput = document.getElementById('reg-password');
+        if (!pwdInput) return;
+        const isText = pwdInput.type === 'text';
+        pwdInput.type = isText ? 'password' : 'text';
+        btnToggleRegPwd.title = isText ? 'Hiện mật khẩu' : 'Ẩn mật khẩu';
+      };
+    }
+
+    if (regForm) {
+      regForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('reg-username')?.value;
+        const name = document.getElementById('reg-name')?.value;
+        const department = document.getElementById('reg-dept')?.value;
+        const phone = document.getElementById('reg-phone')?.value;
+        const password = document.getElementById('reg-password')?.value;
+        const confirmPwd = document.getElementById('reg-password-confirm')?.value;
+        const note = document.getElementById('reg-note')?.value;
+
+        if (password !== confirmPwd) {
+          if (regErr) {
+            regErr.textContent = 'Mật khẩu và xác nhận mật khẩu không khớp!';
+            regErr.hidden = false;
+          }
+          return;
+        }
+
+        const regSubmitBtn = document.getElementById('btn-reg-submit');
+        if (regSubmitBtn) {
+          regSubmitBtn.disabled = true;
+          regSubmitBtn.innerHTML = '<span>Đang gửi yêu cầu tới Sếp Kha…</span>';
+        }
+
+        try {
+          const req = await window.Auth.submitRegistrationRequest({
+            username,
+            name,
+            department,
+            phone,
+            password,
+            note
+          });
+
+          if (regForm) regForm.hidden = true;
+          if (regPendingCard) {
+            regPendingCard.hidden = false;
+            const pUser = document.getElementById('pending-card-username');
+            const pName = document.getElementById('pending-card-name');
+            const pTime = document.getElementById('pending-card-time');
+            if (pUser) pUser.textContent = `@${req.username}`;
+            if (pName) pName.textContent = req.name;
+            if (pTime) pTime.textContent = new Date(req.requestedAt).toLocaleString('vi-VN');
+          }
+
+          notify('Đã gửi yêu cầu đăng ký!', 'Yêu cầu của bạn đã được chuyển tới Sếp Kha (Admin). Vui lòng đợi phê duyệt để đăng nhập.', 'success');
+        } catch (err) {
+          if (regErr) {
+            regErr.textContent = err.message || 'Lỗi gửi yêu cầu đăng ký';
+            regErr.hidden = false;
+          }
+        } finally {
+          if (regSubmitBtn) {
+            regSubmitBtn.disabled = false;
+            regSubmitBtn.innerHTML = `<span>Gửi yêu cầu đăng ký cho Sếp Kha</span>${icon('sparkles', 16)}`;
+          }
+        }
+      };
+    }
+
+    const btnCheckMyStatus = document.getElementById('btn-check-my-status');
+    if (btnCheckMyStatus) {
+      btnCheckMyStatus.onclick = async () => {
+        btnCheckMyStatus.disabled = true;
+        btnCheckMyStatus.innerHTML = `${icon('refresh', 14, 'spin')} <span>Đang kiểm tra…</span>`;
+        try {
+          const myReg = window.Auth.getMyRegistration();
+          const username = myReg ? myReg.username : (document.getElementById('pending-card-username')?.textContent?.replace('@', '') || '');
+          const result = await window.Auth.checkRegistrationStatus(username);
+
+          if (result.status === 'approved') {
+            notify('Tài khoản đã được duyệt!', 'Sếp Kha đã phê duyệt tài khoản của bạn. Mời bạn đăng nhập ngay!', 'success');
+            switchLoginTab('login');
+            const uInput = document.getElementById('login-username');
+            const pInput = document.getElementById('login-password');
+            if (uInput) uInput.value = username;
+            if (pInput) pInput.focus();
+          } else if (result.status === 'rejected') {
+            const reason = result.request?.rejectionReason ? ` Lý do: ${result.request.rejectionReason}` : '';
+            notify('Yêu cầu bị từ chối', `Yêu cầu đăng ký tài khoản của bạn đã bị từ chối.${reason}`, 'error');
+          } else {
+            notify('Đang chờ phê duyệt', 'Yêu cầu tài khoản của bạn vẫn đang chờ Sếp Kha duyệt.', 'info');
+          }
+        } catch (err) {
+          notify('Lỗi kiểm tra', err.message, 'error');
+        } finally {
+          btnCheckMyStatus.disabled = false;
+          btnCheckMyStatus.innerHTML = `${icon('refresh', 14)} <span>Kiểm tra trạng thái duyệt ngay</span>`;
+        }
+      };
+    }
+
+    const btnBackToLogin = document.getElementById('btn-back-to-login');
+    if (btnBackToLogin) {
+      btnBackToLogin.onclick = () => switchLoginTab('login');
+    }
+
+    // 9. Modal Danh sách Yêu cầu chờ duyệt (Admin)
+    const modalApprovals = document.getElementById('modal-pending-approvals');
+    const approvalsContainer = document.getElementById('approvals-list-container');
+    const btnCloseApprovals = document.getElementById('btn-close-approvals-modal');
+    const btnCancelApprovals = document.getElementById('btn-cancel-approvals');
+    const btnRefreshApprovals = document.getElementById('btn-refresh-approvals');
+    const btnOpenApprovalsTitlebar = document.getElementById('btn-pending-approvals');
+    const btnMenuApprovals = document.getElementById('btn-menu-pending-approvals');
+    const btnSetViewApprovals = document.getElementById('btn-set-view-approvals');
+
+    function openApprovalsModal() {
+      if (!modalApprovals) return;
+      if (userDropdown) userDropdown.hidden = true;
+      modalApprovals.hidden = false;
+      renderApprovalsList();
+      window.Auth.fetchNetworkPendingRequests().then(() => renderApprovalsList()).catch(() => {});
+    }
+
+    function closeApprovalsModal() {
+      if (modalApprovals) modalApprovals.hidden = true;
+    }
+
+    if (btnOpenApprovalsTitlebar) btnOpenApprovalsTitlebar.onclick = openApprovalsModal;
+    if (btnMenuApprovals) btnMenuApprovals.onclick = openApprovalsModal;
+    if (btnSetViewApprovals) btnSetViewApprovals.onclick = openApprovalsModal;
+    if (btnCloseApprovals) btnCloseApprovals.onclick = closeApprovalsModal;
+    if (btnCancelApprovals) btnCancelApprovals.onclick = closeApprovalsModal;
+    if (btnRefreshApprovals) {
+      btnRefreshApprovals.onclick = async () => {
+        btnRefreshApprovals.disabled = true;
+        btnRefreshApprovals.innerHTML = `${icon('refresh', 14, 'spin')} <span>Đang đồng bộ…</span>`;
+        try {
+          await window.Auth.fetchNetworkPendingRequests();
+          renderApprovalsList();
+          notify('Đã đồng bộ', 'Đã làm mới danh sách yêu cầu từ Cloud & LAN.', 'info');
+        } catch (_) {}
+        btnRefreshApprovals.disabled = false;
+        btnRefreshApprovals.innerHTML = `${icon('refresh', 14)} <span>Làm mới</span>`;
+      };
+    }
+
+    function renderApprovalsList() {
+      if (!approvalsContainer || !window.Auth) return;
+      const list = window.Auth.getPendingRequests();
+      updateApprovalBadge();
+
+      if (!list.length) {
+        approvalsContainer.innerHTML = `
+          <div class="approvals-empty">
+            <span style="color:var(--text-3); font-size:32px;">✓</span>
+            <div>Hiện tại chưa có yêu cầu đăng ký nào từ client.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const sorted = [...list].sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        return new Date(b.requestedAt || 0) - new Date(a.requestedAt || 0);
+      });
+
+      let html = `<table class="user-table">
+        <thead>
+          <tr>
+            <th>Tài khoản</th>
+            <th>Họ và tên</th>
+            <th>Phòng ban / SĐT</th>
+            <th>Ghi chú</th>
+            <th>Thời gian</th>
+            <th>Trạng thái</th>
+            <th style="text-align:right;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      sorted.forEach(req => {
+        const isPending = req.status === 'pending';
+        const isApproved = req.status === 'approved';
+        const isRejected = req.status === 'rejected';
+
+        let statusBadge = '<span class="badge-status-pending">⏳ Chờ duyệt</span>';
+        if (isApproved) statusBadge = '<span class="badge-status-approved">✓ Đã duyệt</span>';
+        if (isRejected) statusBadge = `<span class="badge-status-rejected" title="${escapeHtml(req.rejectionReason || '')}">✕ Từ chối</span>`;
+
+        const dateStr = req.requestedAt ? new Date(req.requestedAt).toLocaleString('vi-VN') : '—';
+        const extraInfo = [req.department, req.phone].filter(Boolean).join(' • ') || '—';
+
+        html += `<tr>
+          <td><strong>@${escapeHtml(req.username)}</strong></td>
+          <td><b>${escapeHtml(req.name)}</b></td>
+          <td><small style="color:var(--text-2);">${escapeHtml(extraInfo)}</small></td>
+          <td style="max-width:180px;"><small style="color:var(--text-3); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(req.note || '')}">${escapeHtml(req.note || '—')}</small></td>
+          <td><small style="color:var(--text-3);">${dateStr}</small></td>
+          <td>${statusBadge}</td>
+          <td style="text-align:right;">
+            <div class="actions" style="justify-content:flex-end;">
+              ${isPending ? `
+                <button class="btn sm primary" data-action="approve-req" data-id="${req.id}" title="Duyệt & phân quyền công cụ">
+                  ${icon('check', 13)} <span>Duyệt & Cấp quyền</span>
+                </button>
+                <button class="btn sm danger" data-action="reject-req" data-id="${req.id}" title="Từ chối yêu cầu">
+                  ${icon('x', 13)} <span>Từ chối</span>
+                </button>
+              ` : `
+                <button class="btn sm" data-action="del-req" data-id="${req.id}" title="Xóa bản ghi này">
+                  ${icon('trash', 13)}
+                </button>
+              `}
+            </div>
+          </td>
+        </tr>`;
+      });
+
+      html += `</tbody></table>`;
+      approvalsContainer.innerHTML = html;
+
+      approvalsContainer.querySelectorAll('[data-action="approve-req"]').forEach(btn => {
+        btn.onclick = () => openApprovePermissionModal(btn.getAttribute('data-id'));
+      });
+      approvalsContainer.querySelectorAll('[data-action="reject-req"]').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.getAttribute('data-id');
+          const req = window.Auth.getPendingRequests().find(r => r.id === id);
+          if (!req) return;
+          const reason = prompt(`Nhập lý do từ chối tài khoản @${req.username}:`, 'Thông tin chưa hợp lệ');
+          if (reason !== null) {
+            try {
+              await window.Auth.rejectRegistrationRequest(id, reason);
+              notify('Đã từ chối', `Đã từ chối yêu cầu đăng ký của @${req.username}`, 'info');
+              renderApprovalsList();
+            } catch (err) {
+              notify('Lỗi từ chối', err.message, 'error');
+            }
+          }
+        };
+      });
+      approvalsContainer.querySelectorAll('[data-action="del-req"]').forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.getAttribute('data-id');
+          window.Auth.deleteRegistrationRequest(id);
+          renderApprovalsList();
+        };
+      });
+    }
+
+    // Modal Phê duyệt & Cấp quyền công cụ
+    const modalApprovePerm = document.getElementById('modal-approve-permissions');
+    const formApprovePerm = document.getElementById('form-approve-perm');
+    const btnCloseApprovePerm = document.getElementById('btn-close-approve-perm');
+    const btnCancelApprovePerm = document.getElementById('btn-cancel-approve-perm-btn');
+    const btnApproveSelAll = document.getElementById('btn-approve-sel-all');
+    const btnApproveDeselAll = document.getElementById('btn-approve-desel-all');
+
+    function openApprovePermissionModal(reqId) {
+      if (!modalApprovePerm) return;
+      const req = window.Auth.getPendingRequests().find(r => r.id === reqId);
+      if (!req) return;
+
+      modalApprovePerm.hidden = false;
+      const idInput = document.getElementById('approve-req-id');
+      const uEl = document.getElementById('approve-perm-username');
+      const nEl = document.getElementById('approve-perm-fullname');
+      const exEl = document.getElementById('approve-perm-extra');
+      const grid = document.getElementById('approve-tools-checklist');
+      const errEl = document.getElementById('approve-perm-error-msg');
+
+      if (idInput) idInput.value = req.id;
+      if (uEl) uEl.textContent = `@${req.username}`;
+      if (nEl) nEl.textContent = req.name;
+      if (exEl) exEl.textContent = `Phòng ban: ${req.department || 'Chưa rõ'} • SĐT: ${req.phone || 'Chưa rõ'}${req.note ? ` • Ghi chú: ${req.note}` : ''}`;
+      if (errEl) errEl.hidden = true;
+
+      const preselected = req.allowedTools || ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'];
+
+      if (grid) {
+        grid.innerHTML = TOOLS.map(tool => {
+          const isChecked = preselected.includes('*') || preselected.includes(tool.id);
+          const tName = getToolName(tool);
+          return `
+            <label class="perm-tool-item ${isChecked ? 'checked' : ''}" data-tool-id="${tool.id}">
+              <input type="checkbox" name="approve-tool-perm" value="${tool.id}" ${isChecked ? 'checked' : ''}>
+              <span class="perm-tool-ico">${icon(tool.icon, 14)}</span>
+              <span class="perm-tool-name" title="${escapeHtml(tName)}">${escapeHtml(tName)}</span>
+            </label>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('.perm-tool-item').forEach(item => {
+          const cb = item.querySelector('input[type="checkbox"]');
+          cb.onchange = () => item.classList.toggle('checked', cb.checked);
+        });
+      }
+    }
+
+    function closeApprovePermissionModal() {
+      if (modalApprovePerm) modalApprovePerm.hidden = true;
+    }
+
+    if (btnCloseApprovePerm) btnCloseApprovePerm.onclick = closeApprovePermissionModal;
+    if (btnCancelApprovePerm) btnCancelApprovePerm.onclick = closeApprovePermissionModal;
+    if (btnApproveSelAll) {
+      btnApproveSelAll.onclick = () => {
+        document.querySelectorAll('#approve-tools-checklist .perm-tool-item').forEach(item => {
+          const cb = item.querySelector('input[type="checkbox"]');
+          if (cb) { cb.checked = true; item.classList.add('checked'); }
+        });
+      };
+    }
+    if (btnApproveDeselAll) {
+      btnApproveDeselAll.onclick = () => {
+        document.querySelectorAll('#approve-tools-checklist .perm-tool-item').forEach(item => {
+          const cb = item.querySelector('input[type="checkbox"]');
+          if (cb) { cb.checked = false; item.classList.remove('checked'); }
+        });
+      };
+    }
+
+    if (formApprovePerm) {
+      formApprovePerm.onsubmit = async (e) => {
+        e.preventDefault();
+        const reqId = document.getElementById('approve-req-id').value;
+        const selectedTools = Array.from(document.querySelectorAll('input[name="approve-tool-perm"]:checked')).map(cb => cb.value);
+        const errEl = document.getElementById('approve-perm-error-msg');
+
+        try {
+          const { user } = await window.Auth.approveRegistrationRequest(reqId, { allowedTools: selectedTools });
+          closeApprovePermissionModal();
+          renderApprovalsList();
+          renderUserManagementTable();
+          updateAuthUI();
+          notify('Đã duyệt thành công!', `Tài khoản @${user.username} (${user.name}) đã được kích hoạt. Người dùng có thể đăng nhập ngay!`, 'success');
+        } catch (err) {
+          if (errEl) { errEl.textContent = err.message || 'Lỗi phê duyệt tài khoản'; errEl.hidden = false; }
+        }
+      };
+    }
+
+    // Lắng nghe sự kiện yêu cầu đăng ký mới
+    window.addEventListener('ks:auth:pending_changed', (e) => {
+      updateApprovalBadge(e.detail?.count);
+    });
+
+    window.addEventListener('ks:auth:new_registration_alert', (e) => {
+      const count = e.detail?.count || 1;
+      updateApprovalBadge(count);
+      notify(
+        'Yêu cầu đăng ký mới!',
+        `Sếp Kha ơi, có ${count} tài khoản mới vừa gửi yêu cầu đăng ký cần sếp phê duyệt!`,
+        'success',
+        [{ label: 'Duyệt ngay', primary: true, callback: openApprovalsModal }]
+      );
+    });
 
     // Lắng nghe auth change
     window.addEventListener('ks:auth:change', () => {

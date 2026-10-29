@@ -63,6 +63,11 @@
               <script>document.write(icon('settings', 14));</script>
               <span>Đổi mật khẩu</span>
             </button>
+            <button class="user-menu-item" id="btn-menu-pending-approvals" hidden>
+              <script>document.write(icon('user', 14));</script>
+              <span>Duyệt tài khoản đăng ký</span>
+              <span class="menu-badge" id="menu-approval-count" style="display:none;">0</span>
+            </button>
             <button class="user-menu-item" id="btn-menu-manage-users" hidden>
               <script>document.write(icon('database', 14));</script>
               <span>Quản lý người dùng & Phân quyền</span>
@@ -74,6 +79,12 @@
             </button>
           </div>
         </div>
+
+        <!-- Nút duyệt tài khoản đăng ký cho Admin (Sếp Kha) -->
+        <button class="tb-btn tb-btn-approval" id="btn-pending-approvals" title="Yêu cầu đăng ký tài khoản chờ duyệt" style="position:relative; display:none;">
+          <script>document.write(icon('user', 16));</script>
+          <span class="badge badge-approval" id="approval-badge">0</span>
+        </button>
 
         <button class="tb-btn" id="btn-theme-toggle" data-i18n-title="toggleTheme">
           <script>document.write(icon('sun', 16));</script>
@@ -515,7 +526,13 @@
                           <b>Danh sách tài khoản hệ thống</b>
                           <span>Chỉ Administrator mới có quyền tạo, sửa vai trò hoặc cấp lại mật khẩu</span>
                         </div>
-                        <button class="btn sm primary" id="btn-open-add-user">+ Thêm tài khoản</button>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                          <button class="btn sm" id="btn-set-view-approvals" title="Xem và phê duyệt yêu cầu đăng ký từ app client">
+                            <script>document.write(icon('user', 14));</script>
+                            <span>Yêu cầu chờ duyệt (<b id="set-pending-count" style="color:var(--accent);">0</b>)</span>
+                          </button>
+                          <button class="btn sm primary" id="btn-open-add-user">+ Thêm tài khoản</button>
+                        </div>
                       </div>
                       <div class="user-table-wrap" id="user-mgmt-list" style="margin-top:12px;"></div>
                     </div>
@@ -640,6 +657,19 @@
         <p class="login-subtitle">Hệ thống Quản lý Kỹ thuật & Tự động hóa</p>
       </div>
 
+      <!-- Tabs chuyển đổi Đăng nhập / Đăng ký -->
+      <div class="login-tabs">
+        <button type="button" class="login-tab-btn active" id="tab-login-btn">
+          <script>document.write(icon('power', 14));</script>
+          <span>Đăng nhập</span>
+        </button>
+        <button type="button" class="login-tab-btn" id="tab-register-btn">
+          <script>document.write(icon('user', 14));</script>
+          <span>Đăng ký tài khoản</span>
+        </button>
+      </div>
+
+      <!-- 1. Form Đăng nhập -->
       <form id="login-form" class="login-form" autocomplete="off">
         <div class="form-group">
           <label for="login-username">Tên đăng nhập</label>
@@ -675,8 +705,95 @@
         </button>
       </form>
 
+      <!-- 2. Form Đăng ký tài khoản mới -->
+      <form id="register-form" class="login-form" autocomplete="off" hidden>
+        <div class="form-group">
+          <label for="reg-username">Tên đăng nhập *</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><script>document.write(icon('sidebar', 16));</script></span>
+            <input type="text" id="reg-username" placeholder="vd: tuan.le, minh_nguyen (chữ & số)" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-name">Họ và tên hiển thị *</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><script>document.write(icon('user', 16));</script></span>
+            <input type="text" id="reg-name" placeholder="vd: Lê Quốc Tuấn" required>
+          </div>
+        </div>
+
+        <div class="form-row-2col">
+          <div class="form-group">
+            <label for="reg-dept">Phòng ban / Tổ</label>
+            <input type="text" id="reg-dept" class="reg-mini-input" placeholder="vd: Kỹ thuật PLC">
+          </div>
+          <div class="form-group">
+            <label for="reg-phone">Số điện thoại</label>
+            <input type="tel" id="reg-phone" class="reg-mini-input" placeholder="vd: 0912345678">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-password">Mật khẩu *</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><script>document.write(icon('settings', 16));</script></span>
+            <input type="password" id="reg-password" placeholder="Tối thiểu 4 ký tự" required minlength="4">
+            <button type="button" class="btn-toggle-pwd" id="btn-toggle-reg-pwd" title="Hiện mật khẩu">
+              <script>document.write(icon('zoom', 15));</script>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-password-confirm">Nhập lại mật khẩu *</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><script>document.write(icon('check', 16));</script></span>
+            <input type="password" id="reg-password-confirm" placeholder="Xác nhận mật khẩu" required minlength="4">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-note">Ghi chú gửi Sếp Kha (mục đích sử dụng)</label>
+          <input type="text" id="reg-note" class="reg-mini-input" placeholder="vd: Lập trình máy Palletizer và Vision">
+        </div>
+
+        <div id="reg-error-msg" class="login-error-alert" hidden></div>
+
+        <button type="submit" class="btn-login-submit" id="btn-reg-submit">
+          <span>Gửi yêu cầu đăng ký cho Sếp Kha</span>
+          <script>document.write(icon('sparkles', 16));</script>
+        </button>
+      </form>
+
+      <!-- 3. Màn hình chờ phê duyệt sau khi gửi yêu cầu -->
+      <div id="register-pending-card" class="reg-pending-card" hidden>
+        <div class="pending-icon-glow">
+          <script>document.write(icon('sparkles', 32));</script>
+        </div>
+        <h3>Đã gửi yêu cầu đăng ký!</h3>
+        <p class="pending-desc">
+          Yêu cầu tài khoản <strong id="pending-card-username" style="color:var(--accent);">@user</strong> đang được gửi về app chính của <strong>Sếp Kha</strong>.
+        </p>
+        <div class="pending-info-box">
+          <div class="pi-row"><span>Họ tên:</span> <b id="pending-card-name">—</b></div>
+          <div class="pi-row"><span>Thời gian gửi:</span> <b id="pending-card-time">—</b></div>
+          <div class="pi-row"><span>Trạng thái:</span> <span class="badge-status-pending">⏳ Chờ Sếp Kha duyệt</span></div>
+        </div>
+        <p class="pending-tip">Khi Sếp Kha phê duyệt, bạn chỉ cần mở app và đăng nhập với mật khẩu vừa tạo.</p>
+        <div class="pending-actions">
+          <button type="button" class="btn sm primary" id="btn-check-my-status">
+            <script>document.write(icon('refresh', 14));</script>
+            <span>Kiểm tra trạng thái duyệt ngay</span>
+          </button>
+          <button type="button" class="btn sm" id="btn-back-to-login">
+            <span>Quay lại Đăng nhập</span>
+          </button>
+        </div>
+      </div>
+
       <div class="login-footer">
-        <span>Bảo mật chuẩn Web Crypto PBKDF2 · 100% Hoạt động Offline</span>
+        <span>Bảo mật chuẩn Web Crypto PBKDF2 · Hỗ trợ Cloud & Mạng LAN nội bộ</span>
       </div>
     </div>
   </div>
@@ -772,6 +889,83 @@
         <div class="modal-foot">
           <button type="button" class="btn sm" id="btn-cancel-user-modal">Hủy</button>
           <button type="submit" class="btn sm primary" id="btn-save-user-modal">Lưu tài khoản</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== Modal: Pending Approvals (Admin) ==================== -->
+  <div class="modal-backdrop" id="modal-pending-approvals" hidden>
+    <div class="modal-card modal-wide">
+      <div class="modal-head">
+        <h3>
+          <script>document.write(icon('user', 18));</script>
+          <span>Duyệt tài khoản đăng ký (Sếp Kha)</span>
+        </h3>
+        <button class="btn-close-modal" id="btn-close-approvals-modal">
+          <script>document.write(icon('x', 16));</script>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <p style="margin:0; font-size:12.5px; color:var(--text-2);">
+            Danh sách nhân viên đăng ký từ các máy client. Sếp nhấn <strong>Duyệt & Cấp quyền</strong> để kích hoạt.
+          </p>
+          <button class="btn sm" id="btn-refresh-approvals" title="Làm mới từ Cloud & LAN">
+            <script>document.write(icon('refresh', 14));</script>
+            <span>Làm mới</span>
+          </button>
+        </div>
+        <div id="approvals-list-container" class="approvals-list-wrap">
+          <!-- Bảng các yêu cầu chờ duyệt được render động -->
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn sm" id="btn-cancel-approvals">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Modal: Approve & Grant Permissions ==================== -->
+  <div class="modal-backdrop" id="modal-approve-permissions" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>
+          <script>document.write(icon('checkCircle', 18));</script>
+          <span>Phê duyệt & Phân quyền công cụ</span>
+        </h3>
+        <button class="btn-close-modal" id="btn-close-approve-perm">
+          <script>document.write(icon('x', 16));</script>
+        </button>
+      </div>
+      <form id="form-approve-perm" class="modal-body">
+        <input type="hidden" id="approve-req-id">
+        <div style="background:var(--surface-2); padding:10px 14px; border-radius:var(--r-sm); border:1px solid var(--border);">
+          <div>Tài khoản: <strong id="approve-perm-username" style="color:var(--accent);">@user</strong> (<span id="approve-perm-fullname">Họ tên</span>)</div>
+          <div style="font-size:12px; color:var(--text-3); margin-top:3px;" id="approve-perm-extra">Phòng ban: Kỹ thuật</div>
+        </div>
+
+        <div class="form-group" style="margin-top:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="margin-bottom:0; font-size:12.5px; font-weight:600;">Chọn công cụ cấp quyền sử dụng:</label>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn sm" id="btn-approve-sel-all" style="padding:2px 8px; font-size:11px;">Chọn tất cả</button>
+              <button type="button" class="btn sm" id="btn-approve-desel-all" style="padding:2px 8px; font-size:11px;">Bỏ chọn</button>
+            </div>
+          </div>
+          <div class="perm-tools-grid" id="approve-tools-checklist">
+            <!-- Checklist các công cụ -->
+          </div>
+        </div>
+
+        <div id="approve-perm-error-msg" class="modal-error-alert" hidden></div>
+
+        <div class="modal-foot">
+          <button type="button" class="btn sm" id="btn-cancel-approve-perm-btn">Hủy</button>
+          <button type="submit" class="btn sm primary" id="btn-confirm-approve">
+            <script>document.write(icon('check', 14));</script>
+            <span>Xác nhận Duyệt & Kích hoạt</span>
+          </button>
         </div>
       </form>
     </div>

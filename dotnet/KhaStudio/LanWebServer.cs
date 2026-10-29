@@ -3,6 +3,8 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace KhaStudio;
 
@@ -193,6 +195,80 @@ public class LanWebServer
                     }
                 }
 
+                // 4. API: /api/auth/register-request (Client gửi yêu cầu đăng ký tài khoản)
+                if (cleanPath == "/api/auth/register-request" && method == "POST")
+                {
+                    var body = await ReadBodyAsync(reader);
+                    if (!string.IsNullOrWhiteSpace(body))
+                    {
+                        SavePendingRegistration(body);
+                    }
+                    await SendJsonResponseAsync(stream, "{\"status\":\"ok\"}");
+                    return;
+                }
+
+                // 5. API: /api/auth/pending-requests (Lấy danh sách yêu cầu chờ duyệt)
+                if (cleanPath == "/api/auth/pending-requests")
+                {
+                    var data = GetPendingRegistrationsJson();
+                    await SendJsonResponseAsync(stream, data);
+                    return;
+                }
+
+                // 6. API: /api/auth/approve-request (Sếp Kha duyệt tài khoản)
+                if (cleanPath == "/api/auth/approve-request" && method == "POST")
+                {
+                    var body = await ReadBodyAsync(reader);
+                    if (!string.IsNullOrWhiteSpace(body))
+                    {
+                        ApproveRegistration(body);
+                    }
+                    await SendJsonResponseAsync(stream, "{\"status\":\"ok\"}");
+                    return;
+                }
+
+                // 7. API: /api/auth/reject-request (Sếp Kha từ chối yêu cầu)
+                if (cleanPath == "/api/auth/reject-request" && method == "POST")
+                {
+                    var body = await ReadBodyAsync(reader);
+                    if (!string.IsNullOrWhiteSpace(body))
+                    {
+                        RejectRegistration(body);
+                    }
+                    await SendJsonResponseAsync(stream, "{\"status\":\"ok\"}");
+                    return;
+                }
+
+                // 8. API: /api/auth/check-status (Kiểm tra trạng thái duyệt theo username)
+                if (cleanPath == "/api/auth/check-status")
+                {
+                    var qUsername = "";
+                    if (rawPath.Contains("?"))
+                    {
+                        var q = rawPath.Split('?')[1];
+                        foreach (var kv in q.Split('&'))
+                        {
+                            var partsKv = kv.Split('=');
+                            if (partsKv.Length == 2 && partsKv[0].Equals("username", StringComparison.OrdinalIgnoreCase))
+                            {
+                                qUsername = WebUtility.UrlDecode(partsKv[1]).Trim().ToLowerInvariant();
+                                break;
+                            }
+                        }
+                    }
+                    var statusJson = CheckRegistrationStatusJson(qUsername);
+                    await SendJsonResponseAsync(stream, statusJson);
+                    return;
+                }
+
+                // 9. API: /api/auth/users (Danh sách users chính thức đã approved)
+                if (cleanPath == "/api/auth/users")
+                {
+                    var usersJson = GetApprovedUsersJson();
+                    await SendJsonResponseAsync(stream, usersJson);
+                    return;
+                }
+
                 // STATIC FILE SERVING
                 if (cleanPath == "/" || string.IsNullOrWhiteSpace(cleanPath)) cleanPath = "/index.html";
 
@@ -281,6 +357,174 @@ public class LanWebServer
             File.WriteAllText(filePath, content, Encoding.UTF8);
         }
         catch { }
+    }
+
+    private void SavePendingRegistration(string jsonBody)
+    {
+        try
+        {
+            var dataDir = Path.Combine(WwwRoot, "data");
+            if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
+            var file = Path.Combine(dataDir, "pending_users.json");
+
+            var list = new JsonArray();
+            if (File.Exists(file))
+            {
+                var existing = File.ReadAllText(file, Encoding.UTF8);
+                if (JsonNode.Parse(existing) is JsonArray arr) list = arr;
+            }
+
+            if (JsonNode.Parse(jsonBody) is JsonObject newReq)
+            {
+                var username = newReq["username"]?.ToString() ?? "";
+                for (int i = list.Count - 1; i >= 0; i--)
+                {
+                    if (list[i]?["username"]?.ToString().Equals(username, StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        list.RemoveAt(i);
+                    }
+                }
+                list.Add(newReq);
+                File.WriteAllText(file, list.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+            }
+        }
+        catch { }
+    }
+
+    private string GetPendingRegistrationsJson()
+    {
+        try
+        {
+            var file = Path.Combine(WwwRoot, "data", "pending_users.json");
+            if (File.Exists(file)) return File.ReadAllText(file, Encoding.UTF8);
+        }
+        catch { }
+        return "[]";
+    }
+
+    private void ApproveRegistration(string jsonBody)
+    {
+        try
+        {
+            var dataDir = Path.Combine(WwwRoot, "data");
+            if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
+            var pendingFile = Path.Combine(dataDir, "pending_users.json");
+            var usersFile = Path.Combine(dataDir, "users.json");
+
+            var payload = JsonNode.Parse(jsonBody) as JsonObject;
+            if (payload == null) return;
+
+            var reqObj = payload["request"] as JsonObject ?? payload;
+            var reqId = reqObj["id"]?.ToString() ?? "";
+            var reqUser = reqObj["username"]?.ToString() ?? "";
+
+            // 1. Cập nhật trong pending_users.json
+            if (File.Exists(pendingFile))
+            {
+                if (JsonNode.Parse(File.ReadAllText(pendingFile, Encoding.UTF8)) is JsonArray pendingArr)
+                {
+                    foreach (var item in pendingArr)
+                    {
+                        if (item is JsonObject obj && (obj["id"]?.ToString() == reqId || obj["username"]?.ToString().Equals(reqUser, StringComparison.OrdinalIgnoreCase) == true))
+                        {
+                            obj["status"] = "approved";
+                            obj["approvedAt"] = DateTime.UtcNow.ToString("o");
+                            obj["approvedBy"] = payload["approvedBy"]?.ToString() ?? "Sếp Kha";
+                            if (payload["allowedTools"] != null)
+                            {
+                                obj["allowedTools"] = JsonNode.Parse(payload["allowedTools"]!.ToJsonString());
+                            }
+                        }
+                    }
+                    File.WriteAllText(pendingFile, pendingArr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+                }
+            }
+
+            // 2. Thêm vào users.json
+            var userObj = payload["user"] as JsonObject;
+            if (userObj != null)
+            {
+                var usersArr = new JsonArray();
+                if (File.Exists(usersFile))
+                {
+                    if (JsonNode.Parse(File.ReadAllText(usersFile, Encoding.UTF8)) is JsonArray arr) usersArr = arr;
+                }
+                var uname = userObj["username"]?.ToString() ?? "";
+                for (int i = usersArr.Count - 1; i >= 0; i--)
+                {
+                    if (usersArr[i]?["username"]?.ToString().Equals(uname, StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        usersArr.RemoveAt(i);
+                    }
+                }
+                usersArr.Add(userObj);
+                File.WriteAllText(usersFile, usersArr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+            }
+        }
+        catch { }
+    }
+
+    private void RejectRegistration(string jsonBody)
+    {
+        try
+        {
+            var pendingFile = Path.Combine(WwwRoot, "data", "pending_users.json");
+            if (!File.Exists(pendingFile)) return;
+
+            var payload = JsonNode.Parse(jsonBody) as JsonObject;
+            if (payload == null) return;
+            var reqId = payload["id"]?.ToString() ?? "";
+            var reason = payload["reason"]?.ToString() ?? "Yêu cầu không được phê duyệt";
+
+            if (JsonNode.Parse(File.ReadAllText(pendingFile, Encoding.UTF8)) is JsonArray pendingArr)
+            {
+                foreach (var item in pendingArr)
+                {
+                    if (item is JsonObject obj && (obj["id"]?.ToString() == reqId || obj["username"]?.ToString() == reqId))
+                    {
+                        obj["status"] = "rejected";
+                        obj["rejectedAt"] = DateTime.UtcNow.ToString("o");
+                        obj["rejectionReason"] = reason;
+                    }
+                }
+                File.WriteAllText(pendingFile, pendingArr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+            }
+        }
+        catch { }
+    }
+
+    private string CheckRegistrationStatusJson(string username)
+    {
+        try
+        {
+            var pendingFile = Path.Combine(WwwRoot, "data", "pending_users.json");
+            if (File.Exists(pendingFile))
+            {
+                if (JsonNode.Parse(File.ReadAllText(pendingFile, Encoding.UTF8)) is JsonArray pendingArr)
+                {
+                    foreach (var item in pendingArr)
+                    {
+                        if (item is JsonObject obj && obj["username"]?.ToString().Equals(username, StringComparison.OrdinalIgnoreCase) == true)
+                        {
+                            return obj.ToJsonString();
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+        return "{\"status\":\"not_found\"}";
+    }
+
+    private string GetApprovedUsersJson()
+    {
+        try
+        {
+            var usersFile = Path.Combine(WwwRoot, "data", "users.json");
+            if (File.Exists(usersFile)) return File.ReadAllText(usersFile, Encoding.UTF8);
+        }
+        catch { }
+        return "[]";
     }
 
     public static string GetLocalIpAddress()
