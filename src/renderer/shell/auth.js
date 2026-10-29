@@ -117,6 +117,7 @@
     {
       id: 'usr_admin',
       username: 'kha',
+      email: 'admin@k-core.vn',
       name: 'Sếp Kha',
       role: 'admin', // 'admin' | 'engineer'
       allowedTools: ['*'], // Toàn quyền tất cả công cụ
@@ -127,6 +128,7 @@
     {
       id: 'usr_engineer',
       username: 'engineer',
+      email: 'engineer@k-core.vn',
       name: 'Kỹ sư Dự án',
       role: 'engineer',
       allowedTools: ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
@@ -267,14 +269,24 @@
       return 'http://localhost:5055';
     }
 
-    // Người dùng đăng ký tài khoản từ app
-    async submitRegistrationRequest({ username, name, department, phone, note, password }) {
+    // Người dùng đăng ký tài khoản từ app (hỗ trợ nhập Email để nhận thông báo tự động)
+    async submitRegistrationRequest({ username, email, name, department, phone, note, password }) {
+      email = String(email || '').trim().toLowerCase();
       username = String(username || '').trim().toLowerCase();
       name = String(name || '').trim();
       department = String(department || '').trim();
       phone = String(phone || '').trim();
       note = String(note || '').trim();
       password = String(password || '');
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new Error('Vui lòng nhập địa chỉ Email hợp lệ (vd: nguyen.van.a@company.com) để nhận thông báo phê duyệt');
+      }
+
+      // Tự động gợi ý username từ email nếu để trống
+      if (!username) {
+        username = email.split('@')[0].replace(/[^a-z0-9_.-]/g, '');
+      }
 
       if (!username || !/^[a-z0-9_.-]{3,30}$/.test(username)) {
         throw new Error('Tên đăng nhập từ 3-30 ký tự, không dấu và không chứa ký tự đặc biệt');
@@ -286,23 +298,27 @@
         throw new Error('Mật khẩu tối thiểu 4 ký tự');
       }
 
-      // Kiểm tra xem username đã tồn tại trong danh sách người dùng chính thức chưa
+      // Kiểm tra xem username hoặc email đã tồn tại trong danh sách người dùng chính thức chưa
       const users = this.getUsers();
       if (users.some(u => u.username.toLowerCase() === username)) {
         throw new Error(`Tên đăng nhập "${username}" đã có người sử dụng`);
       }
+      if (users.some(u => u.email && u.email.toLowerCase() === email)) {
+        throw new Error(`Email "${email}" đã được đăng ký trên hệ thống. Hãy dùng email này để đăng nhập.`);
+      }
 
       // Kiểm tra trong danh sách yêu cầu chờ duyệt
       const pendingList = this.getPendingRequests();
-      const existingReq = pendingList.find(r => r.username.toLowerCase() === username);
+      const existingReq = pendingList.find(r => r.username.toLowerCase() === username || (r.email && r.email.toLowerCase() === email));
       if (existingReq && existingReq.status === 'pending') {
-        throw new Error(`Tên đăng nhập "${username}" đang có yêu cầu chờ Admin duyệt`);
+        throw new Error(`Tài khoản/Email này đang có yêu cầu chờ Admin duyệt`);
       }
 
       const passwordHash = await hashPassword(password);
       const newRequest = {
         id: 'req_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
         username,
+        email,
         name,
         department,
         phone,
@@ -331,24 +347,25 @@
       return newRequest;
     }
 
-    // Tra cứu trạng thái duyệt của một username
-    async checkRegistrationStatus(username) {
-      username = String(username || '').trim().toLowerCase();
-      if (!username) return { status: 'none' };
+    // Tra cứu trạng thái duyệt của một username hoặc email
+    async checkRegistrationStatus(identifier) {
+      const q = String(identifier || '').trim().toLowerCase();
+      if (!q) return { status: 'none' };
 
       // 1. Thử gọi trực tiếp endpoint check-status của LAN Server
       try {
         const lanBase = this.getLanBase();
-        const sRes = await fetch(`${lanBase}/api/auth/check-status?username=${encodeURIComponent(username)}`, { method: 'GET' }).catch(() => null);
+        const sRes = await fetch(`${lanBase}/api/auth/check-status?username=${encodeURIComponent(q)}`, { method: 'GET' }).catch(() => null);
         if (sRes && sRes.ok) {
           const sData = await sRes.json();
           if (sData && sData.status === 'approved') {
             const localUsers = this.getUsers();
-            let u = localUsers.find(x => x.username.toLowerCase() === username);
+            let u = localUsers.find(x => x.username.toLowerCase() === q || (x.email && x.email.toLowerCase() === q));
             if (!u) {
               u = {
                 id: sData.id || ('usr_' + Date.now().toString(36)),
                 username: sData.username,
+                email: sData.email || '',
                 name: sData.fullName || sData.name || sData.username,
                 role: sData.role || 'engineer',
                 allowedTools: sData.allowedTools || ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
@@ -357,13 +374,14 @@
               };
               localUsers.push(u);
               this._saveUsers(localUsers);
-            } else if (sData.allowedTools) {
-              u.allowedTools = sData.allowedTools;
+            } else {
+              if (sData.allowedTools) u.allowedTools = sData.allowedTools;
+              if (sData.email) u.email = sData.email;
               this._saveUsers(localUsers);
             }
             // Cập nhật myRegistration
             const myReg = this.getMyRegistration();
-            if (myReg && myReg.username.toLowerCase() === username) {
+            if (myReg && (myReg.username.toLowerCase() === q || (myReg.email && myReg.email.toLowerCase() === q))) {
               myReg.status = 'approved';
               myReg.allowedTools = sData.allowedTools;
               this.setMyRegistration(myReg);
@@ -371,7 +389,7 @@
             return { status: 'approved', user: u, request: sData };
           } else if (sData && sData.status === 'rejected') {
             const myReg = this.getMyRegistration();
-            if (myReg && myReg.username.toLowerCase() === username) {
+            if (myReg && (myReg.username.toLowerCase() === q || (myReg.email && myReg.email.toLowerCase() === q))) {
               myReg.status = 'rejected';
               myReg.rejectionReason = sData.rejectionReason;
               this.setMyRegistration(myReg);
@@ -386,13 +404,13 @@
 
       // 3. Tra cứu trong bảng users chính thức
       const users = this.getUsers();
-      const activeUser = users.find(u => u.username.toLowerCase() === username);
+      const activeUser = users.find(u => u.username.toLowerCase() === q || (u.email && u.email.toLowerCase() === q));
       if (activeUser) {
         return { status: 'approved', user: activeUser };
       }
 
       // 4. Tra cứu trong pending requests
-      const req = this.getPendingRequests().find(r => r.username.toLowerCase() === username);
+      const req = this.getPendingRequests().find(r => r.username.toLowerCase() === q || (r.email && r.email.toLowerCase() === q));
       if (!req) return { status: 'not_found' };
 
       // Nếu trạng thái đã là approved mà chưa có trong users local, tự động thêm vào
@@ -400,6 +418,7 @@
         const newUser = {
           id: 'usr_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
           username: req.username,
+          email: req.email || '',
           name: req.name,
           role: 'engineer',
           allowedTools: req.allowedTools || ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
@@ -417,7 +436,7 @@
     // Phê duyệt tài khoản (Chỉ Admin)
     async approveRegistrationRequest(id, { allowedTools, role } = {}) {
       if (!this.hasRole('admin')) {
-        throw new Error('Chỉ Administrator (Sếp Kha) mới có quyền phê duyệt tài khoản');
+        throw new Error('Chỉ Administrator mới có quyền phê duyệt tài khoản');
       }
 
       const pendingList = this.getPendingRequests();
@@ -434,7 +453,7 @@
       // Cập nhật trạng thái yêu cầu
       req.status = 'approved';
       req.approvedAt = new Date().toISOString();
-      req.approvedBy = currentUser?.name || currentUser?.username || 'Sếp Kha';
+      req.approvedBy = currentUser?.name || currentUser?.username || 'Admin';
       req.allowedTools = tools;
 
       // Thêm người dùng vào danh sách chính thức
@@ -444,6 +463,7 @@
         user = {
           id: 'usr_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
           username: req.username,
+          email: req.email || '',
           name: req.name,
           role: userRole,
           allowedTools: userRole === 'admin' ? ['*'] : tools,
@@ -454,6 +474,7 @@
         this._saveUsers(users);
       } else {
         user.allowedTools = tools;
+        if (req.email) user.email = req.email;
         this._saveUsers(users);
       }
 
@@ -751,6 +772,7 @@
         return {
           id: user.id,
           username: user.username,
+          email: user.email || '',
           name: user.name,
           role: user.role,
           allowedTools: user.allowedTools || (user.role === 'admin' ? ['*'] : []),
@@ -762,40 +784,40 @@
       }
     }
 
-    // Đăng nhập
-    async login(username, password, remember = false) {
-      username = String(username || '').trim().toLowerCase();
+    // Đăng nhập bằng Username HOẶC Email
+    async login(identifier, password, remember = false) {
+      const q = String(identifier || '').trim().toLowerCase();
       password = String(password || '');
 
       // Trước khi báo không tồn tại, thử fetch network xem vừa được duyệt chưa
       let users = this.getUsers();
-      let user = users.find(u => u.username.toLowerCase() === username);
+      let user = users.find(u => u.username.toLowerCase() === q || (u.email && u.email.toLowerCase() === q));
 
       if (!user) {
-        await this.checkRegistrationStatus(username).catch(() => {});
+        await this.checkRegistrationStatus(q).catch(() => {});
         users = this.getUsers();
-        user = users.find(u => u.username.toLowerCase() === username);
+        user = users.find(u => u.username.toLowerCase() === q || (u.email && u.email.toLowerCase() === q));
       }
 
       if (!user) {
         // Kiểm tra xem có đang nằm trong danh sách chờ duyệt không
         const pendingList = this.getPendingRequests();
-        const pending = pendingList.find(p => p.username.toLowerCase() === username);
+        const pending = pendingList.find(p => p.username.toLowerCase() === q || (p.email && p.email.toLowerCase() === q));
         if (pending) {
           if (pending.status === 'pending') {
-            throw new Error(`Tài khoản "@${username}" đang chờ Admin phê duyệt. Vui lòng liên hệ quản trị viên.`);
+            throw new Error(`Tài khoản/Email "${q}" đang chờ Admin phê duyệt. Hệ thống sẽ gửi email cho bạn khi được kích hoạt.`);
           } else if (pending.status === 'rejected') {
             const reason = pending.rejectionReason ? ` (Lý do: ${pending.rejectionReason})` : '';
-            throw new Error(`Yêu cầu tài khoản "@${username}" đã bị từ chối${reason}.`);
+            throw new Error(`Yêu cầu tài khoản "${q}" đã bị từ chối${reason}.`);
           }
         }
-        throw new Error('Tài khoản không tồn tại trên hệ thống');
+        throw new Error('Tài khoản hoặc Email không tồn tại trên hệ thống');
       }
 
       const match = await verifyPassword(password, user.passwordHash);
       if (!match) {
         // Dự phòng fallback tài khoản mặc định nếu mới cài
-        if ((username === 'kha' && password === 'kha') || (username === 'engineer' && password === '123456')) {
+        if ((q === 'kha' && password === 'kha') || (q === 'engineer' && password === '123456')) {
           user.passwordHash = await hashPassword(password);
           this._saveUsers(users);
         } else {
@@ -806,6 +828,7 @@
       const sessionData = {
         id: user.id,
         username: user.username,
+        email: user.email || '',
         name: user.name,
         role: user.role,
         allowedTools: user.allowedTools || (user.role === 'admin' ? ['*'] : []),
@@ -866,9 +889,10 @@
     }
 
     // Tạo người dùng mới thủ công (Chỉ dành cho Admin)
-    async createUser({ username, name, role, allowedTools, password }) {
+    async createUser({ username, email, name, role, allowedTools, password }) {
       if (!this.hasRole('admin')) throw new Error('Chỉ Administrator mới có quyền tạo người dùng');
       username = String(username || '').trim().toLowerCase();
+      email = String(email || '').trim().toLowerCase();
       name = String(name || '').trim();
       role = role === 'admin' ? 'admin' : 'engineer';
 
@@ -882,6 +906,9 @@
       if (users.some(u => u.username.toLowerCase() === username)) {
         throw new Error(`Tên đăng nhập "${username}" đã tồn tại`);
       }
+      if (email && users.some(u => u.email && u.email.toLowerCase() === email)) {
+        throw new Error(`Email "${email}" đã tồn tại trên hệ thống`);
+      }
 
       const tools = role === 'admin'
         ? ['*']
@@ -891,6 +918,7 @@
       const newUser = {
         id: 'usr_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
         username,
+        email,
         name,
         role,
         allowedTools: tools,
@@ -903,11 +931,19 @@
       return newUser;
     }
 
-    async updateUser(id, { name, role, allowedTools, password }) {
+    async updateUser(id, { email, name, role, allowedTools, password }) {
       if (!this.hasRole('admin')) throw new Error('Chỉ Administrator mới có quyền cập nhật người dùng');
       const users = this.getUsers();
       const user = users.find(u => u.id === id);
       if (!user) throw new Error('Không tìm thấy người dùng');
+
+      if (email !== undefined) {
+        email = String(email || '').trim().toLowerCase();
+        if (email && users.some(u => u.id !== id && u.email && u.email.toLowerCase() === email)) {
+          throw new Error(`Email "${email}" đã được sử dụng bởi tài khoản khác`);
+        }
+        user.email = email;
+      }
 
       if (name) user.name = String(name).trim();
       if (role && (role === 'admin' || role === 'engineer')) {
@@ -935,6 +971,7 @@
         const sessionData = {
           id: user.id,
           username: user.username,
+          email: user.email || '',
           name: user.name,
           role: user.role,
           allowedTools: user.allowedTools,
@@ -950,6 +987,51 @@
       }
 
       return user;
+    }
+
+    // =========================================================================
+    // CẤU HÌNH & KIỂM TRA EMAIL SMTP
+    // =========================================================================
+
+    async getSmtpConfig() {
+      try {
+        const lanBase = this.getLanBase();
+        const res = await fetch(`${lanBase}/api/email/config`);
+        if (res.ok) return await res.json();
+      } catch (_) {}
+      return {
+        enabled: true,
+        host: 'smtp.gmail.com',
+        port: 587,
+        enableSsl: true,
+        user: '',
+        hasPassword: false,
+        fromEmail: '',
+        fromName: 'K-Core Studio',
+        adminNotifyEmail: ''
+      };
+    }
+
+    async saveSmtpConfig(cfg) {
+      const lanBase = this.getLanBase();
+      const res = await fetch(`${lanBase}/api/email/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg)
+      });
+      if (!res.ok) throw new Error('Không thể lưu cấu hình SMTP');
+      return await res.json();
+    }
+
+    async testSmtpConnection(email) {
+      const lanBase = this.getLanBase();
+      const res = await fetch(`${lanBase}/api/email/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (!res.ok) throw new Error('Lỗi máy chủ khi thử gửi email');
+      return await res.json();
     }
 
     deleteUser(id) {

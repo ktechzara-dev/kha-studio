@@ -19,10 +19,12 @@ public class LanWebServer
     public int Port { get; private set; } = 5055;
     public string WwwRoot { get; }
     public bool IsRunning { get; private set; }
+    public EmailService EmailSvc { get; }
 
     public LanWebServer(string wwwRoot)
     {
         WwwRoot = wwwRoot;
+        EmailSvc = new EmailService(wwwRoot);
         InitPersistentData();
     }
 
@@ -324,6 +326,123 @@ public class LanWebServer
                     return;
                 }
 
+                // 10. API: /api/email/config (Cấu hình SMTP Email)
+                if (cleanPath == "/api/email/config")
+                {
+                    if (method == "POST")
+                    {
+                        if (!string.IsNullOrWhiteSpace(body))
+                        {
+                            try
+                            {
+                                var current = EmailSvc.GetConfig();
+                                var node = JsonNode.Parse(body) as JsonObject;
+                                if (node != null)
+                                {
+                                    if (node["enabled"] != null) current.Enabled = (bool)node["enabled"]!;
+                                    if (node["host"] != null) current.Host = node["host"]!.ToString().Trim();
+                                    if (node["port"] != null) current.Port = (int)node["port"]!;
+                                    if (node["enableSsl"] != null) current.EnableSsl = (bool)node["enableSsl"]!;
+                                    if (node["user"] != null) current.User = node["user"]!.ToString().Trim();
+                                    if (node["password"] != null && !string.IsNullOrWhiteSpace(node["password"]!.ToString()))
+                                    {
+                                        current.Password = node["password"]!.ToString().Trim();
+                                    }
+                                    if (node["fromEmail"] != null) current.FromEmail = node["fromEmail"]!.ToString().Trim();
+                                    if (node["fromName"] != null) current.FromName = node["fromName"]!.ToString().Trim();
+                                    if (node["adminNotifyEmail"] != null) current.AdminNotifyEmail = node["adminNotifyEmail"]!.ToString().Trim();
+
+                                    EmailSvc.SaveConfig(current);
+                                }
+                            }
+                            catch { }
+                        }
+                        await SendJsonResponseAsync(stream, "{\"status\":\"ok\"}");
+                        return;
+                    }
+                    else
+                    {
+                        var cfg = EmailSvc.GetConfig();
+                        var safeCfg = new JsonObject
+                        {
+                            ["enabled"] = cfg.Enabled,
+                            ["host"] = cfg.Host,
+                            ["port"] = cfg.Port,
+                            ["enableSsl"] = cfg.EnableSsl,
+                            ["user"] = cfg.User,
+                            ["hasPassword"] = !string.IsNullOrWhiteSpace(cfg.Password),
+                            ["fromEmail"] = cfg.FromEmail,
+                            ["fromName"] = cfg.FromName,
+                            ["adminNotifyEmail"] = cfg.AdminNotifyEmail
+                        };
+                        await SendJsonResponseAsync(stream, safeCfg.ToJsonString());
+                        return;
+                    }
+                }
+
+                // 11. API: /api/email/test (Gửi thử email kiểm tra cấu hình)
+                if (cleanPath == "/api/email/test" && method == "POST")
+                {
+                    var targetEmail = "";
+                    try
+                    {
+                        var node = JsonNode.Parse(body) as JsonObject;
+                        targetEmail = node?["email"]?.ToString() ?? "";
+                    }
+                    catch { }
+
+                    if (string.IsNullOrWhiteSpace(targetEmail))
+                    {
+                        var cfg = EmailSvc.GetConfig();
+                        targetEmail = !string.IsNullOrWhiteSpace(cfg.AdminNotifyEmail) ? cfg.AdminNotifyEmail : cfg.User;
+                    }
+
+                    var testSubject = "[K-Core Studio] Kiểm tra kết nối SMTP & Gửi email thành công";
+                    var testHtml = $@"
+<div style='font-family:sans-serif; padding:24px; color:#1e293b;'>
+  <h2 style='color:#10b981;'>✓ Kết nối SMTP thành công!</h2>
+  <p>Hệ thống K-Core Studio đã gửi email kiểm tra thành công tới hộp thư <strong>{WebUtility.HtmlEncode(targetEmail)}</strong>.</p>
+  <p style='color:#64748b; font-size:13px;'>Thời gian kiểm tra: {DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>
+</div>";
+                    var (ok, msg) = await EmailSvc.SendEmailAsync(targetEmail, testSubject, testHtml);
+                    var resp = new JsonObject
+                    {
+                        ["success"] = ok,
+                        ["message"] = msg,
+                        ["targetEmail"] = targetEmail
+                    };
+                    await SendJsonResponseAsync(stream, resp.ToJsonString());
+                    return;
+                }
+
+                // 12. API: /api/email/send (Gửi email thông báo)
+                if (cleanPath == "/api/email/send" && method == "POST")
+                {
+                    var ok = false;
+                    var msg = "Payload không hợp lệ";
+                    try
+                    {
+                        var node = JsonNode.Parse(body) as JsonObject;
+                        if (node != null)
+                        {
+                            var to = node["to"]?.ToString() ?? "";
+                            var subj = node["subject"]?.ToString() ?? "";
+                            var html = node["html"]?.ToString() ?? "";
+                            var result = await EmailSvc.SendEmailAsync(to, subj, html);
+                            ok = result.Success;
+                            msg = result.Message;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        msg = ex.Message;
+                    }
+
+                    var resp = new JsonObject { ["success"] = ok, ["message"] = msg };
+                    await SendJsonResponseAsync(stream, resp.ToJsonString());
+                    return;
+                }
+
                 // STATIC FILE SERVING
                 if (cleanPath == "/" || string.IsNullOrWhiteSpace(cleanPath)) cleanPath = "/index.html";
 
@@ -408,15 +527,36 @@ public class LanWebServer
             if (JsonNode.Parse(jsonBody) is JsonObject newReq)
             {
                 var username = newReq["username"]?.ToString() ?? "";
+                var email = newReq["email"]?.ToString()?.Trim() ?? "";
+                var name = newReq["name"]?.ToString() ?? username;
+                var reqAt = newReq["requestedAt"]?.ToString() ?? DateTime.UtcNow.ToString("o");
+
                 for (int i = list.Count - 1; i >= 0; i--)
                 {
-                    if (list[i]?["username"]?.ToString().Equals(username, StringComparison.OrdinalIgnoreCase) == true)
+                    var item = list[i];
+                    var u = item?["username"]?.ToString() ?? "";
+                    var e = item?["email"]?.ToString() ?? "";
+                    if (u.Equals(username, StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrWhiteSpace(email) && e.Equals(email, StringComparison.OrdinalIgnoreCase)))
                     {
                         list.RemoveAt(i);
                     }
                 }
                 list.Add(newReq);
                 File.WriteAllText(file, list.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+
+                // Gửi email thông báo tự động (chạy nền không block HTTP request)
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await EmailSvc.SendRegistrationPendingNotificationAsync(email, name, username, reqAt);
+                        }
+                        catch { }
+                    });
+                }
             }
         }
         catch { }
@@ -448,6 +588,14 @@ public class LanWebServer
             var reqObj = payload["request"] as JsonObject ?? payload;
             var reqId = reqObj["id"]?.ToString() ?? "";
             var reqUser = reqObj["username"]?.ToString() ?? "";
+            var reqEmail = reqObj["email"]?.ToString()?.Trim() ?? "";
+            var reqName = reqObj["name"]?.ToString() ?? reqUser;
+
+            var toolsList = new List<string>();
+            if (payload["allowedTools"] is JsonArray tArr)
+            {
+                foreach (var t in tArr) if (t != null) toolsList.Add(t.ToString());
+            }
 
             // 1. Cập nhật trong pending_users.json
             if (File.Exists(pendingFile))
@@ -460,7 +608,9 @@ public class LanWebServer
                         {
                             obj["status"] = "approved";
                             obj["approvedAt"] = DateTime.UtcNow.ToString("o");
-                            obj["approvedBy"] = payload["approvedBy"]?.ToString() ?? "Sếp Kha";
+                            obj["approvedBy"] = payload["approvedBy"]?.ToString() ?? "Admin";
+                            if (string.IsNullOrWhiteSpace(reqEmail)) reqEmail = obj["email"]?.ToString() ?? "";
+                            if (string.IsNullOrWhiteSpace(reqName)) reqName = obj["name"]?.ToString() ?? reqUser;
                             if (payload["allowedTools"] != null)
                             {
                                 obj["allowedTools"] = JsonNode.Parse(payload["allowedTools"]!.ToJsonString());
@@ -481,6 +631,9 @@ public class LanWebServer
                     if (JsonNode.Parse(File.ReadAllText(usersFile, Encoding.UTF8)) is JsonArray arr) usersArr = arr;
                 }
                 var uname = userObj["username"]?.ToString() ?? "";
+                if (string.IsNullOrWhiteSpace(reqEmail)) reqEmail = userObj["email"]?.ToString() ?? "";
+                if (string.IsNullOrWhiteSpace(reqName)) reqName = userObj["name"]?.ToString() ?? uname;
+
                 for (int i = usersArr.Count - 1; i >= 0; i--)
                 {
                     if (usersArr[i]?["username"]?.ToString().Equals(uname, StringComparison.OrdinalIgnoreCase) == true)
@@ -490,6 +643,19 @@ public class LanWebServer
                 }
                 usersArr.Add(userObj);
                 File.WriteAllText(usersFile, usersArr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+            }
+
+            // Gửi email chúc mừng & hướng dẫn đăng nhập
+            if (!string.IsNullOrWhiteSpace(reqEmail))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await EmailSvc.SendApprovalNotificationAsync(reqEmail, reqName, reqUser, toolsList);
+                    }
+                    catch { }
+                });
             }
         }
         catch { }
@@ -506,6 +672,9 @@ public class LanWebServer
             if (payload == null) return;
             var reqId = payload["id"]?.ToString() ?? "";
             var reason = payload["reason"]?.ToString() ?? "Yêu cầu không được phê duyệt";
+            var toEmail = "";
+            var name = "";
+            var username = "";
 
             if (JsonNode.Parse(File.ReadAllText(pendingFile, Encoding.UTF8)) is JsonArray pendingArr)
             {
@@ -516,18 +685,37 @@ public class LanWebServer
                         obj["status"] = "rejected";
                         obj["rejectedAt"] = DateTime.UtcNow.ToString("o");
                         obj["rejectionReason"] = reason;
+                        toEmail = obj["email"]?.ToString() ?? "";
+                        name = obj["name"]?.ToString() ?? "";
+                        username = obj["username"]?.ToString() ?? "";
                     }
                 }
                 File.WriteAllText(pendingFile, pendingArr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+
+                // Gửi email thông báo từ chối
+                if (!string.IsNullOrWhiteSpace(toEmail))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await EmailSvc.SendRejectionNotificationAsync(toEmail, name, username, reason);
+                        }
+                        catch { }
+                    });
+                }
             }
         }
         catch { }
     }
 
-    private string CheckRegistrationStatusJson(string username)
+    private string CheckRegistrationStatusJson(string query)
     {
         try
         {
+            query = (query ?? "").Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(query)) return "{\"status\":\"not_found\"}";
+
             var pendingFile = Path.Combine(WwwRoot, "data", "pending_users.json");
             if (File.Exists(pendingFile))
             {
@@ -535,9 +723,14 @@ public class LanWebServer
                 {
                     foreach (var item in pendingArr)
                     {
-                        if (item is JsonObject obj && obj["username"]?.ToString().Equals(username, StringComparison.OrdinalIgnoreCase) == true)
+                        if (item is JsonObject obj)
                         {
-                            return obj.ToJsonString();
+                            var u = obj["username"]?.ToString().ToLowerInvariant();
+                            var e = obj["email"]?.ToString().ToLowerInvariant();
+                            if (u == query || (!string.IsNullOrWhiteSpace(e) && e == query))
+                            {
+                                return obj.ToJsonString();
+                            }
                         }
                     }
                 }
@@ -550,13 +743,18 @@ public class LanWebServer
                 {
                     foreach (var item in usersArr)
                     {
-                        if (item is JsonObject obj && obj["username"]?.ToString().Equals(username, StringComparison.OrdinalIgnoreCase) == true)
+                        if (item is JsonObject obj)
                         {
-                            var clone = JsonNode.Parse(obj.ToJsonString()) as JsonObject;
-                            if (clone != null)
+                            var u = obj["username"]?.ToString().ToLowerInvariant();
+                            var e = obj["email"]?.ToString().ToLowerInvariant();
+                            if (u == query || (!string.IsNullOrWhiteSpace(e) && e == query))
                             {
-                                clone["status"] = "approved";
-                                return clone.ToJsonString();
+                                var clone = JsonNode.Parse(obj.ToJsonString()) as JsonObject;
+                                if (clone != null)
+                                {
+                                    clone["status"] = "approved";
+                                    return clone.ToJsonString();
+                                }
                             }
                         }
                     }

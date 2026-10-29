@@ -233,4 +233,95 @@ assert.strictEqual(verifyPasswordNode('mypassword123', userOnMachineB.passwordHa
 assert.deepStrictEqual(userOnMachineB.allowedTools, ['apm', 'vision-studio', 'plc-modbus']);
 console.log('✓ Remote machine B sync & login simulation passed');
 
-console.log('🎉 All Auth, RBAC & Approval unit tests passed 100%!');
+// 4.8. Test Đăng ký với Email và Đăng nhập bằng Email
+console.log('\n--- Testing Email Registration & Login by Email ---');
+
+function submitRegistrationWithEmail({ username, email, name, password, department, phone, note }) {
+  email = String(email || '').trim().toLowerCase();
+  username = String(username || '').trim().toLowerCase();
+  name = String(name || '').trim();
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('Email không hợp lệ');
+  }
+  if (!username) {
+    username = email.split('@')[0].replace(/[^a-z0-9_.-]/g, '');
+  }
+  if (users.some(u => (u.email && u.email.toLowerCase() === email) || u.username.toLowerCase() === username)) {
+    throw new Error('Tài khoản hoặc Email đã tồn tại');
+  }
+
+  const req = {
+    id: 'req_' + Date.now(),
+    username,
+    email,
+    name,
+    department: department || '',
+    phone: phone || '',
+    note: note || '',
+    passwordHash: hashPasswordNode(password),
+    requestedAt: new Date().toISOString(),
+    status: 'pending',
+    allowedTools: ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal']
+  };
+  pendingRequests.push(req);
+  return req;
+}
+
+function checkLoginByIdentifier(identifier, password) {
+  const q = String(identifier || '').trim().toLowerCase();
+  const u = users.find(x => x.username.toLowerCase() === q || (x.email && x.email.toLowerCase() === q));
+  if (!u) {
+    const p = pendingRequests.find(x => x.username.toLowerCase() === q || (x.email && x.email.toLowerCase() === q));
+    if (p) {
+      if (p.status === 'pending') throw new Error(`Tài khoản/Email "${q}" đang chờ Admin phê duyệt`);
+      if (p.status === 'rejected') throw new Error(`Tài khoản/Email "${q}" đã bị từ chối`);
+    }
+    throw new Error('Tài khoản không tồn tại');
+  }
+  const match = verifyPasswordNode(password, u.passwordHash);
+  if (!match) throw new Error('Mật khẩu không chính xác');
+  return u;
+}
+
+const regEmail = submitRegistrationWithEmail({
+  email: 'minh.nguyen@k-core.vn',
+  name: 'Nguyễn Văn Minh',
+  password: 'secure_password_999'
+});
+assert.strictEqual(regEmail.status, 'pending');
+assert.strictEqual(regEmail.email, 'minh.nguyen@k-core.vn');
+assert.strictEqual(regEmail.username, 'minh.nguyen');
+console.log('✓ Email registration submission & username auto-derivation passed');
+
+// Khi chưa duyệt -> Đăng nhập bằng Email bị chặn
+assert.throws(() => checkLoginByIdentifier('minh.nguyen@k-core.vn', 'secure_password_999'), /đang chờ Admin phê duyệt/);
+// Đăng nhập bằng Username cũng bị chặn
+assert.throws(() => checkLoginByIdentifier('minh.nguyen', 'secure_password_999'), /đang chờ Admin phê duyệt/);
+console.log('✓ Pending email and username blocking passed');
+
+// Admin duyệt tài khoản
+const approvedWithEmail = {
+  id: 'usr_' + Date.now(),
+  username: regEmail.username,
+  email: regEmail.email,
+  name: regEmail.name,
+  role: 'engineer',
+  allowedTools: ['scada-vision', 'vision-studio'],
+  passwordHash: regEmail.passwordHash,
+  createdAt: new Date().toISOString()
+};
+users.push(approvedWithEmail);
+
+// Đăng nhập thành công bằng EMAIL
+const loginByEmail = checkLoginByIdentifier('minh.nguyen@k-core.vn', 'secure_password_999');
+assert.strictEqual(loginByEmail.email, 'minh.nguyen@k-core.vn');
+assert.strictEqual(loginByEmail.username, 'minh.nguyen');
+console.log('✓ Login with Email passed');
+
+// Đăng nhập thành công bằng USERNAME
+const loginByUsername = checkLoginByIdentifier('minh.nguyen', 'secure_password_999');
+assert.strictEqual(loginByUsername.username, 'minh.nguyen');
+console.log('✓ Login with Username passed');
+
+console.log('🎉 All Auth, RBAC, Email Registration & Approval unit tests passed 100%!');

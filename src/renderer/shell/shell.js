@@ -1447,9 +1447,11 @@
             regPendingCard.hidden = false;
             const pUser = document.getElementById('pending-card-username');
             const pName = document.getElementById('pending-card-name');
+            const pEmail = document.getElementById('pending-card-email');
             const pTime = document.getElementById('pending-card-time');
             if (pUser) pUser.textContent = `@${myReg.username}`;
             if (pName) pName.textContent = myReg.name;
+            if (pEmail) pEmail.textContent = myReg.email || '—';
             if (pTime) pTime.textContent = new Date(myReg.requestedAt).toLocaleString('vi-VN');
           }
           if (loginForm) loginForm.hidden = true;
@@ -1602,7 +1604,10 @@
       }
 
       html += `<tr>
-        <td><strong>@${escapeHtml(u.username)}</strong> ${isCur ? '<small style="color:var(--accent); font-weight:600;">(Đang dùng)</small>' : ''}</td>
+        <td>
+          <strong>@${escapeHtml(u.username)}</strong> ${isCur ? '<small style="color:var(--accent); font-weight:600;">(Đang dùng)</small>' : ''}
+          ${u.email ? `<br><small style="color:var(--text-3); font-size:11px;">${escapeHtml(u.email)}</small>` : ''}
+        </td>
         <td>${escapeHtml(u.name)}</td>
         <td>${roleBadge}</td>
         <td>${permBadge}</td>
@@ -1787,6 +1792,7 @@
       const titleEl = document.getElementById('user-modal-title');
       const idInput = document.getElementById('usr-edit-id');
       const userInput = document.getElementById('usr-edit-username');
+      const emailInput = document.getElementById('usr-edit-email');
       const nameInput = document.getElementById('usr-edit-name');
       const roleSelect = document.getElementById('usr-edit-role');
       const pwdInput = document.getElementById('usr-edit-pwd');
@@ -1805,6 +1811,7 @@
         if (titleEl) titleEl.querySelector('span').textContent = `Chỉnh sửa & phân quyền: @${u.username}`;
         if (idInput) idInput.value = u.id;
         if (userInput) { userInput.value = u.username; userInput.disabled = true; }
+        if (emailInput) emailInput.value = u.email || '';
         if (nameInput) nameInput.value = u.name;
         if (roleSelect) roleSelect.value = u.role;
         if (pwdInput) { pwdInput.required = false; pwdInput.value = ''; }
@@ -1815,6 +1822,7 @@
         if (titleEl) titleEl.querySelector('span').textContent = 'Thêm người dùng mới';
         if (idInput) idInput.value = '';
         if (userInput) { userInput.value = ''; userInput.disabled = false; }
+        if (emailInput) emailInput.value = '';
         if (nameInput) nameInput.value = '';
         if (roleSelect) roleSelect.value = 'engineer';
         if (pwdInput) { pwdInput.required = true; pwdInput.value = ''; }
@@ -1911,6 +1919,7 @@
         e.preventDefault();
         const id = document.getElementById('usr-edit-id').value;
         const username = document.getElementById('usr-edit-username').value;
+        const email = document.getElementById('usr-edit-email')?.value;
         const name = document.getElementById('usr-edit-name').value;
         const role = document.getElementById('usr-edit-role').value;
         const pwd = document.getElementById('usr-edit-pwd').value;
@@ -1922,11 +1931,11 @@
         try {
           if (id) {
             // Cập nhật
-            await window.Auth.updateUser(id, { name, role, allowedTools, password: pwd });
+            await window.Auth.updateUser(id, { email, name, role, allowedTools, password: pwd });
             notify('Cập nhật thành công', `Đã cập nhật thông tin & phân quyền tài khoản @${username}`, 'success');
           } else {
             // Tạo mới
-            await window.Auth.createUser({ username, name, role, allowedTools, password: pwd });
+            await window.Auth.createUser({ username, email, name, role, allowedTools, password: pwd });
             notify('Thêm tài khoản thành công', `Đã tạo người dùng mới @${username}`, 'success');
           }
           closeUserModal();
@@ -1985,6 +1994,7 @@
       regForm.onsubmit = async (e) => {
         e.preventDefault();
         const username = document.getElementById('reg-username')?.value;
+        const email = document.getElementById('reg-email')?.value;
         const name = document.getElementById('reg-name')?.value;
         const department = document.getElementById('reg-dept')?.value;
         const phone = document.getElementById('reg-phone')?.value;
@@ -2009,6 +2019,7 @@
         try {
           const req = await window.Auth.submitRegistrationRequest({
             username,
+            email,
             name,
             department,
             phone,
@@ -2020,14 +2031,16 @@
           if (regPendingCard) {
             regPendingCard.hidden = false;
             const pUser = document.getElementById('pending-card-username');
+            const pEmail = document.getElementById('pending-card-email');
             const pName = document.getElementById('pending-card-name');
             const pTime = document.getElementById('pending-card-time');
             if (pUser) pUser.textContent = `@${req.username}`;
+            if (pEmail) pEmail.textContent = req.email || email || '—';
             if (pName) pName.textContent = req.name;
             if (pTime) pTime.textContent = new Date(req.requestedAt).toLocaleString('vi-VN');
           }
 
-          notify('Đã gửi yêu cầu đăng ký!', 'Yêu cầu của bạn đã được chuyển tới Admin. Vui lòng đợi phê duyệt để đăng nhập.', 'success');
+          notify('Đã gửi yêu cầu đăng ký!', 'Yêu cầu của bạn đã được chuyển tới Admin và email xác nhận đã gửi về hộp thư của bạn.', 'success');
         } catch (err) {
           if (regErr) {
             regErr.textContent = err.message || 'Lỗi gửi yêu cầu đăng ký';
@@ -2168,7 +2181,10 @@
         const extraInfo = [req.department, req.phone].filter(Boolean).join(' • ') || '—';
 
         html += `<tr>
-          <td><strong>@${escapeHtml(req.username)}</strong></td>
+          <td>
+            <strong>@${escapeHtml(req.username)}</strong>
+            ${req.email ? `<br><small style="color:var(--accent); font-size:11px;">${escapeHtml(req.email)}</small>` : ''}
+          </td>
           <td><b>${escapeHtml(req.name)}</b></td>
           <td><small style="color:var(--text-2);">${escapeHtml(extraInfo)}</small></td>
           <td style="max-width:180px;"><small style="color:var(--text-3); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(req.note || '')}">${escapeHtml(req.note || '—')}</small></td>
@@ -2249,7 +2265,8 @@
       if (idInput) idInput.value = req.id;
       if (uEl) uEl.textContent = `@${req.username}`;
       if (nEl) nEl.textContent = req.name;
-      if (exEl) exEl.textContent = `Phòng ban: ${req.department || 'Chưa rõ'} • SĐT: ${req.phone || 'Chưa rõ'}${req.note ? ` • Ghi chú: ${req.note}` : ''}`;
+      const emailText = req.email ? ` • Email: ${req.email}` : '';
+      if (exEl) exEl.textContent = `Phòng ban: ${req.department || 'Chưa rõ'} • SĐT: ${req.phone || 'Chưa rõ'}${emailText}${req.note ? ` • Ghi chú: ${req.note}` : ''}`;
       if (errEl) errEl.hidden = true;
 
       const preselected = req.allowedTools || ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'];
@@ -2317,6 +2334,88 @@
       };
     }
 
+    // 10. Cấu hình Email SMTP (Admin)
+    const smtpEnabled = document.getElementById('smtp-enabled');
+    const smtpHost = document.getElementById('smtp-host');
+    const smtpPort = document.getElementById('smtp-port');
+    const smtpSsl = document.getElementById('smtp-ssl');
+    const smtpUser = document.getElementById('smtp-user');
+    const smtpPwd = document.getElementById('smtp-pwd');
+    const smtpAdminEmail = document.getElementById('smtp-admin-email');
+    const smtpTestEmail = document.getElementById('smtp-test-email');
+    const btnSaveSmtp = document.getElementById('btn-save-smtp');
+    const btnTestSmtp = document.getElementById('btn-test-smtp');
+
+    window.loadSmtpUI = async function() {
+      try {
+        const cfg = await window.Auth.getSmtpConfig();
+        if (cfg) {
+          if (smtpEnabled) smtpEnabled.checked = cfg.enabled !== false;
+          if (smtpHost) smtpHost.value = cfg.host || 'smtp.gmail.com';
+          if (smtpPort) smtpPort.value = cfg.port || 587;
+          if (smtpSsl) smtpSsl.checked = cfg.enableSsl !== false;
+          if (smtpUser) smtpUser.value = cfg.user || '';
+          if (smtpAdminEmail) smtpAdminEmail.value = cfg.adminNotifyEmail || '';
+          if (smtpPwd && cfg.hasPassword) {
+            smtpPwd.placeholder = '•••••••• (Đã lưu mật khẩu ứng dụng)';
+          }
+        }
+      } catch (_) {}
+    };
+
+    if (btnSaveSmtp) {
+      btnSaveSmtp.onclick = async () => {
+        btnSaveSmtp.disabled = true;
+        btnSaveSmtp.textContent = 'Đang lưu…';
+        try {
+          const cfg = {
+            enabled: smtpEnabled ? smtpEnabled.checked : true,
+            host: smtpHost ? smtpHost.value.trim() : 'smtp.gmail.com',
+            port: smtpPort ? (parseInt(smtpPort.value, 10) || 587) : 587,
+            enableSsl: smtpSsl ? smtpSsl.checked : true,
+            user: smtpUser ? smtpUser.value.trim() : '',
+            password: smtpPwd ? smtpPwd.value.trim() : '',
+            adminNotifyEmail: smtpAdminEmail ? smtpAdminEmail.value.trim() : ''
+          };
+          await window.Auth.saveSmtpConfig(cfg);
+          notify('Đã lưu cấu hình Email', 'Cấu hình SMTP đã được cập nhật thành công.', 'success');
+        } catch (err) {
+          notify('Lỗi lưu cấu hình', err.message, 'error');
+        } finally {
+          btnSaveSmtp.disabled = false;
+          btnSaveSmtp.textContent = 'Lưu cấu hình Email';
+        }
+      };
+    }
+
+    if (btnTestSmtp) {
+      btnTestSmtp.onclick = async () => {
+        const target = smtpTestEmail ? smtpTestEmail.value.trim() : '';
+        if (!target) {
+          notify('Chưa nhập email', 'Vui lòng nhập địa chỉ email nhận thử nghiệm.', 'warning');
+          return;
+        }
+        btnTestSmtp.disabled = true;
+        btnTestSmtp.textContent = 'Đang gửi…';
+        try {
+          const res = await window.Auth.testSmtpConnection(target);
+          if (res && res.success) {
+            notify('Gửi thành công!', `Đã gửi email kiểm tra tới ${res.targetEmail || target}. Vui lòng kiểm tra hộp thư!`, 'success');
+          } else {
+            notify('Không gửi được email', res?.message || 'Lỗi kết nối SMTP', 'error');
+          }
+        } catch (err) {
+          notify('Lỗi kết nối', err.message, 'error');
+        } finally {
+          btnTestSmtp.disabled = false;
+          btnTestSmtp.textContent = 'Gửi thử';
+        }
+      };
+    }
+
+    // Tự động load SMTP settings
+    window.loadSmtpUI();
+
     // Lắng nghe sự kiện yêu cầu đăng ký mới
     window.addEventListener('ks:auth:pending_changed', (e) => {
       updateApprovalBadge(e.detail?.count);
@@ -2327,7 +2426,7 @@
       updateApprovalBadge(count);
       notify(
         'Yêu cầu đăng ký mới!',
-        `Sếp Kha ơi, có ${count} tài khoản mới vừa gửi yêu cầu đăng ký cần sếp phê duyệt!`,
+        `Admin ơi, có ${count} tài khoản mới vừa gửi yêu cầu đăng ký cần phê duyệt!`,
         'success',
         [{ label: 'Duyệt ngay', primary: true, callback: openApprovalsModal }]
       );

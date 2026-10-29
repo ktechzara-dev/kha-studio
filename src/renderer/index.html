@@ -535,6 +535,72 @@
                         </div>
                       </div>
                       <div class="user-table-wrap" id="user-mgmt-list" style="margin-top:12px;"></div>
+
+                      <!-- Cấu hình Email Thông báo (SMTP) -->
+                      <div id="set-admin-email-mgmt" style="border-top:1px solid var(--border); padding-top:16px; margin-top:20px;">
+                        <div class="s-row" style="margin-bottom:12px;">
+                          <div class="lbl">
+                            <b style="display:flex; align-items:center; gap:6px;">
+                              <script>document.write(icon('mail', 16));</script>
+                              <span>Cấu hình Email Thông báo Tự động (SMTP)</span>
+                            </b>
+                            <span>Tự động gửi email thông báo cho nhân viên khi có kết quả duyệt hoặc từ chối</span>
+                          </div>
+                          <label class="remember-label" style="font-size:12px;">
+                            <input type="checkbox" id="smtp-enabled" checked>
+                            <span>Bật gửi Email</span>
+                          </label>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                          <div class="form-group" style="margin:0;">
+                            <label for="smtp-host" style="font-size:12px; font-weight:600;">Máy chủ SMTP (Host)</label>
+                            <input type="text" id="smtp-host" class="input" placeholder="smtp.gmail.com" value="smtp.gmail.com" style="height:34px; font-size:12.5px;">
+                          </div>
+                          <div class="form-group" style="margin:0;">
+                            <label for="smtp-port" style="font-size:12px; font-weight:600;">Cổng kết nối (Port & SSL)</label>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                              <input type="number" id="smtp-port" class="input" placeholder="587" value="587" style="height:34px; font-size:12.5px; width:90px;">
+                              <label class="remember-label" style="font-size:11.5px; margin:0;">
+                                <input type="checkbox" id="smtp-ssl" checked>
+                                <span>Bật SSL/TLS</span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                          <div class="form-group" style="margin:0;">
+                            <label for="smtp-user" style="font-size:12px; font-weight:600;">Tài khoản gửi (Email / Gmail gửi đi)</label>
+                            <input type="email" id="smtp-user" class="input" placeholder="vd: admin@company.com hoặc Gmail" style="height:34px; font-size:12.5px;">
+                          </div>
+                          <div class="form-group" style="margin:0;">
+                            <label for="smtp-pwd" style="font-size:12px; font-weight:600;">Mật khẩu ứng dụng (App Password)</label>
+                            <input type="password" id="smtp-pwd" class="input" placeholder="16 ký tự mật khẩu ứng dụng Gmail" style="height:34px; font-size:12.5px;">
+                          </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                          <div class="form-group" style="margin:0;">
+                            <label for="smtp-admin-email" style="font-size:12px; font-weight:600;">Email Admin nhận thông báo đăng ký</label>
+                            <input type="email" id="smtp-admin-email" class="input" placeholder="vd: admin@company.com" style="height:34px; font-size:12.5px;">
+                          </div>
+                          <div class="form-group" style="margin:0;">
+                            <label for="smtp-test-email" style="font-size:12px; font-weight:600;">Kiểm tra kết nối gửi thử</label>
+                            <div style="display:flex; gap:8px;">
+                              <input type="email" id="smtp-test-email" class="input" placeholder="Nhập email nhận thử" style="height:34px; font-size:12.5px;">
+                              <button type="button" class="btn sm" id="btn-test-smtp" style="white-space:nowrap;">Gửi thử</button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                          <small style="color:var(--text-3); font-size:11.5px;">
+                            💡 Với Gmail: Tài khoản Google &rarr; Bảo mật &rarr; Bật 2 bước &rarr; <em>Mật khẩu ứng dụng (App Password)</em>.
+                          </small>
+                          <button type="button" class="btn sm primary" id="btn-save-smtp">Lưu cấu hình Email</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -672,10 +738,10 @@
       <!-- 1. Form Đăng nhập -->
       <form id="login-form" class="login-form" autocomplete="off">
         <div class="form-group">
-          <label for="login-username">Tên đăng nhập</label>
+          <label for="login-username">Tên đăng nhập hoặc Email</label>
           <div class="input-icon-wrap">
             <span class="input-icon"><script>document.write(icon('sidebar', 16));</script></span>
-            <input type="text" id="login-username" placeholder="Tên đăng nhập (vd: kha, engineer)" required autofocus>
+            <input type="text" id="login-username" placeholder="Tên đăng nhập hoặc Email (vd: kha, user@company.com)" required autofocus>
           </div>
         </div>
 
@@ -713,6 +779,15 @@
             <span class="input-icon"><script>document.write(icon('sidebar', 16));</script></span>
             <input type="text" id="reg-username" placeholder="vd: tuan.le, minh_nguyen (chữ & số)" required>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-email">Email nhận thông báo phê duyệt *</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><script>document.write(icon('mail', 16));</script></span>
+            <input type="email" id="reg-email" placeholder="vd: nguyen.van.a@company.com" required>
+          </div>
+          <small style="color:var(--text-3); font-size:11.5px; margin-top:2px; display:block;">Hệ thống sẽ gửi email xác nhận và thông báo kết quả duyệt tự động về email này.</small>
         </div>
 
         <div class="form-group">
@@ -777,10 +852,11 @@
         </p>
         <div class="pending-info-box">
           <div class="pi-row"><span>Họ tên:</span> <b id="pending-card-name">—</b></div>
+          <div class="pi-row"><span>Email nhận tin:</span> <b id="pending-card-email" style="color:var(--accent);">—</b></div>
           <div class="pi-row"><span>Thời gian gửi:</span> <b id="pending-card-time">—</b></div>
           <div class="pi-row"><span>Trạng thái:</span> <span class="badge-status-pending">⏳ Chờ Admin duyệt</span></div>
         </div>
-        <p class="pending-tip">Khi Admin phê duyệt, bạn chỉ cần mở app và đăng nhập với mật khẩu vừa tạo.</p>
+        <p class="pending-tip">Khi Admin phê duyệt, hệ thống sẽ gửi email thông báo và bạn có thể đăng nhập ngay với mật khẩu vừa tạo.</p>
         <div class="pending-actions">
           <button type="button" class="btn sm primary" id="btn-check-my-status">
             <script>document.write(icon('refresh', 14));</script>
@@ -848,15 +924,19 @@
         <input type="hidden" id="usr-edit-id">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="form-group">
-            <label for="usr-edit-username">Tên đăng nhập</label>
+            <label for="usr-edit-username">Tên đăng nhập *</label>
             <input type="text" id="usr-edit-username" class="input" placeholder="vd: tung.nm, quang.nv" required>
           </div>
           <div class="form-group">
-            <label for="usr-edit-name">Họ và tên / Tên hiển thị</label>
-            <input type="text" id="usr-edit-name" class="input" placeholder="vd: Nguyễn Văn Tùng" required>
+            <label for="usr-edit-email">Email nhận tin / Đăng nhập</label>
+            <input type="email" id="usr-edit-email" class="input" placeholder="vd: tung.nm@company.com">
           </div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="usr-edit-name">Họ và tên / Tên hiển thị *</label>
+            <input type="text" id="usr-edit-name" class="input" placeholder="vd: Nguyễn Văn Tùng" required>
+          </div>
           <div class="form-group">
             <label for="usr-edit-role">Vai trò phân quyền</label>
             <select id="usr-edit-role" class="input">
@@ -864,11 +944,11 @@
               <option value="admin">Quản trị viên (Admin) — Toàn quyền hệ thống</option>
             </select>
           </div>
-          <div class="form-group" id="usr-pwd-group">
-            <label for="usr-edit-pwd" id="usr-pwd-label">Mật khẩu</label>
-            <input type="password" id="usr-edit-pwd" class="input" placeholder="Tối thiểu 4 ký tự" required minlength="4">
-            <small id="usr-pwd-hint" style="color:var(--text-3); display:none;">Để trống nếu giữ nguyên mật khẩu cũ</small>
-          </div>
+        </div>
+        <div class="form-group" id="usr-pwd-group">
+          <label for="usr-edit-pwd" id="usr-pwd-label">Mật khẩu</label>
+          <input type="password" id="usr-edit-pwd" class="input" placeholder="Tối thiểu 4 ký tự" required minlength="4">
+          <small id="usr-pwd-hint" style="color:var(--text-3); display:none;">Để trống nếu giữ nguyên mật khẩu cũ</small>
         </div>
         <div class="form-group" id="usr-permissions-group">
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
