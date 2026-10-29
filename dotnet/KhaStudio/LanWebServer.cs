@@ -112,10 +112,36 @@ public class LanWebServer
         {
             try
             {
-                using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
-                var requestLine = await reader.ReadLineAsync();
-                if (string.IsNullOrWhiteSpace(requestLine)) return;
+                // Đọc toàn bộ Header HTTP chính xác theo byte
+                var headerBuffer = new byte[8192];
+                var totalRead = 0;
+                var headerEndIndex = -1;
 
+                while (totalRead < headerBuffer.Length)
+                {
+                    var r = await stream.ReadAsync(headerBuffer.AsMemory(totalRead, headerBuffer.Length - totalRead));
+                    if (r <= 0) break;
+                    totalRead += r;
+
+                    for (int i = 0; i <= totalRead - 4; i++)
+                    {
+                        if (headerBuffer[i] == '\r' && headerBuffer[i + 1] == '\n' &&
+                            headerBuffer[i + 2] == '\r' && headerBuffer[i + 3] == '\n')
+                        {
+                            headerEndIndex = i;
+                            break;
+                        }
+                    }
+                    if (headerEndIndex != -1) break;
+                }
+
+                if (headerEndIndex == -1) return;
+
+                var headerText = Encoding.UTF8.GetString(headerBuffer, 0, headerEndIndex);
+                var headerLines = headerText.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                if (headerLines.Length == 0) return;
+
+                var requestLine = headerLines[0];
                 var parts = requestLine.Split(' ');
                 if (parts.Length < 2) return;
 
@@ -133,12 +159,46 @@ public class LanWebServer
                     return;
                 }
 
+                // Đọc phần thân Body nếu có (theo đúng số byte Content-Length)
+                var body = "";
+                var contentLength = 0;
+                foreach (var line in headerLines)
+                {
+                    if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        int.TryParse(line.Substring(15).Trim(), out contentLength);
+                    }
+                }
+
+                if (contentLength > 0)
+                {
+                    var bodyBytes = new byte[contentLength];
+                    var bodyStartInHeaderBuffer = headerEndIndex + 4;
+                    var bodyBytesAlreadyRead = Math.Min(totalRead - bodyStartInHeaderBuffer, contentLength);
+
+                    if (bodyBytesAlreadyRead > 0)
+                    {
+                        Array.Copy(headerBuffer, bodyStartInHeaderBuffer, bodyBytes, 0, bodyBytesAlreadyRead);
+                    }
+
+                    var remainingBody = contentLength - bodyBytesAlreadyRead;
+                    var offset = bodyBytesAlreadyRead;
+                    while (remainingBody > 0)
+                    {
+                        var r = await stream.ReadAsync(bodyBytes.AsMemory(offset, remainingBody));
+                        if (r <= 0) break;
+                        offset += r;
+                        remainingBody -= r;
+                    }
+
+                    body = Encoding.UTF8.GetString(bodyBytes, 0, offset);
+                }
+
                 // 1. API: /api/project_state (Đồng bộ bản vẽ SCADA Desktop <-> Mobile)
                 if (cleanPath == "/api/project_state")
                 {
                     if (method == "POST")
                     {
-                        var body = await ReadBodyAsync(reader);
                         if (!string.IsNullOrWhiteSpace(body)) LatestProjectJson = body;
                         await SendJsonResponseAsync(stream, "{\"status\":\"ok\"}");
                         return;
@@ -156,7 +216,6 @@ public class LanWebServer
                 {
                     if (method == "POST")
                     {
-                        var body = await ReadBodyAsync(reader);
                         if (!string.IsNullOrWhiteSpace(body))
                         {
                             WorkPlansJson = body;
@@ -178,7 +237,6 @@ public class LanWebServer
                 {
                     if (method == "POST")
                     {
-                        var body = await ReadBodyAsync(reader);
                         if (!string.IsNullOrWhiteSpace(body))
                         {
                             FieldReportsJson = body;
@@ -198,7 +256,6 @@ public class LanWebServer
                 // 4. API: /api/auth/register-request (Client gửi yêu cầu đăng ký tài khoản)
                 if (cleanPath == "/api/auth/register-request" && method == "POST")
                 {
-                    var body = await ReadBodyAsync(reader);
                     if (!string.IsNullOrWhiteSpace(body))
                     {
                         SavePendingRegistration(body);
@@ -218,7 +275,6 @@ public class LanWebServer
                 // 6. API: /api/auth/approve-request (Sếp Kha duyệt tài khoản)
                 if (cleanPath == "/api/auth/approve-request" && method == "POST")
                 {
-                    var body = await ReadBodyAsync(reader);
                     if (!string.IsNullOrWhiteSpace(body))
                     {
                         ApproveRegistration(body);
@@ -230,7 +286,6 @@ public class LanWebServer
                 // 7. API: /api/auth/reject-request (Sếp Kha từ chối yêu cầu)
                 if (cleanPath == "/api/auth/reject-request" && method == "POST")
                 {
-                    var body = await ReadBodyAsync(reader);
                     if (!string.IsNullOrWhiteSpace(body))
                     {
                         RejectRegistration(body);
@@ -312,30 +367,6 @@ public class LanWebServer
                 // Ignore client disconnect
             }
         }
-    }
-
-    private static async Task<string> ReadBodyAsync(StreamReader reader)
-    {
-        int contentLength = 0;
-        string? line;
-        while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync()))
-        {
-            if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
-            {
-                int.TryParse(line.Substring(15).Trim(), out contentLength);
-            }
-        }
-
-        if (contentLength <= 0) return "";
-        char[] buffer = new char[contentLength];
-        int read = 0;
-        while (read < contentLength)
-        {
-            int r = await reader.ReadAsync(buffer, read, contentLength - read);
-            if (r <= 0) break;
-            read += r;
-        }
-        return new string(buffer, 0, read);
     }
 
     private static async Task SendJsonResponseAsync(Stream stream, string json)
