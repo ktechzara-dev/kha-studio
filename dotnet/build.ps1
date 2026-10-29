@@ -41,10 +41,10 @@ if ($LASTEXITCODE) { throw "dotnet publish lỗi" }
 $iconFile = Join-Path $root "KhaStudio\app.ico"
 if (Test-Path $iconFile) {
   vpk pack --packId KhaStudio --packVersion $Version --packDir $pub --mainExe KhaStudio.exe `
-    --packTitle "Kha Studio" --packAuthors "Kha.nm" --runtime win-x64 --noPortable --icon $iconFile --outputDir $rel
+    --packTitle "K-Core Studio" --packAuthors "Kha.nm" --runtime win-x64 --noPortable --icon $iconFile --outputDir $rel
 } else {
   vpk pack --packId KhaStudio --packVersion $Version --packDir $pub --mainExe KhaStudio.exe `
-    --packTitle "Kha Studio" --packAuthors "Kha.nm" --runtime win-x64 --noPortable --outputDir $rel
+    --packTitle "K-Core Studio" --packAuthors "Kha.nm" --runtime win-x64 --noPortable --outputDir $rel
 }
 if ($LASTEXITCODE) { throw "vpk pack lỗi" }
 

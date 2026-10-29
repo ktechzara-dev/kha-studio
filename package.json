@@ -1,8 +1,8 @@
 {
   "name": "pallet-studio",
-  "productName": "Kha Studio",
+  "productName": "K-Core Studio",
   "version": "1.4.1",
-  "description": "Bộ công cụ cá nhân - Kha.nm",
+  "description": "K-Core Studio — Hệ thống Quản trị Kỹ thuật, Tự động hóa & Thị giác máy",
   "main": "src/main.js",
   "scripts": {
     "postinstall": "node scripts/copy-libs.js",
@@ -28,7 +28,7 @@
   },
   "build": {
     "appId": "com.kha.studio",
-    "productName": "Kha Studio",
+    "productName": "K-Core Studio",
     "files": [
       "src/**/*",
       "package.json"

@@ -48,7 +48,7 @@ function createWindow() {
     minWidth: 1100,
     minHeight: 700,
     backgroundColor: '#09090b',
-    title: 'Kha Studio',
+    title: 'K-Core Studio',
     frame: false,
     autoHideMenuBar: true,
     webPreferences: {

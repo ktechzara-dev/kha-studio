@@ -1405,7 +1405,7 @@
     if (btnApprovals) {
       btnApprovals.style.display = 'flex';
       btnApprovals.title = count > 0
-        ? `Có ${count} yêu cầu đăng ký tài khoản đang chờ Sếp Kha duyệt!`
+        ? `Có ${count} yêu cầu đăng ký tài khoản đang chờ Admin duyệt!`
         : 'Yêu cầu đăng ký tài khoản chờ duyệt';
     }
     if (menuApprovals) menuApprovals.hidden = false;
@@ -2003,7 +2003,7 @@
         const regSubmitBtn = document.getElementById('btn-reg-submit');
         if (regSubmitBtn) {
           regSubmitBtn.disabled = true;
-          regSubmitBtn.innerHTML = '<span>Đang gửi yêu cầu tới Sếp Kha…</span>';
+          regSubmitBtn.innerHTML = '<span>Đang gửi yêu cầu tới Admin…</span>';
         }
 
         try {
@@ -2027,7 +2027,7 @@
             if (pTime) pTime.textContent = new Date(req.requestedAt).toLocaleString('vi-VN');
           }
 
-          notify('Đã gửi yêu cầu đăng ký!', 'Yêu cầu của bạn đã được chuyển tới Sếp Kha (Admin). Vui lòng đợi phê duyệt để đăng nhập.', 'success');
+          notify('Đã gửi yêu cầu đăng ký!', 'Yêu cầu của bạn đã được chuyển tới Admin. Vui lòng đợi phê duyệt để đăng nhập.', 'success');
         } catch (err) {
           if (regErr) {
             regErr.textContent = err.message || 'Lỗi gửi yêu cầu đăng ký';
@@ -2036,7 +2036,7 @@
         } finally {
           if (regSubmitBtn) {
             regSubmitBtn.disabled = false;
-            regSubmitBtn.innerHTML = `<span>Gửi yêu cầu đăng ký cho Sếp Kha</span>${icon('sparkles', 16)}`;
+            regSubmitBtn.innerHTML = `<span>Gửi yêu cầu đăng ký cho Admin</span>${icon('sparkles', 16)}`;
           }
         }
       };
@@ -2053,7 +2053,7 @@
           const result = await window.Auth.checkRegistrationStatus(username);
 
           if (result.status === 'approved') {
-            notify('Tài khoản đã được duyệt!', 'Sếp Kha đã phê duyệt tài khoản của bạn. Mời bạn đăng nhập ngay!', 'success');
+            notify('Tài khoản đã được duyệt!', 'Admin đã phê duyệt tài khoản của bạn. Mời bạn đăng nhập ngay!', 'success');
             switchLoginTab('login');
             const uInput = document.getElementById('login-username');
             const pInput = document.getElementById('login-password');
@@ -2063,7 +2063,7 @@
             const reason = result.request?.rejectionReason ? ` Lý do: ${result.request.rejectionReason}` : '';
             notify('Yêu cầu bị từ chối', `Yêu cầu đăng ký tài khoản của bạn đã bị từ chối.${reason}`, 'error');
           } else {
-            notify('Đang chờ phê duyệt', 'Yêu cầu tài khoản của bạn vẫn đang chờ Sếp Kha duyệt.', 'info');
+            notify('Đang chờ phê duyệt', 'Yêu cầu tài khoản của bạn vẫn đang chờ Admin duyệt.', 'info');
           }
         } catch (err) {
           notify('Lỗi kiểm tra', err.message, 'error');

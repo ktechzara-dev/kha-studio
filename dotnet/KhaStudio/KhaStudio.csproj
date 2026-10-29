@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>KhaStudio</AssemblyName>
-    <Product>Kha Studio</Product>
+    <Product>K-Core Studio</Product>
     <Company>Kha.nm</Company>
     <Version>1.4.1</Version>
     <ApplicationIcon>app.ico</ApplicationIcon>

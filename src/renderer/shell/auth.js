@@ -296,7 +296,7 @@
       const pendingList = this.getPendingRequests();
       const existingReq = pendingList.find(r => r.username.toLowerCase() === username);
       if (existingReq && existingReq.status === 'pending') {
-        throw new Error(`Tên đăng nhập "${username}" đang có yêu cầu chờ Sếp Kha duyệt`);
+        throw new Error(`Tên đăng nhập "${username}" đang có yêu cầu chờ Admin duyệt`);
       }
 
       const passwordHash = await hashPassword(password);
@@ -783,7 +783,7 @@
         const pending = pendingList.find(p => p.username.toLowerCase() === username);
         if (pending) {
           if (pending.status === 'pending') {
-            throw new Error(`Tài khoản "@${username}" đang chờ Sếp Kha phê duyệt. Vui lòng liên hệ quản trị viên.`);
+            throw new Error(`Tài khoản "@${username}" đang chờ Admin phê duyệt. Vui lòng liên hệ quản trị viên.`);
           } else if (pending.status === 'rejected') {
             const reason = pending.rejectionReason ? ` (Lý do: ${pending.rejectionReason})` : '';
             throw new Error(`Yêu cầu tài khoản "@${username}" đã bị từ chối${reason}.`);

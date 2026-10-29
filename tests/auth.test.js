@@ -113,7 +113,7 @@ function checkLogin(username, password) {
     const p = pendingRequests.find(x => x.username.toLowerCase() === username);
     if (p) {
       if (p.status === 'pending') {
-        throw new Error(`Tài khoản "@${username}" đang chờ Sếp Kha phê duyệt`);
+        throw new Error(`Tài khoản "@${username}" đang chờ Admin phê duyệt`);
       }
       if (p.status === 'rejected') {
         throw new Error(`Yêu cầu đăng ký tài khoản "@${username}" đã bị từ chối`);
@@ -171,7 +171,7 @@ assert.strictEqual(reg1.username, 'tuan.le');
 console.log('✓ Registration request submission passed');
 
 // 4.2. Đăng nhập khi chưa duyệt -> Bị chặn
-assert.throws(() => checkLogin('tuan.le', 'mypassword123'), /đang chờ Sếp Kha phê duyệt/);
+assert.throws(() => checkLogin('tuan.le', 'mypassword123'), /đang chờ Admin phê duyệt/);
 console.log('✓ Login blocking for pending user passed');
 
 // 4.3. Người khác (không phải Admin) không được duyệt

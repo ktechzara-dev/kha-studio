@@ -142,6 +142,25 @@ const TOOLS = [
 // Nhật ký thay đổi hiển thị ở trang Giới thiệu (mới nhất ở trên)
 const CHANGELOG = [
   {
+    version: '1.4.1', date: '2026-10-29',
+    items: {
+      vi: [
+        'Đổi tên thương hiệu chính thức thành K-Core Studio — Hệ thống Quản trị Kỹ thuật, Tự động hóa & Thị giác máy.',
+        'Đăng ký tài khoản tự động từ máy trạm (Self-Registration): Cho phép người dùng đăng ký ngay tại màn hình đăng nhập kèm ghi chú/mục đích sử dụng.',
+        'Quy trình phê duyệt tập trung cho Admin: Nút thông báo đỏ trên Titlebar, chuông cảnh báo âm thanh Chime khi có yêu cầu mới và bảng duyệt/phân quyền công cụ chi tiết.',
+        'Đồng bộ hóa Hybrid Mạng LAN (port 5055) & Cloud: Tự động truyền nhận dữ liệu tài khoản giữa máy trạm và máy Admin mọi lúc mọi nơi.',
+        'Tự động đăng nhập sau phê duyệt: Máy trạm tự động nạp thông tin duyệt và cho phép đăng nhập thẳng vào ứng dụng với quyền hạn chính xác.',
+      ],
+      en: [
+        'Official rebrand to K-Core Studio — Industrial Engineering, Automation & Vision Hub.',
+        'User Self-Registration: Directly register from login screen with usage notes and credentials.',
+        'Centralized Admin Approval Workflow: Titlebar live badge, Web Audio chime alerts, and granular tool permission assignment modal.',
+        'Hybrid LAN (port 5055) & Cloud Sync: Real-time registration and user synchronization between workstations and Admin.',
+        'Seamless Approved Login: Client workstations automatically receive approval status and log in with assigned tool permissions.',
+      ],
+    },
+  },
+  {
     version: '1.3.1', date: '2026-10-10',
     items: {
       vi: [
