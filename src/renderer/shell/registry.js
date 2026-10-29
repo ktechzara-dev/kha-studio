@@ -142,6 +142,23 @@ const TOOLS = [
 // Nhật ký thay đổi hiển thị ở trang Giới thiệu (mới nhất ở trên)
 const CHANGELOG = [
   {
+    version: '1.4.5', date: '2026-10-29',
+    items: {
+      vi: [
+        'Cố định tuyệt đối thanh tiêu đề (Fixed Layer): Titlebar được tách thành lớp độc lập cố định trên cùng (position: fixed; top: 0; z-index: 1000), loại bỏ hoàn toàn khả năng bị ẩn khi chuyển view về trang chủ.',
+        'Khung thân ứng dụng độc lập (Independent Body Layer): Body cố định từ mép dưới titlebar (top: 44px; bottom: 0), phân lập hoàn toàn với thanh tiêu đề.',
+        'Khóa cuộn triệt để với overflow: clip: Ngăn chặn trình duyệt tự cuộn khung ngoài khi nhấn vào nút Trang chủ hoặc các mục trên thanh điều hướng.',
+        'Hỗ trợ click Logo & Breadcrumb để về Trang chủ tiện lợi.',
+      ],
+      en: [
+        'Absolute Fixed Titlebar Layer: Decoupled titlebar into an independent fixed layer (position: fixed; top: 0; z-index: 1000), preventing any displacement when switching views.',
+        'Independent Body Layer: Body strictly bound from 44px to bottom, completely separated from titlebar scroll context.',
+        'Strict Scroll Containment with overflow: clip: Eliminates any browser auto-scrolling when clicking Home or sidebar items.',
+        'Clickable Brand Logo & Breadcrumb to return to Home seamlessly.',
+      ],
+    },
+  },
+  {
     version: '1.4.4', date: '2026-10-29',
     items: {
       vi: [

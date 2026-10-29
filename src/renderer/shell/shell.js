@@ -284,9 +284,25 @@
         document.body.scrollTop = 0;
         document.body.scrollLeft = 0;
       }
+      const app = document.getElementById('app');
+      if (app) { app.scrollTop = 0; app.scrollLeft = 0; }
+      const b = document.getElementById('body');
+      if (b) { b.scrollTop = 0; b.scrollLeft = 0; }
+      const sb = document.getElementById('sidebar');
+      if (sb) { sb.scrollTop = 0; sb.scrollLeft = 0; }
+      const m = document.getElementById('main');
+      if (m) { m.scrollTop = 0; m.scrollLeft = 0; }
     } catch (_) {}
   }
-  window.addEventListener('scroll', lockScrollToTop, { passive: true });
+  window.addEventListener('scroll', (e) => {
+    if (e.target && e.target !== window && e.target !== document) {
+      if (e.target.id === 'app' || e.target.id === 'body' || e.target.id === 'sidebar' || e.target.id === 'main') {
+        e.target.scrollTop = 0;
+        e.target.scrollLeft = 0;
+      }
+    }
+    lockScrollToTop();
+  }, { capture: true, passive: true });
   window.addEventListener('resize', lockScrollToTop, { passive: true });
 
   function switchView(viewName, toolId = null) {
@@ -297,7 +313,10 @@
     // Cập nhật class view active
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     const target = document.getElementById(`view-${viewName}`);
-    if (target) target.classList.add('active');
+    if (target) {
+      target.classList.add('active');
+      target.scrollTop = 0;
+    }
 
     // Quản lý iframes của tools
     const frames = framesContainer();
@@ -322,6 +341,8 @@
     if (viewName === 'about') renderAbout();
 
     saveState();
+    lockScrollToTop();
+    requestAnimationFrame(lockScrollToTop);
   }
 
   function createToolFrame(toolId) {
@@ -2579,15 +2600,53 @@
     // 2. Điền text đa ngôn ngữ
     renderAllText();
 
-    // 3. Gắn sự kiện các nút Title bar
+    // 3. Gắn sự kiện các nút Title bar & Navigation
     const btnHome = document.getElementById('nav-home');
-    if (btnHome) btnHome.onclick = () => switchView('home');
+    if (btnHome) {
+      btnHome.onclick = (e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        switchView('home');
+        lockScrollToTop();
+      };
+    }
 
     const btnSettings = document.getElementById('nav-settings');
-    if (btnSettings) btnSettings.onclick = () => switchView('settings');
+    if (btnSettings) {
+      btnSettings.onclick = (e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        switchView('settings');
+        lockScrollToTop();
+      };
+    }
 
     const btnAbout = document.getElementById('nav-about');
-    if (btnAbout) btnAbout.onclick = () => switchView('about');
+    if (btnAbout) {
+      btnAbout.onclick = (e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        switchView('about');
+        lockScrollToTop();
+      };
+    }
+
+    // Logo & Breadcrumb -> Click về Home
+    const crumbEl = document.getElementById('crumb');
+    if (crumbEl) {
+      crumbEl.style.cursor = 'pointer';
+      crumbEl.onclick = (e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        switchView('home');
+        lockScrollToTop();
+      };
+    }
+    const brandEl = document.querySelector('.brand');
+    if (brandEl) {
+      brandEl.style.cursor = 'pointer';
+      brandEl.onclick = (e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        switchView('home');
+        lockScrollToTop();
+      };
+    }
 
     const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
     if (btnToggleSidebar) btnToggleSidebar.onclick = toggleSidebar;
