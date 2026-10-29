@@ -1,7 +1,7 @@
 {
   "name": "pallet-studio",
   "productName": "Kha Studio",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Bộ công cụ cá nhân - Kha.nm",
   "main": "src/main.js",
   "scripts": {
