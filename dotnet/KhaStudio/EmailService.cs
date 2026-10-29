@@ -85,12 +85,13 @@ public class EmailService
 
         try
         {
+            var cleanPassword = (cfg.Password ?? "").Replace(" ", "").Trim();
             using var client = new SmtpClient(cfg.Host, cfg.Port)
             {
                 EnableSsl = cfg.EnableSsl,
                 DeliveryMethod = SmtpDeliveryMethod.Network,
                 UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(cfg.User.Trim(), cfg.Password.Trim()),
+                Credentials = new NetworkCredential(cfg.User.Trim(), cleanPassword),
                 Timeout = 15000 // 15 giây
             };
 

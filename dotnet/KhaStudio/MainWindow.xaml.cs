@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using Microsoft.Web.WebView2.Core;
 using Velopack;
 
@@ -16,8 +18,8 @@ public partial class MainWindow : Window
     private readonly Updater _updater = new();
     private LanWebServer? _lanServer;
 
-    private WindowState _prevState;
-    private WindowStyle _prevStyle;
+    private bool _isFullscreen;
+    private WindowState _prevWindowState = WindowState.Maximized;
 
     public MainWindow()
     {
@@ -35,10 +37,12 @@ public partial class MainWindow : Window
             _lanServer?.Stop();
             TiaBridge.Shutdown();
         };
+        StateChanged += (_, _) => SendWindowState();
         Loaded += async (_, _) =>
         {
             WindowState = WindowState.Maximized;
             await InitWebAsync();
+            SendWindowState();
         };
     }
 
@@ -85,11 +89,22 @@ public partial class MainWindow : Window
             _lanServer.Start(5055);
         }
         catch { }
+        core.NavigationCompleted += (_, _) => SendWindowState();
         core.Navigate(HomeUrl);
     }
 
     // ---------- Cầu nối trang chủ <-> C# (cập nhật) ----------
     private void Send(object msg) => Web.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(msg));
+
+    private void SendWindowState()
+    {
+        Send(new
+        {
+            type = "window.state",
+            state = WindowState == WindowState.Maximized ? "maximized" : "normal",
+            isFullscreen = _isFullscreen
+        });
+    }
 
     private async void OnWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
@@ -151,8 +166,24 @@ public partial class MainWindow : Window
                 case "window.maximize":
                     Dispatcher.Invoke(() =>
                     {
+                        if (_isFullscreen)
+                        {
+                            ToggleFullscreen();
+                            return;
+                        }
                         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+                        SendWindowState();
                     });
+                    break;
+                case "window.fullscreen":
+                    Dispatcher.Invoke(ToggleFullscreen);
+                    break;
+                case "window.get_state":
+                    Dispatcher.Invoke(SendWindowState);
+                    break;
+                case "devtools.open":
+                case "devtools.toggle":
+                    Dispatcher.Invoke(() => Web.CoreWebView2?.OpenDevToolsWindow());
                     break;
                 case "window.close":
                     Dispatcher.Invoke(Close);
@@ -629,6 +660,7 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.H && Keyboard.Modifiers == ModifierKeys.Control) { Home_Click(this, e); e.Handled = true; }
         else if (e.Key == Key.F11) { Fullscreen_Click(this, e); e.Handled = true; }
+        else if (e.Key == Key.Escape && _isFullscreen) { ToggleFullscreen(); e.Handled = true; }
         else if (e.Key == Key.F12) { DevTools_Click(this, e); e.Handled = true; }
     }
 
@@ -638,16 +670,112 @@ public partial class MainWindow : Window
     private void DevTools_Click(object sender, RoutedEventArgs e) => Web.CoreWebView2?.OpenDevToolsWindow();
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
 
-    private void Fullscreen_Click(object sender, RoutedEventArgs e)
+    private void Fullscreen_Click(object sender, RoutedEventArgs e) => ToggleFullscreen();
+
+    private void ToggleFullscreen()
     {
-        if (WindowStyle != WindowStyle.None)
+        _isFullscreen = !_isFullscreen;
+        var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+        if (_isFullscreen)
         {
-            _prevState = WindowState; _prevStyle = WindowStyle;
-            WindowStyle = WindowStyle.None; WindowState = WindowState.Normal; WindowState = WindowState.Maximized;
+            _prevWindowState = WindowState;
+            WindowState = WindowState.Normal;
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            Topmost = true;
+            if (chrome != null) chrome.ResizeBorderThickness = new Thickness(0);
+            WindowState = WindowState.Maximized;
         }
         else
         {
-            WindowStyle = _prevStyle; WindowState = _prevState;
+            Topmost = false;
+            ResizeMode = ResizeMode.CanResize;
+            WindowStyle = WindowStyle.None;
+            if (chrome != null) chrome.ResizeBorderThickness = new Thickness(6);
+            WindowState = _prevWindowState;
         }
+        SendWindowState();
+    }
+
+    // ---------- Win32 WM_GETMINMAXINFO: Giữ cửa sổ Maximized chuẩn theo WorkArea (không lấn taskbar) ----------
+    private const int WM_GETMINMAXINFO = 0x0024;
+    private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int x; public int y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMinTrackSize;
+        public POINT ptMaxTrackSize;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private class MONITORINFO
+    {
+        public int cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+        public RECT rcMonitor = new RECT();
+        public RECT rcWork = new RECT();
+        public int dwFlags = 0;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int left, top, right, bottom; }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, MONITORINFO lpmi);
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        var handle = new WindowInteropHelper(this).Handle;
+        var source = HwndSource.FromHwnd(handle);
+        source?.AddHook(WindowProc);
+    }
+
+    private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_GETMINMAXINFO)
+        {
+            WmGetMinMaxInfo(hwnd, lParam);
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+
+    private void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+    {
+        var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+        var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if (monitor != IntPtr.Zero)
+        {
+            var monitorInfo = new MONITORINFO();
+            GetMonitorInfo(monitor, monitorInfo);
+
+            if (_isFullscreen)
+            {
+                mmi.ptMaxPosition.x = 0;
+                mmi.ptMaxPosition.y = 0;
+                mmi.ptMaxSize.x = Math.Abs(monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left);
+                mmi.ptMaxSize.y = Math.Abs(monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top);
+            }
+            else
+            {
+                mmi.ptMaxPosition.x = monitorInfo.rcWork.left - monitorInfo.rcMonitor.left;
+                mmi.ptMaxPosition.y = monitorInfo.rcWork.top - monitorInfo.rcMonitor.top;
+                mmi.ptMaxSize.x = Math.Abs(monitorInfo.rcWork.right - monitorInfo.rcWork.left);
+                mmi.ptMaxSize.y = Math.Abs(monitorInfo.rcWork.bottom - monitorInfo.rcWork.top);
+            }
+            mmi.ptMaxTrackSize.x = mmi.ptMaxSize.x;
+            mmi.ptMaxTrackSize.y = mmi.ptMaxSize.y;
+        }
+        Marshal.StructureToPtr(mmi, lParam, true);
     }
 }

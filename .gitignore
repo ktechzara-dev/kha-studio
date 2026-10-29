@@ -16,3 +16,4 @@ dotnet/github-token.txt
 __pycache__/
 *.pyc
 *.log
+src/renderer/data/

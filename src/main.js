@@ -3,6 +3,9 @@ const path = require('path');
 const fs = require('fs');
 const { registerApmIpc, setPendingOpenProject } = require('./main/ipc/apm');
 const { registerTiaIpc } = require('./main/ipc/tia');
+const { startLanServer } = require('./main/lan-server');
+
+let lanServer = null;
 
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
@@ -41,6 +44,15 @@ if (initialRoot) {
   setPendingOpenProject(initialRoot);
 }
 
+function sendWindowState() {
+  if (!win || win.isDestroyed()) return;
+  win.webContents.send('native-reply', {
+    type: 'window.state',
+    state: win.isMaximized() ? 'maximized' : 'normal',
+    isFullscreen: win.isFullScreen()
+  });
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1600,
@@ -60,6 +72,12 @@ function createWindow() {
   });
   win.maximize();
   win.loadFile(HOME);
+
+  win.on('maximize', sendWindowState);
+  win.on('unmaximize', sendWindowState);
+  win.on('enter-full-screen', sendWindowState);
+  win.on('leave-full-screen', sendWindowState);
+  win.webContents.on('did-finish-load', sendWindowState);
 
   // Link ngoài mở bằng trình duyệt mặc định
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -118,6 +136,11 @@ ipcMain.on('native-cmd', (event, msg) => {
     case 'window.minimize': win.minimize(); break;
     case 'window.maximize': win.isMaximized() ? win.unmaximize() : win.maximize(); break;
     case 'window.fullscreen': win.setFullScreen(!win.isFullScreen()); break;
+    case 'window.get_state': sendWindowState(); break;
+    case 'devtools.toggle':
+    case 'devtools.open':
+      win.webContents.toggleDevTools();
+      break;
     case 'window.close': win.close(); break;
     case 'vision_studio.open': {
       const candidates = [
@@ -262,6 +285,18 @@ Menu.setApplicationMenu(null);
 
 app.whenReady().then(() => {
   createWindow();
+  try {
+    lanServer = startLanServer(5055);
+  } catch (err) {
+    console.warn('[Main] Cannot start LAN server on 5055:', err.message);
+  }
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow());
 });
+
+app.on('before-quit', () => {
+  if (lanServer) {
+    try { lanServer.close(); } catch (_) {}
+  }
+});
+
 app.on('window-all-closed', () => process.platform !== 'darwin' && app.quit());

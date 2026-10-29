@@ -1288,6 +1288,27 @@
       setZoom(100);
       return;
     }
+
+    // F11: Toàn màn hình (Fullscreen)
+    if (e.key === 'F11') {
+      e.preventDefault();
+      postToNative({ cmd: 'window.fullscreen' });
+      return;
+    }
+
+    // Escape: Thoát toàn màn hình nếu đang bật fullscreen
+    if (e.key === 'Escape' && document.body.classList.contains('is-fullscreen')) {
+      e.preventDefault();
+      postToNative({ cmd: 'window.fullscreen' });
+      return;
+    }
+
+    // F12: Mở/đóng DevTools
+    if (e.key === 'F12') {
+      e.preventDefault();
+      postToNative({ cmd: 'devtools.toggle' });
+      return;
+    }
   }
 
   function renderPaletteSelection() {
@@ -1302,82 +1323,104 @@
     });
   }
 
+  // ---------- Cập nhật trạng thái Maximize / Restore / Fullscreen của cửa sổ ----------
+  function updateWindowStateUI(m) {
+    if (!m) return;
+    const isMax = m.state === 'maximized';
+    const isFull = Boolean(m.isFullscreen);
+    document.body.classList.toggle('is-maximized', isMax);
+    document.body.classList.toggle('is-fullscreen', isFull);
+
+    const wcMax = document.getElementById('wc-max');
+    if (wcMax) {
+      if (isMax || isFull) {
+        wcMax.innerHTML = icon('restore', 13);
+        wcMax.title = t('restore');
+      } else {
+        wcMax.innerHTML = icon('maximize', 13);
+        wcMax.title = t('maximize');
+      }
+    }
+  }
+
+  // ---------- Xử lý phản hồi chung từ Native backend (C# WPF / Electron) ----------
+  function handleNativeMessage(m) {
+    if (!m) return;
+
+    // Chuyển tiếp (Broadcast) tới toàn bộ iframe công cụ con đang chạy
+    try {
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach(f => {
+        try {
+          f.contentWindow?.postMessage(m, '*');
+        } catch (_) { }
+      });
+    } catch (_) { }
+
+    switch (m.type) {
+      case 'window.state':
+        updateWindowStateUI(m);
+        break;
+      case 'version':
+        state.updateStatus.version = m.version;
+        renderSidebar();
+        renderUpdateWidget();
+        break;
+      case 'checking':
+        state.updateStatus.state = 'checking';
+        renderUpdateWidget();
+        break;
+      case 'none':
+        state.updateStatus.state = 'latest';
+        renderUpdateWidget();
+        break;
+      case 'available':
+        state.updateStatus.state = 'available';
+        state.updateStatus.newVersion = m.version;
+        renderUpdateWidget();
+        notify(t('updateAvail', { v: m.version }), t('updateAvailMsg'), 'success', [
+          { label: t('updateNow'), primary: true, callback: () => postToNative({ cmd: 'update.install' }) }
+        ]);
+        break;
+      case 'progress':
+        state.updateStatus.state = 'downloading';
+        state.updateStatus.percent = m.percent;
+        renderUpdateWidget();
+        break;
+      case 'restarting':
+        state.updateStatus.state = 'restarting';
+        renderUpdateWidget();
+        break;
+      case 'dev_mode':
+        state.updateStatus.state = 'dev_mode';
+        state.updateStatus.message = m.message;
+        renderUpdateWidget();
+        break;
+      case 'error':
+        state.updateStatus.state = 'error';
+        state.updateStatus.message = m.message;
+        renderUpdateWidget();
+        notify(t('updateErr'), m.message, 'error');
+        break;
+    }
+  }
+
   // ---------- Xử lý Message từ C# WPF (WebView2) ----------
   if (isWebView2) {
     window.chrome.webview.addEventListener('message', e => {
-      const m = e.data || {};
-
-      // Chuyển tiếp (Broadcast) tới toàn bộ iframe công cụ con đang chạy
-      try {
-        const iframes = document.querySelectorAll('iframe');
-        iframes.forEach(f => {
-          try {
-            f.contentWindow?.postMessage(m, '*');
-          } catch (_) { }
-        });
-      } catch (_) { }
-
-      switch (m.type) {
-        case 'version':
-          state.updateStatus.version = m.version;
-          renderSidebar();
-          renderUpdateWidget();
-          break;
-        case 'checking':
-          state.updateStatus.state = 'checking';
-          renderUpdateWidget();
-          break;
-        case 'none':
-          state.updateStatus.state = 'latest';
-          renderUpdateWidget();
-          break;
-        case 'available':
-          state.updateStatus.state = 'available';
-          state.updateStatus.newVersion = m.version;
-          renderUpdateWidget();
-          notify(t('updateAvail', { v: m.version }), t('updateAvailMsg'), 'success', [
-            { label: t('updateNow'), primary: true, callback: () => postToNative({ cmd: 'update.install' }) }
-          ]);
-          break;
-        case 'progress':
-          state.updateStatus.state = 'downloading';
-          state.updateStatus.percent = m.percent;
-          renderUpdateWidget();
-          break;
-        case 'restarting':
-          state.updateStatus.state = 'restarting';
-          renderUpdateWidget();
-          break;
-        case 'dev_mode':
-          state.updateStatus.state = 'dev_mode';
-          state.updateStatus.message = m.message;
-          renderUpdateWidget();
-          break;
-        case 'error':
-          state.updateStatus.state = 'error';
-          state.updateStatus.message = m.message;
-          renderUpdateWidget();
-          notify(t('updateErr'), m.message, 'error');
-          break;
-      }
+      handleNativeMessage(e.data || {});
     });
-    // Gửi lệnh chào để lấy version ban đầu
+    // Gửi lệnh chào để lấy version ban đầu và trạng thái kích thước cửa sổ
     postToNative({ cmd: 'hello' });
+    postToNative({ cmd: 'window.get_state' });
   }
 
   // ---------- Xử lý Message từ Electron (native-reply) ----------
   if (window.electronAPI && window.electronAPI.onMessage) {
     window.electronAPI.onMessage(m => {
-      const msg = m || {};
-      try {
-        const iframes = document.querySelectorAll('iframe');
-        iframes.forEach(f => {
-          try {
-            f.contentWindow?.postMessage(msg, '*');
-          } catch (_) { }
-        });
-      } catch (_) { }
+      handleNativeMessage(m || {});
     });
+    postToNative({ cmd: 'window.get_state' });
   }
 
   // ==========================================================================
@@ -2374,7 +2417,7 @@
             port: smtpPort ? (parseInt(smtpPort.value, 10) || 587) : 587,
             enableSsl: smtpSsl ? smtpSsl.checked : true,
             user: smtpUser ? smtpUser.value.trim() : '',
-            password: smtpPwd ? smtpPwd.value.trim() : '',
+            password: smtpPwd ? smtpPwd.value.trim().replace(/\s+/g, '') : '',
             adminNotifyEmail: smtpAdminEmail ? smtpAdminEmail.value.trim() : ''
           };
           await window.Auth.saveSmtpConfig(cfg);
@@ -2390,13 +2433,34 @@
 
     if (btnTestSmtp) {
       btnTestSmtp.onclick = async () => {
-        const target = smtpTestEmail ? smtpTestEmail.value.trim() : '';
+        let target = smtpTestEmail ? smtpTestEmail.value.trim() : '';
         if (!target) {
-          notify('Chưa nhập email', 'Vui lòng nhập địa chỉ email nhận thử nghiệm.', 'warning');
+          target = (smtpAdminEmail ? smtpAdminEmail.value.trim() : '') || (smtpUser ? smtpUser.value.trim() : '');
+          if (smtpTestEmail && target) smtpTestEmail.value = target;
+        }
+
+        if (!target || !target.includes('@')) {
+          notify('Email không hợp lệ', 'Vui lòng nhập đúng định dạng email nhận thử (ví dụ: ' + (smtpAdminEmail?.value || smtpUser?.value || 'admin@gmail.com') + ').', 'warning');
           return;
         }
+
         btnTestSmtp.disabled = true;
         btnTestSmtp.textContent = 'Đang gửi…';
+
+        // Tự động lưu cấu hình mới nhất trước khi test để chắc chắn mật khẩu và port mới được áp dụng
+        try {
+          const cfg = {
+            enabled: smtpEnabled ? smtpEnabled.checked : true,
+            host: smtpHost ? smtpHost.value.trim() : 'smtp.gmail.com',
+            port: smtpPort ? (parseInt(smtpPort.value, 10) || 587) : 587,
+            enableSsl: smtpSsl ? smtpSsl.checked : true,
+            user: smtpUser ? smtpUser.value.trim() : '',
+            password: smtpPwd ? smtpPwd.value.trim().replace(/\s+/g, '') : '',
+            adminNotifyEmail: smtpAdminEmail ? smtpAdminEmail.value.trim() : ''
+          };
+          await window.Auth.saveSmtpConfig(cfg);
+        } catch (_) {}
+
         try {
           const res = await window.Auth.testSmtpConnection(target);
           if (res && res.success) {

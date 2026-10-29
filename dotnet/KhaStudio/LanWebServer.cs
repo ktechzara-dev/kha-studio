@@ -391,7 +391,7 @@ public class LanWebServer
                     }
                     catch { }
 
-                    if (string.IsNullOrWhiteSpace(targetEmail))
+                    if (string.IsNullOrWhiteSpace(targetEmail) || !targetEmail.Contains('@'))
                     {
                         var cfg = EmailSvc.GetConfig();
                         targetEmail = !string.IsNullOrWhiteSpace(cfg.AdminNotifyEmail) ? cfg.AdminNotifyEmail : cfg.User;
