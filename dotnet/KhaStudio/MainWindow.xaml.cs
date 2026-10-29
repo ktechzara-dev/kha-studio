@@ -89,7 +89,15 @@ public partial class MainWindow : Window
             _lanServer.Start(5055);
         }
         catch { }
-        core.NavigationCompleted += (_, _) => SendWindowState();
+        core.NavigationCompleted += async (_, _) =>
+        {
+            SendWindowState();
+            try
+            {
+                await core.ExecuteScriptAsync("window.scrollTo(0, 0); if (document.documentElement) document.documentElement.scrollTop = 0; if (document.body) document.body.scrollTop = 0;");
+            }
+            catch { }
+        };
         core.Navigate(HomeUrl);
     }
 

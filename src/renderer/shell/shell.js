@@ -273,7 +273,24 @@
     return TOOLS.find(t => t.id === id);
   }
 
+  function lockScrollToTop() {
+    try {
+      window.scrollTo(0, 0);
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+        document.documentElement.scrollLeft = 0;
+      }
+      if (document.body) {
+        document.body.scrollTop = 0;
+        document.body.scrollLeft = 0;
+      }
+    } catch (_) {}
+  }
+  window.addEventListener('scroll', lockScrollToTop, { passive: true });
+  window.addEventListener('resize', lockScrollToTop, { passive: true });
+
   function switchView(viewName, toolId = null) {
+    lockScrollToTop();
     state.activeView = viewName;
     state.activeToolId = toolId;
 
@@ -1035,7 +1052,7 @@
     if (overlay) overlay.hidden = false;
     if (input) {
       input.value = '';
-      input.focus();
+      input.focus({ preventScroll: true });
     }
     renderPaletteList('');
   }
@@ -1508,9 +1525,10 @@
           if (tabLoginBtn) tabLoginBtn.classList.add('active');
           if (tabRegisterBtn) tabRegisterBtn.classList.remove('active');
           const userInput = document.getElementById('login-username');
-          if (userInput) setTimeout(() => userInput.focus(), 100);
+          if (userInput) setTimeout(() => userInput.focus({ preventScroll: true }), 100);
         }
       }
+      lockScrollToTop();
       if (userProfileWrap) userProfileWrap.style.display = 'none';
       if (userDropdown) userDropdown.hidden = true;
       const btnApprovals = document.getElementById('btn-pending-approvals');
@@ -1522,6 +1540,7 @@
     // Đã đăng nhập -> Ẩn màn hình Login
     if (loginScreen) loginScreen.hidden = true;
     if (userProfileWrap) userProfileWrap.style.display = 'flex';
+    lockScrollToTop();
 
     // Cập nhật Profile trên Titlebar
     const avatarEl = document.getElementById('hdr-user-avatar');
@@ -1785,7 +1804,7 @@
         if (formChangePwd) formChangePwd.reset();
         if (pwdErr) pwdErr.hidden = true;
         const curInput = document.getElementById('pwd-current');
-        if (curInput) curInput.focus();
+        if (curInput) curInput.focus({ preventScroll: true });
       }
     }
     function closeChangePwdModal() {
@@ -2008,7 +2027,7 @@
         if (regPendingCard) regPendingCard.hidden = true;
         if (loginErr) loginErr.hidden = true;
         const userInput = document.getElementById('login-username');
-        if (userInput) userInput.focus();
+        if (userInput) userInput.focus({ preventScroll: true });
       } else {
         if (tabLoginBtn) tabLoginBtn.classList.remove('active');
         if (tabRegisterBtn) tabRegisterBtn.classList.add('active');
@@ -2017,8 +2036,9 @@
         if (regPendingCard) regPendingCard.hidden = true;
         if (regErr) regErr.hidden = true;
         const regUserInput = document.getElementById('reg-username');
-        if (regUserInput) regUserInput.focus();
+        if (regUserInput) regUserInput.focus({ preventScroll: true });
       }
+      lockScrollToTop();
     }
 
     if (tabLoginBtn) tabLoginBtn.onclick = () => switchLoginTab('login');
@@ -2119,7 +2139,7 @@
             const uInput = document.getElementById('login-username');
             const pInput = document.getElementById('login-password');
             if (uInput) uInput.value = username;
-            if (pInput) pInput.focus();
+            if (pInput) pInput.focus({ preventScroll: true });
           } else if (result.status === 'rejected') {
             const reason = result.request?.rejectionReason ? ` Lý do: ${result.request.rejectionReason}` : '';
             notify('Yêu cầu bị từ chối', `Yêu cầu đăng ký tài khoản của bạn đã bị từ chối.${reason}`, 'error');

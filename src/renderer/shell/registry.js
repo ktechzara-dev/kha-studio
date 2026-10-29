@@ -142,6 +142,21 @@ const TOOLS = [
 // Nhật ký thay đổi hiển thị ở trang Giới thiệu (mới nhất ở trên)
 const CHANGELOG = [
   {
+    version: '1.4.4', date: '2026-10-29',
+    items: {
+      vi: [
+        'Khắc phục triệt để lỗi mất thanh tiêu đề (Titlebar): Cố định vị trí cuộn trang, chuyển layout sang Flexbox Column và ngăn chặn tự động cuộn khi focus ô nhập liệu.',
+        'Khóa cuộn trang Web Shell: Cố định tuyệt đối góc nhìn 0,0, đảm bảo thanh tiêu đề, menu tài khoản và các nút Thu nhỏ, Phóng to, Đóng luôn hiển thị thường trực.',
+        'Đồng bộ hóa điều khiển cửa sổ WPF & WebView2: Tự động khôi phục vị trí đỉnh khi chuyển trang hoặc hoàn tất nạp giao diện.',
+      ],
+      en: [
+        'Definitive fix for Titlebar displacement: Locked window viewport scroll, refactored layout to Flexbox Column, and prevented auto-scrolling on input focus.',
+        'Web Shell scroll locking: Strictly pinned viewport to (0,0), ensuring titlebar, user profile menu, and window controls (Minimize, Maximize, Close) remain permanently visible.',
+        'WPF & WebView2 window synchronization: Auto-resets scroll coordinates upon page navigation and initial rendering.',
+      ],
+    },
+  },
+  {
     version: '1.4.3', date: '2026-10-29',
     items: {
       vi: [
