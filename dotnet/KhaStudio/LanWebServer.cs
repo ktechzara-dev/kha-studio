@@ -542,6 +542,26 @@ public class LanWebServer
                     }
                 }
             }
+
+            var usersFile = Path.Combine(WwwRoot, "data", "users.json");
+            if (File.Exists(usersFile))
+            {
+                if (JsonNode.Parse(File.ReadAllText(usersFile, Encoding.UTF8)) is JsonArray usersArr)
+                {
+                    foreach (var item in usersArr)
+                    {
+                        if (item is JsonObject obj && obj["username"]?.ToString().Equals(username, StringComparison.OrdinalIgnoreCase) == true)
+                        {
+                            var clone = JsonNode.Parse(obj.ToJsonString()) as JsonObject;
+                            if (clone != null)
+                            {
+                                clone["status"] = "approved";
+                                return clone.ToJsonString();
+                            }
+                        }
+                    }
+                }
+            }
         }
         catch { }
         return "{\"status\":\"not_found\"}";

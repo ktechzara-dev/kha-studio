@@ -254,6 +254,19 @@
       localStorage.setItem(STORAGE_CLOUD_CONFIG_KEY, JSON.stringify(cfg));
     }
 
+    getLanBase() {
+      const cfg = this.getCloudConfig();
+      if (cfg && cfg.lanUrl && cfg.lanUrl.trim()) {
+        let u = cfg.lanUrl.trim();
+        if (!/^https?:\/\//i.test(u)) u = 'http://' + u;
+        return u.replace(/\/+$/, '');
+      }
+      if (typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.port) {
+        return `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
+      }
+      return 'http://localhost:5055';
+    }
+
     // Người dùng đăng ký tài khoản từ app
     async submitRegistrationRequest({ username, name, department, phone, note, password }) {
       username = String(username || '').trim().toLowerCase();
@@ -323,17 +336,62 @@
       username = String(username || '').trim().toLowerCase();
       if (!username) return { status: 'none' };
 
-      // 1. Thử fetch từ mạng để cập nhật bản mới nhất
+      // 1. Thử gọi trực tiếp endpoint check-status của LAN Server
+      try {
+        const lanBase = this.getLanBase();
+        const sRes = await fetch(`${lanBase}/api/auth/check-status?username=${encodeURIComponent(username)}`, { method: 'GET' }).catch(() => null);
+        if (sRes && sRes.ok) {
+          const sData = await sRes.json();
+          if (sData && sData.status === 'approved') {
+            const localUsers = this.getUsers();
+            let u = localUsers.find(x => x.username.toLowerCase() === username);
+            if (!u) {
+              u = {
+                id: sData.id || ('usr_' + Date.now().toString(36)),
+                username: sData.username,
+                name: sData.fullName || sData.name || sData.username,
+                role: sData.role || 'engineer',
+                allowedTools: sData.allowedTools || ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
+                createdAt: sData.approvedAt || new Date().toISOString(),
+                passwordHash: sData.passwordHash
+              };
+              localUsers.push(u);
+              this._saveUsers(localUsers);
+            } else if (sData.allowedTools) {
+              u.allowedTools = sData.allowedTools;
+              this._saveUsers(localUsers);
+            }
+            // Cập nhật myRegistration
+            const myReg = this.getMyRegistration();
+            if (myReg && myReg.username.toLowerCase() === username) {
+              myReg.status = 'approved';
+              myReg.allowedTools = sData.allowedTools;
+              this.setMyRegistration(myReg);
+            }
+            return { status: 'approved', user: u, request: sData };
+          } else if (sData && sData.status === 'rejected') {
+            const myReg = this.getMyRegistration();
+            if (myReg && myReg.username.toLowerCase() === username) {
+              myReg.status = 'rejected';
+              myReg.rejectionReason = sData.rejectionReason;
+              this.setMyRegistration(myReg);
+            }
+            return { status: 'rejected', request: sData };
+          }
+        }
+      } catch (_) {}
+
+      // 2. Thử fetch từ mạng để cập nhật bản mới nhất
       await this.fetchNetworkPendingRequests().catch(() => {});
 
-      // 2. Tra cứu trong bảng users chính thức
+      // 3. Tra cứu trong bảng users chính thức
       const users = this.getUsers();
       const activeUser = users.find(u => u.username.toLowerCase() === username);
       if (activeUser) {
         return { status: 'approved', user: activeUser };
       }
 
-      // 3. Tra cứu trong pending requests
+      // 4. Tra cứu trong pending requests
       const req = this.getPendingRequests().find(r => r.username.toLowerCase() === username);
       if (!req) return { status: 'not_found' };
 
@@ -442,9 +500,7 @@
     async _syncRequestToNetwork(request) {
       // 1. LAN Server
       try {
-        const lanBase = (window.location && window.location.port)
-          ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
-          : 'http://localhost:5055';
+        const lanBase = this.getLanBase();
         await fetch(`${lanBase}/api/auth/register-request`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -470,9 +526,7 @@
     async _syncApprovalToNetwork(request, approvedUser) {
       // 1. LAN Server
       try {
-        const lanBase = (window.location && window.location.port)
-          ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
-          : 'http://localhost:5055';
+        const lanBase = this.getLanBase();
         await fetch(`${lanBase}/api/auth/approve-request`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -508,9 +562,7 @@
     // Đồng bộ từ chối lên Network
     async _syncRejectionToNetwork(request) {
       try {
-        const lanBase = (window.location && window.location.port)
-          ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
-          : 'http://localhost:5055';
+        const lanBase = this.getLanBase();
         await fetch(`${lanBase}/api/auth/reject-request`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -538,16 +590,38 @@
     // Kéo dữ liệu yêu cầu từ Network về máy hiện tại (dành cho Admin hoặc Client check)
     async fetchNetworkPendingRequests() {
       let networkList = [];
+      const lanBase = this.getLanBase();
 
       // 1. Kéo từ LAN WebServer
       try {
-        const lanBase = (window.location && window.location.port)
-          ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}`
-          : 'http://localhost:5055';
+        // 1a. Lấy danh sách pending
         const res = await fetch(`${lanBase}/api/auth/pending-requests`, { method: 'GET' }).catch(() => null);
         if (res && res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) networkList.push(...data);
+        }
+
+        // 1b. Lấy danh sách users đã approved từ LAN server
+        const uRes = await fetch(`${lanBase}/api/auth/users`, { method: 'GET' }).catch(() => null);
+        if (uRes && uRes.ok) {
+          const approvedUsers = await uRes.json();
+          if (Array.isArray(approvedUsers) && approvedUsers.length > 0) {
+            const localUsers = this.getUsers();
+            let updatedUsers = false;
+            approvedUsers.forEach(remoteUser => {
+              if (remoteUser && remoteUser.username) {
+                const existing = localUsers.find(u => u.username.toLowerCase() === remoteUser.username.toLowerCase());
+                if (!existing) {
+                  localUsers.push(remoteUser);
+                  updatedUsers = true;
+                } else if (JSON.stringify(existing.allowedTools) !== JSON.stringify(remoteUser.allowedTools)) {
+                  existing.allowedTools = remoteUser.allowedTools;
+                  updatedUsers = true;
+                }
+              }
+            });
+            if (updatedUsers) this._saveUsers(localUsers);
+          }
         }
       } catch (_) {}
 
@@ -578,6 +652,9 @@
                   const existing = localUsers.find(u => u.username.toLowerCase() === remoteUser.username.toLowerCase());
                   if (!existing) {
                     localUsers.push(remoteUser);
+                    updatedUsers = true;
+                  } else if (JSON.stringify(existing.allowedTools) !== JSON.stringify(remoteUser.allowedTools)) {
+                    existing.allowedTools = remoteUser.allowedTools;
                     updatedUsers = true;
                   }
                 }

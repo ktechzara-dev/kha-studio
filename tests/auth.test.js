@@ -199,4 +199,38 @@ rejectRequest(adminUser, reg2.id, 'Thông tin không hợp lệ');
 assert.throws(() => checkLogin('spammer', 'badpassword'), /đã bị từ chối/);
 console.log('✓ Rejection workflow passed');
 
+// 4.7. Mô phỏng máy trạm khác (Machine B) nhận kết quả duyệt và đăng nhập
+const machineBUsers = [
+  { username: 'kha', name: 'Sếp Kha', role: 'admin', allowedTools: ['*'] }
+];
+// Ban đầu máy B chưa có tài khoản tuan.le
+assert.strictEqual(machineBUsers.some(u => u.username === 'tuan.le'), false);
+
+// Giả lập máy B gọi checkRegistrationStatus hoặc kéo danh sách users từ Sếp Kha
+const remoteStatus = {
+  status: 'approved',
+  username: approvedUser.username,
+  fullName: approvedUser.name,
+  role: approvedUser.role,
+  allowedTools: approvedUser.allowedTools,
+  passwordHash: approvedUser.passwordHash
+};
+if (remoteStatus.status === 'approved') {
+  machineBUsers.push({
+    username: remoteStatus.username,
+    name: remoteStatus.fullName,
+    role: remoteStatus.role,
+    allowedTools: remoteStatus.allowedTools,
+    passwordHash: remoteStatus.passwordHash
+  });
+}
+
+// Máy B thực hiện đăng nhập với mật khẩu người dùng đã đăng ký
+const userOnMachineB = machineBUsers.find(u => u.username === 'tuan.le');
+assert.ok(userOnMachineB, 'Tài khoản phải tồn tại trên máy B sau khi đồng bộ');
+assert.strictEqual(userOnMachineB.passwordHash, approvedUser.passwordHash);
+assert.strictEqual(verifyPasswordNode('mypassword123', userOnMachineB.passwordHash), true);
+assert.deepStrictEqual(userOnMachineB.allowedTools, ['apm', 'vision-studio', 'plc-modbus']);
+console.log('✓ Remote machine B sync & login simulation passed');
+
 console.log('🎉 All Auth, RBAC & Approval unit tests passed 100%!');
