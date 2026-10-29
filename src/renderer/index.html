@@ -36,7 +36,7 @@
       </div>
 
       <!-- Center: Omnibar / Command Palette trigger -->
-      <div class="no-drag" style="display:flex; justify-content:center;">
+      <div class="no-drag tb-center">
         <button class="searchbar" id="title-searchbar">
           <script>document.write(icon('search', 15));</script>
           <span data-i18n="searchPh">Tìm công cụ hoặc chạy lệnh…</span>
@@ -713,6 +713,18 @@
 
   <!-- ==================== Login Screen Overlay ==================== -->
   <div id="login-screen" class="login-overlay" hidden>
+    <!-- Nút điều khiển cửa sổ trên màn hình đăng nhập -->
+    <div class="login-winctl no-drag">
+      <button type="button" class="login-wc-btn" id="login-wc-min" title="Thu nhỏ">
+        <script>document.write(icon('minimize', 14));</script>
+      </button>
+      <button type="button" class="login-wc-btn" id="login-wc-max" title="Phóng to">
+        <script>document.write(icon('maximize', 13));</script>
+      </button>
+      <button type="button" class="login-wc-btn danger" id="login-wc-close" title="Đóng">
+        <script>document.write(icon('x', 14));</script>
+      </button>
+    </div>
     <div class="login-backdrop"></div>
     <div class="login-card">
       <div class="login-header">
@@ -863,7 +875,12 @@
             <span>Kiểm tra trạng thái duyệt ngay</span>
           </button>
           <button type="button" class="btn sm" id="btn-back-to-login">
-            <span>Quay lại Đăng nhập</span>
+            <span>Đăng nhập tài khoản khác</span>
+          </button>
+        </div>
+        <div style="text-align:center; margin-top:10px;">
+          <button type="button" id="btn-dismiss-my-reg" style="background:none; border:none; color:var(--text-3); font-size:11.5px; cursor:pointer; text-decoration:underline;">
+            Xóa yêu cầu chờ duyệt trên máy này
           </button>
         </div>
       </div>

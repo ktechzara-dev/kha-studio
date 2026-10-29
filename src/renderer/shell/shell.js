@@ -1485,7 +1485,9 @@
         const tabLoginBtn = document.getElementById('tab-login-btn');
         const tabRegisterBtn = document.getElementById('tab-register-btn');
 
-        if (myReg && myReg.status === 'pending') {
+        const dismissedPending = sessionStorage.getItem('ks_dismiss_pending_card') === '1';
+
+        if (myReg && myReg.status === 'pending' && !dismissedPending) {
           if (regPendingCard) {
             regPendingCard.hidden = false;
             const pUser = document.getElementById('pending-card-username');
@@ -2070,6 +2072,7 @@
             note
           });
 
+          sessionStorage.removeItem('ks_dismiss_pending_card');
           if (regForm) regForm.hidden = true;
           if (regPendingCard) {
             regPendingCard.hidden = false;
@@ -2110,6 +2113,8 @@
 
           if (result.status === 'approved') {
             notify('Tài khoản đã được duyệt!', 'Admin đã phê duyệt tài khoản của bạn. Mời bạn đăng nhập ngay!', 'success');
+            window.Auth?.setMyRegistration(null);
+            sessionStorage.removeItem('ks_dismiss_pending_card');
             switchLoginTab('login');
             const uInput = document.getElementById('login-username');
             const pInput = document.getElementById('login-password');
@@ -2132,8 +2137,36 @@
 
     const btnBackToLogin = document.getElementById('btn-back-to-login');
     if (btnBackToLogin) {
-      btnBackToLogin.onclick = () => switchLoginTab('login');
+      btnBackToLogin.onclick = () => {
+        sessionStorage.setItem('ks_dismiss_pending_card', '1');
+        switchLoginTab('login');
+      };
     }
+
+    const btnDismissMyReg = document.getElementById('btn-dismiss-my-reg');
+    if (btnDismissMyReg) {
+      btnDismissMyReg.onclick = () => {
+        window.Auth?.setMyRegistration(null);
+        sessionStorage.setItem('ks_dismiss_pending_card', '1');
+        notify('Đã xóa yêu cầu chờ duyệt', 'Đã xóa thông tin chờ duyệt trên máy này. Sếp có thể đăng nhập bình thường!', 'info');
+        switchLoginTab('login');
+      };
+    }
+
+    window.addEventListener('ks:auth:my_reg_status_change', (e) => {
+      const reg = e.detail;
+      if (!reg) return;
+      if (reg.status === 'approved') {
+        notify('Tài khoản đã được duyệt!', `Tài khoản @${reg.username} đã được Admin phê duyệt. Bạn có thể đăng nhập ngay!`, 'success');
+        window.Auth?.setMyRegistration(null);
+        sessionStorage.removeItem('ks_dismiss_pending_card');
+        switchLoginTab('login');
+        const uInput = document.getElementById('login-username');
+        if (uInput) uInput.value = reg.username;
+      } else if (reg.status === 'rejected') {
+        notify('Yêu cầu bị từ chối', `Yêu cầu đăng ký tài khoản @${reg.username} đã bị từ chối.${reg.rejectionReason ? ' Lý do: ' + reg.rejectionReason : ''}`, 'error');
+      }
+    });
 
     // 9. Modal Danh sách Yêu cầu chờ duyệt (Admin)
     const modalApprovals = document.getElementById('modal-pending-approvals');
@@ -2365,12 +2398,18 @@
         const errEl = document.getElementById('approve-perm-error-msg');
 
         try {
-          const { user } = await window.Auth.approveRegistrationRequest(reqId, { allowedTools: selectedTools });
+          const { user, emailResult } = await window.Auth.approveRegistrationRequest(reqId, { allowedTools: selectedTools });
           closeApprovePermissionModal();
           renderApprovalsList();
           renderUserManagementTable();
           updateAuthUI();
-          notify('Đã duyệt thành công!', `Tài khoản @${user.username} (${user.name}) đã được kích hoạt. Người dùng có thể đăng nhập ngay!`, 'success');
+          let emailMsg = '';
+          if (emailResult && emailResult.success) {
+            emailMsg = ` Email thông báo kích hoạt đã được gửi tới ${user.email || 'người dùng'}.`;
+          } else if (emailResult && !emailResult.success) {
+            emailMsg = ` (Email thông báo: ${emailResult.message || 'Chưa gửi được'})`;
+          }
+          notify('Đã duyệt thành công!', `Tài khoản @${user.username} (${user.name}) đã được kích hoạt.${emailMsg}`, 'success');
         } catch (err) {
           if (errEl) { errEl.textContent = err.message || 'Lỗi phê duyệt tài khoản'; errEl.hidden = false; }
         }
@@ -2641,6 +2680,14 @@
     if (wcMin) wcMin.onclick = () => postToNative({ cmd: 'window.minimize' });
     if (wcMax) wcMax.onclick = () => postToNative({ cmd: 'window.maximize' });
     if (wcClose) wcClose.onclick = () => postToNative({ cmd: 'window.close' });
+
+    // Nút điều khiển cửa sổ trên màn hình Đăng nhập
+    const loginWcMin = document.getElementById('login-wc-min');
+    const loginWcMax = document.getElementById('login-wc-max');
+    const loginWcClose = document.getElementById('login-wc-close');
+    if (loginWcMin) loginWcMin.onclick = () => postToNative({ cmd: 'window.minimize' });
+    if (loginWcMax) loginWcMax.onclick = () => postToNative({ cmd: 'window.maximize' });
+    if (loginWcClose) loginWcClose.onclick = () => postToNative({ cmd: 'window.close' });
 
     const titlebarEl = document.getElementById('titlebar');
     if (titlebarEl) {

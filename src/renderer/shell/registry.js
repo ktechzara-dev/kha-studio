@@ -142,6 +142,38 @@ const TOOLS = [
 // Nhật ký thay đổi hiển thị ở trang Giới thiệu (mới nhất ở trên)
 const CHANGELOG = [
   {
+    version: '1.4.3', date: '2026-10-29',
+    items: {
+      vi: [
+        'Tự động gửi email thông báo phê duyệt: Gửi email xác nhận kèm danh sách công cụ được cấp quyền tới người dùng qua Gmail SMTP khi Admin duyệt yêu cầu.',
+        'Tối ưu hóa bố cục Titlebar (Chống tràn): Cố định cụm nút điều khiển cửa sổ (Thu nhỏ, Phóng to, Đóng) và Avatar tài khoản luôn hiển thị đầy đủ, không bị cắt mép màn hình.',
+        'Điều khiển cửa sổ tại màn hình Đăng nhập: Bổ sung nút Thu nhỏ / Phóng to / Đóng trực tiếp trên màn hình đăng nhập và màn hình chờ duyệt.',
+        'Quản lý yêu cầu chờ duyệt trên máy trạm: Bổ sung nút xóa trạng thái chờ duyệt trên máy để thuận tiện chuyển đổi hoặc đăng nhập tài khoản khác.',
+      ],
+      en: [
+        'Automated Approval Email Notifications: Sends confirmation email with assigned tool permissions to users via Gmail SMTP upon admin approval.',
+        'Titlebar Layout Optimization: Fixed window controls (Minimize, Maximize, Close) and User Profile from overflowing on scaled or compact displays.',
+        'Login Screen Window Controls: Added window control buttons directly onto the login and pending approval screens.',
+        'Client Registration State Management: Added option to dismiss pending approval state on workstations to allow seamless alternative logins.',
+      ],
+    },
+  },
+  {
+    version: '1.4.2', date: '2026-10-29',
+    items: {
+      vi: [
+        'Tích hợp máy chủ LAN Server (Node.js & C#) cổng 5055 đồng bộ email và tài khoản mạng cục bộ.',
+        'Tự động chuẩn hóa App Password SMTP (tự động lọc khoảng trắng).',
+        'Đồng bộ trạng thái cửa sổ WPF, Electron và Web Shell.',
+      ],
+      en: [
+        'Integrated LAN Server (Node.js & C#) on port 5055 for local network account and email sync.',
+        'Automatic SMTP App Password normalization (strips whitespaces).',
+        'Unified window state synchronization across WPF, Electron, and Web Shell.',
+      ],
+    },
+  },
+  {
     version: '1.4.1', date: '2026-10-29',
     items: {
       vi: [

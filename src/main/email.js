@@ -238,9 +238,138 @@ async function testConnection(targetEmail) {
   };
 }
 
+const TOOL_NAMES = {
+  apm: 'Quản lý Cập nhật APM & Google Drive',
+  pallet: 'Thiết kế & Xếp Pallet Tự động',
+  calculator: 'Máy tính Kỹ thuật & Chuyển đổi Đơn vị',
+  'plc-modbus': 'Kiểm tra & Giao tiếp PLC Modbus RTU/TCP',
+  'scada-vision': 'SCADA Giám sát Hiện trường & Báo cáo',
+  'vision-studio': 'Thị giác Máy tính Vision Studio',
+  'field-ops': 'Nhật ký & Kế hoạch Hiện trường',
+  'tia-portal': 'Tích hợp TIA Portal & Siemens PLC'
+};
+
+async function sendApprovalNotification(toEmail, fullName, username, tools) {
+  if (!toEmail || !toEmail.includes('@')) return { success: false, message: 'Email không hợp lệ' };
+
+  let toolsListHtml = '';
+  if (!tools || !tools.length || tools.includes('*')) {
+    toolsListHtml = "<li style='padding:6px 0; color:#16a34a; font-weight:600;'>✓ Toàn quyền sử dụng tất cả các công cụ của hệ thống</li>";
+  } else {
+    toolsListHtml = tools.map(t => {
+      const name = TOOL_NAMES[t] || t;
+      return `<li style='padding:4px 0; color:#334155;'>✓ ${name}</li>`;
+    }).join('\n');
+  }
+
+  const subject = '[K-Core Studio] 🎉 Tài khoản của bạn đã được Admin phê duyệt thành công!';
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 24px; color: #1e293b; }
+    .container { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .header { background: linear-gradient(135deg, #10b981 0%, #047857 100%); padding: 28px 32px; text-align: center; color: #ffffff; }
+    .header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .header p { margin: 6px 0 0 0; font-size: 13px; color: #d1fae5; }
+    .content { padding: 32px; }
+    .greeting { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+    .badge-success { display: inline-block; padding: 6px 14px; background: #dcfce7; color: #15803d; border-radius: 20px; font-size: 13px; font-weight: 600; margin: 16px 0; }
+    .tools-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin: 20px 0; }
+    .tools-box h4 { margin: 0 0 10px 0; font-size: 13.5px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tools-box ul { margin: 0; padding-left: 20px; }
+    .footer { padding: 20px 32px; background: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class='container'>
+    <div class='header'>
+      <h1>K-Core Studio</h1>
+      <p>Tài khoản của bạn đã sẵn sàng sử dụng</p>
+    </div>
+    <div class='content'>
+      <div class='greeting'>Chào ${fullName || username},</div>
+      <p>Chúc mừng bạn! Yêu cầu tạo tài khoản <strong>@${username}</strong> đã được <strong>Admin phê duyệt thành công</strong>.</p>
+      
+      <div style='text-align:center;'>
+        <div class='badge-success'>✓ Đã kích hoạt & Cấp quyền truy cập</div>
+      </div>
+
+      <div class='tools-box'>
+        <h4>Danh sách công cụ được cấp quyền sử dụng:</h4>
+        <ul>
+          ${toolsListHtml}
+        </ul>
+      </div>
+
+      <p style='font-size:13.5px; line-height:1.6; color:#475569;'>
+        Bạn có thể mở ứng dụng <strong>K-Core Studio</strong> trên máy tính của mình và đăng nhập ngay bằng <strong>Email</strong> (hoặc tên đăng nhập <strong>@${username}</strong>) cùng mật khẩu đã khởi tạo lúc đăng ký.
+      </p>
+    </div>
+    <div class='footer'>
+      Hệ thống K-Core Studio · Chúc bạn có một ngày làm việc hiệu quả!
+    </div>
+  </div>
+</body>
+</html>`;
+
+  return await sendEmail(toEmail, subject, html);
+}
+
+async function sendRejectionNotification(toEmail, fullName, username, reason) {
+  if (!toEmail || !toEmail.includes('@')) return { success: false, message: 'Email không hợp lệ' };
+  const safeReason = reason || 'Thông tin đăng ký chưa phù hợp với chính sách truy cập hệ thống.';
+  const subject = '[K-Core Studio] Thông báo về yêu cầu tạo tài khoản';
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 24px; color: #1e293b; }
+    .container { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .header { background: #475569; padding: 28px 32px; text-align: center; color: #ffffff; }
+    .header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .content { padding: 32px; }
+    .greeting { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+    .reason-box { background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 16px; margin: 20px 0; color: #be123c; font-size: 13.5px; }
+    .footer { padding: 20px 32px; background: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class='container'>
+    <div class='header'>
+      <h1>K-Core Studio</h1>
+    </div>
+    <div class='content'>
+      <div class='greeting'>Chào ${fullName || username},</div>
+      <p>Yêu cầu tạo tài khoản <strong>@${username}</strong> của bạn chưa được Admin phê duyệt vào thời điểm này.</p>
+      
+      <div class='reason-box'>
+        <strong>Lý do từ chối:</strong> ${safeReason}
+      </div>
+
+      <p style='font-size:13.5px; line-height:1.6; color:#475569;'>
+        Nếu bạn cho rằng đây là một sự nhầm lẫn hoặc cần thêm quyền truy cập cho dự án, vui lòng liên hệ trực tiếp với Quản trị viên (Admin).
+      </p>
+    </div>
+    <div class='footer'>
+      Email tự động từ hệ thống K-Core Studio.
+    </div>
+  </div>
+</body>
+</html>`;
+
+  return await sendEmail(toEmail, subject, html);
+}
+
 module.exports = {
   getConfig,
   saveConfig,
   sendEmail,
-  testConnection
+  testConnection,
+  sendApprovalNotification,
+  sendRejectionNotification
 };

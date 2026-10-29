@@ -140,6 +140,83 @@ function startLanServer(port = 5055) {
           return;
         }
 
+        // 7. /api/auth/approve-request
+        if (pathname === '/api/auth/approve-request' && req.method === 'POST') {
+          const { request, user } = json;
+          const pendingList = readJsonFile('pending_requests.json', []);
+          const reqId = request?.id || request?.username;
+          let targetReq = null;
+          for (const item of pendingList) {
+            if (item.id === reqId || item.username === reqId) {
+              item.status = 'approved';
+              item.approvedAt = new Date().toISOString();
+              item.allowedTools = request?.allowedTools || user?.allowedTools || [];
+              targetReq = item;
+            }
+          }
+          writeJsonFile('pending_requests.json', pendingList);
+
+          // Cập nhật users.json
+          if (user) {
+            const users = readJsonFile('users.json', []);
+            const idx = users.findIndex(u => u.username.toLowerCase() === user.username.toLowerCase());
+            if (idx >= 0) {
+              users[idx] = { ...users[idx], ...user };
+            } else {
+              users.push(user);
+            }
+            writeJsonFile('users.json', users);
+          }
+
+          // Gửi email chúc mừng & hướng dẫn đăng nhập
+          const toEmail = request?.email || user?.email || targetReq?.email;
+          const fullName = request?.name || user?.name || targetReq?.name || request?.username;
+          const uname = request?.username || user?.username;
+          const tools = request?.allowedTools || user?.allowedTools || [];
+
+          let emailResult = { success: false, message: 'Không có email nhận' };
+          if (toEmail && toEmail.includes('@')) {
+            try {
+              emailResult = await emailSvc.sendApprovalNotification(toEmail, fullName, uname, tools);
+            } catch (err) {
+              emailResult = { success: false, message: err.message };
+            }
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok', emailResult }));
+          return;
+        }
+
+        // 8. /api/auth/reject-request
+        if (pathname === '/api/auth/reject-request' && req.method === 'POST') {
+          const { id, reason } = json;
+          const pendingList = readJsonFile('pending_requests.json', []);
+          let targetReq = null;
+          for (const item of pendingList) {
+            if (item.id === id || item.username === id) {
+              item.status = 'rejected';
+              item.rejectedAt = new Date().toISOString();
+              item.rejectionReason = reason || 'Thông tin đăng ký chưa phù hợp';
+              targetReq = item;
+            }
+          }
+          writeJsonFile('pending_requests.json', pendingList);
+
+          let emailResult = { success: false, message: 'Không có email nhận' };
+          if (targetReq && targetReq.email && targetReq.email.includes('@')) {
+            try {
+              emailResult = await emailSvc.sendRejectionNotification(targetReq.email, targetReq.name, targetReq.username, reason);
+            } catch (err) {
+              emailResult = { success: false, message: err.message };
+            }
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok', emailResult }));
+          return;
+        }
+
         // Static or not found
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Not found' }));

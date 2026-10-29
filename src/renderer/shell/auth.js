@@ -480,10 +480,14 @@
 
       this._savePendingRequests(pendingList);
 
-      // Đồng bộ phê duyệt ra Network (LAN + Cloud)
-      this._syncApprovalToNetwork(req, user).catch(() => {});
+      // Đồng bộ phê duyệt ra Network (LAN + Cloud) & Gửi email
+      let emailResult = null;
+      try {
+        const netRes = await this._syncApprovalToNetwork(req, user);
+        emailResult = netRes?.emailResult || null;
+      } catch (_) {}
 
-      return { request: req, user };
+      return { request: req, user, emailResult };
     }
 
     // Từ chối yêu cầu đăng ký (Chỉ Admin)
@@ -545,14 +549,18 @@
 
     // Đồng bộ trạng thái phê duyệt lên Network
     async _syncApprovalToNetwork(request, approvedUser) {
+      let lanResult = null;
       // 1. LAN Server
       try {
         const lanBase = this.getLanBase();
-        await fetch(`${lanBase}/api/auth/approve-request`, {
+        const res = await fetch(`${lanBase}/api/auth/approve-request`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ request, user: approvedUser })
-        }).catch(() => {});
+        }).catch(() => null);
+        if (res && res.ok) {
+          lanResult = await res.json().catch(() => null);
+        }
       } catch (_) {}
 
       // 2. Cloud Endpoint
@@ -578,6 +586,8 @@
           }).catch(() => {});
         }
       } catch (_) {}
+
+      return lanResult;
     }
 
     // Đồng bộ từ chối lên Network

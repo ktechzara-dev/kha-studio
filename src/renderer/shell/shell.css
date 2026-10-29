@@ -133,18 +133,48 @@ kbd {
 
 /* ---------- Title bar ---------- */
 #titlebar {
-  display: grid; grid-template-columns: 1fr minmax(260px, 520px) 1fr; align-items: center; gap: 12px;
-  padding-left: 10px; height: var(--tb-h);
-  background: var(--chrome); backdrop-filter: blur(18px) saturate(1.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-left: 10px;
+  padding-right: 0;
+  height: var(--tb-h);
+  background: var(--chrome);
+  backdrop-filter: blur(18px) saturate(1.4);
   border-bottom: 1px solid var(--border);
-  app-region: drag; -webkit-app-region: drag;
-  position: relative; z-index: 20;
+  app-region: drag;
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 20;
 }
 #titlebar button, #titlebar .no-drag { app-region: no-drag; -webkit-app-region: no-drag; }
-.tb-left, .tb-right { display: flex; align-items: center; gap: 4px; min-width: 0; }
-.tb-right { justify-content: flex-end; height: 100%; }
+.tb-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: 42%;
+}
+.tb-center {
+  flex: 1 1 360px;
+  max-width: 480px;
+  min-width: 120px;
+  display: flex;
+  justify-content: center;
+  margin: 0 auto;
+}
+.tb-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  height: 100%;
+}
 
-.brand { display: flex; align-items: center; gap: 9px; padding: 0 6px; font-weight: 600; white-space: nowrap; }
+.brand { display: flex; align-items: center; gap: 9px; padding: 0 6px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
 .logo {
   width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center;
   flex-shrink: 0;
@@ -182,13 +212,42 @@ kbd {
 .searchbar:hover { border-color: var(--border-2); background: var(--surface-3); color: var(--text-2); }
 .searchbar span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-#winctl { display: flex; height: 100%; margin-left: 6px; }
+#winctl { display: flex; height: 100%; margin-left: 6px; flex-shrink: 0; }
 #winctl button {
   width: 46px; height: 100%; display: grid; place-items: center; color: var(--text-2);
   transition: background var(--t-fast), color var(--t-fast);
 }
 #winctl button:hover { background: var(--surface-3); color: var(--text); }
 #winctl #wc-close:hover { background: #E81123; color: #fff; }
+
+/* Nút điều khiển cửa sổ trên màn hình đăng nhập (Login Window Controls) */
+.login-winctl {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  height: 38px;
+  z-index: 100001;
+}
+.login-wc-btn {
+  width: 46px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.login-wc-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.login-wc-btn.danger:hover {
+  background: #E81123;
+  color: #fff;
+}
 
 /* ---------- Body ---------- */
 #body {
