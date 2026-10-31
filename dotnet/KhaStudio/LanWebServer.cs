@@ -394,7 +394,11 @@ public class LanWebServer
                     }
                     else
                     {
-                        var data = GetFileContent("cloud_config.json", "{}");
+                        var data = GetFileContent("cloud_config.json", "{\"cloudUrl\":\"https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app\",\"lanUrl\":\"http://172.27.1.132:5055\",\"autoSync\":true,\"pollIntervalMs\":15000}");
+                        if (string.IsNullOrWhiteSpace(data) || data.Trim() == "{}")
+                        {
+                            data = "{\"cloudUrl\":\"https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app\",\"lanUrl\":\"http://172.27.1.132:5055\",\"autoSync\":true,\"pollIntervalMs\":15000}";
+                        }
                         await SendJsonResponseAsync(stream, data);
                         return;
                     }

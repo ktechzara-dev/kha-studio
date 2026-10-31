@@ -3,10 +3,8 @@ package com.khastudio.admin;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Build;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.webkit.JavascriptInterface;
 import android.widget.Toast;
 
@@ -39,16 +37,35 @@ public class WebAppInterface {
 
     @JavascriptInterface
     public void vibrate(long milliseconds) {
+        NotificationHelper.triggerVibration(activity, milliseconds);
+    }
+
+    @JavascriptInterface
+    public void showNotification(String title, String message, int count) {
+        activity.runOnUiThread(() -> NotificationHelper.showNotification(activity, title, message, count));
+    }
+
+    @JavascriptInterface
+    public void playNotificationSound() {
+        activity.runOnUiThread(() -> NotificationHelper.playSystemSound(activity));
+    }
+
+    @JavascriptInterface
+    public void saveCloudConfig(String firebaseUrl) {
         try {
-            Vibrator v = (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
-            if (v != null && v.hasVibrator()) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    v.vibrate(VibrationEffect.createOneShot(milliseconds, VibrationEffect.DEFAULT_AMPLITUDE));
-                } else {
-                    v.vibrate(milliseconds);
-                }
-            }
+            SharedPreferences prefs = activity.getSharedPreferences(BackgroundCheckService.PREF_NAME, Context.MODE_PRIVATE);
+            prefs.edit().putString(BackgroundCheckService.KEY_FIREBASE_URL, firebaseUrl).apply();
         } catch (Exception ignored) {}
+    }
+
+    @JavascriptInterface
+    public String getStoredFirebaseUrl() {
+        try {
+            SharedPreferences prefs = activity.getSharedPreferences(BackgroundCheckService.PREF_NAME, Context.MODE_PRIVATE);
+            return prefs.getString(BackgroundCheckService.KEY_FIREBASE_URL, BackgroundCheckService.DEFAULT_FIREBASE_URL);
+        } catch (Exception ignored) {
+            return BackgroundCheckService.DEFAULT_FIREBASE_URL;
+        }
     }
 
     @JavascriptInterface
@@ -59,4 +76,3 @@ public class WebAppInterface {
         } catch (Exception ignored) {}
     }
 }
-

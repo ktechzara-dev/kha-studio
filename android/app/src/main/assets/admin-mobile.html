@@ -589,8 +589,13 @@
         </div>
 
         <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="btn btn-approve" onclick="testAndSaveConfig()">
+          <button class="btn btn-approve" onclick="testAndSaveConfig()" style="flex:1;">
             <span>Kiểm tra & Lưu cấu hình</span>
+          </button>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn" style="width:100%; border:1px solid rgba(56,189,248,0.5); color:var(--accent); background:rgba(56,189,248,0.08); font-weight:600;" onclick="testDeviceNotification()">
+            🔔 Thử nghiệm Chuông & Rung thông báo trên máy
           </button>
         </div>
       </div>
@@ -598,7 +603,7 @@
       <div class="req-card">
         <h3 style="font-size:14px; margin-bottom:10px;">📦 Bản cài đặt Android APK (OTA Update)</h3>
         <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
-          Phiên bản hiện tại: <strong id="app-version-badge" style="color:var(--accent);">v1.4.7</strong><br>
+          Phiên bản hiện tại: <strong id="app-version-badge" style="color:var(--accent);">v1.4.8</strong><br>
           Ứng dụng hỗ trợ tự động kiểm tra và tải bản cập nhật mới từ xa mà không cần cài đặt lại thủ công.
         </p>
         <button class="btn btn-approve" onclick="checkRemoteUpdate()" style="height:38px; font-size:12.5px;">
@@ -729,21 +734,53 @@
     }
 
     // Cloud & LAN Config Management
+    const DEFAULT_FIREBASE_URL = 'https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app';
     const CFG_KEY = 'ks_admin_mobile_config';
     function getConfig() {
+      let storedFb = '';
+      if (window.Android && window.Android.getStoredFirebaseUrl) {
+        try { storedFb = window.Android.getStoredFirebaseUrl(); } catch (_) {}
+      }
       try {
         const raw = localStorage.getItem(CFG_KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+          const cfg = JSON.parse(raw);
+          if (!cfg.firebaseUrl) cfg.firebaseUrl = storedFb || DEFAULT_FIREBASE_URL;
+          return cfg;
+        }
       } catch (_) {}
       // Fallback
       return {
-        firebaseUrl: '',
+        firebaseUrl: storedFb || DEFAULT_FIREBASE_URL,
         lanUrl: window.location.origin.includes('5055') ? window.location.origin : 'http://172.27.1.132:5055'
       };
     }
 
     function saveConfig(cfg) {
       localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+      if (window.Android && window.Android.saveCloudConfig && cfg.firebaseUrl) {
+        try { window.Android.saveCloudConfig(cfg.firebaseUrl); } catch (_) {}
+      }
+    }
+
+    function testDeviceNotification() {
+      showToast('Đang phát chuông & rung thông báo thử nghiệm…');
+      playDing();
+      if (window.Android) {
+        if (window.Android.showNotification) {
+          window.Android.showNotification(
+            'Kha Studio Admin — Kiểm tra chuông',
+            'Hệ thống thông báo đẩy & rung trên điện thoại hoạt động xuất sắc!',
+            1
+          );
+        }
+        if (window.Android.triggerVibrate) {
+          window.Android.triggerVibrate(400);
+        }
+        if (window.Android.playNotificationSound) {
+          window.Android.playNotificationSound();
+        }
+      }
     }
 
     let pendingList = [];
@@ -869,6 +906,23 @@
         if (lbl) lbl.textContent = activePending.length;
         if (activePending.length > lastPendingCount && lastPendingCount >= 0) {
           playDing();
+          if (window.Android) {
+            const firstReq = activePending[0];
+            const name = firstReq ? (firstReq.name || firstReq.username) : 'Kỹ sư';
+            if (window.Android.showNotification) {
+              window.Android.showNotification(
+                `Kha Studio — Có ${activePending.length} yêu cầu chờ duyệt!`,
+                `Kỹ sư ${name} vừa gửi đăng ký tài khoản cần Sếp phê duyệt.`,
+                activePending.length
+              );
+            }
+            if (window.Android.triggerVibrate) {
+              window.Android.triggerVibrate(400);
+            }
+            if (window.Android.playNotificationSound) {
+              window.Android.playNotificationSound();
+            }
+          }
         }
       } else {
         if (badge) badge.style.display = 'none';
@@ -1144,12 +1198,31 @@
       }
     }
 
+    // Realtime Firebase SSE stream
+    let sseSource = null;
+    function initRealtimeSSE() {
+      const cfg = getConfig();
+      if (!cfg.firebaseUrl || !window.EventSource) return;
+      try {
+        if (sseSource) sseSource.close();
+        const base = cfg.firebaseUrl.replace(/\/+$/, '');
+        sseSource = new EventSource(`${base}/registrations.json`);
+        sseSource.addEventListener('put', function() {
+          refreshData();
+        });
+        sseSource.addEventListener('patch', function() {
+          refreshData();
+        });
+      } catch (_) {}
+    }
+
     // Auto poll every 10 seconds
     setInterval(refreshData, 10000);
 
     // Initial run
     initInputs();
     refreshData();
+    initRealtimeSSE();
 
     if (window.Android && window.Android.getAppVersion) {
       try {

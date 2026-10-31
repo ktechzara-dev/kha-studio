@@ -245,10 +245,16 @@
     getCloudConfig() {
       try {
         const raw = localStorage.getItem(STORAGE_CLOUD_CONFIG_KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (!parsed.cloudUrl) {
+            parsed.cloudUrl = 'https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app';
+          }
+          return parsed;
+        }
       } catch (_) {}
       return {
-        cloudUrl: '',
+        cloudUrl: 'https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app',
         lanUrl: '',
         autoSync: true,
         pollIntervalMs: 15000

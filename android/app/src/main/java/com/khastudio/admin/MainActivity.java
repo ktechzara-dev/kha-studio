@@ -1,7 +1,10 @@
 package com.khastudio.admin;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.webkit.WebChromeClient;
@@ -14,6 +17,7 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
@@ -35,6 +39,22 @@ public class MainActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
 
         updateManager = new UpdateManager(this);
+
+        // Khởi tạo Kênh thông báo chuông & rung
+        NotificationHelper.createNotificationChannel(this);
+
+        // Yêu cầu quyền gửi thông báo trên Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1001);
+            }
+        }
+
+        // Khởi động dịch vụ kiểm tra nền nhận thông báo tức thời
+        try {
+            Intent serviceIntent = new Intent(this, BackgroundCheckService.class);
+            startService(serviceIntent);
+        } catch (Exception ignored) {}
 
         // Cấu hình WebView
         WebSettings settings = webView.getSettings();
@@ -109,6 +129,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1001) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "✓ Đã bật thông báo duyệt tài khoản tức thì", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (webView != null) webView.onResume();
@@ -120,4 +150,3 @@ public class MainActivity extends AppCompatActivity {
         if (webView != null) webView.onPause();
     }
 }
-

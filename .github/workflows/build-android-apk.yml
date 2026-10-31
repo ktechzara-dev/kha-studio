@@ -56,10 +56,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Tìm release mới nhất hoặc v1.4.7 để gắn file APK vào
-          LATEST_TAG=$(gh release view --json tagName -q .tagName 2>/dev/null || gh release list --limit 1 | awk '{print $3}')
-          if [ -n "$LATEST_TAG" ]; then
+          LATEST_TAG="v1.4.8"
+          echo "Target release tag: $LATEST_TAG"
+          if ! gh release view "$LATEST_TAG" >/dev/null 2>&1; then
+            echo "Creating release $LATEST_TAG..."
+            gh release create "$LATEST_TAG" build-output/KhaStudio-Admin.apk --title "Kha Studio $LATEST_TAG" --notes "Bản phát hành cập nhật $LATEST_TAG: Tích hợp thông báo đẩy tức thì (Heads-up Notification & Rung chuông) và Cloud Firebase Realtime Database."
+          else
             echo "Uploading KhaStudio-Admin.apk to release $LATEST_TAG..."
-            gh release upload "$LATEST_TAG" build-output/KhaStudio-Admin.apk --clobber || true
+            gh release upload "$LATEST_TAG" build-output/KhaStudio-Admin.apk --clobber
           fi
 
