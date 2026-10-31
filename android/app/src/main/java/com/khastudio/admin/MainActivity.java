@@ -120,3 +120,4 @@ public class MainActivity extends AppCompatActivity {
         if (webView != null) webView.onPause();
     }
 }
+

@@ -5,3 +5,4 @@
     <cache-path name="internal_cache" path="."/>
     <files-path name="internal_files" path="."/>
 </paths>
+
