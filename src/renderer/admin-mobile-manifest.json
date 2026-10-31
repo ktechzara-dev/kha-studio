@@ -1,0 +1,19 @@
+{
+  "name": "Kha Studio Admin",
+  "short_name": "Kha Admin",
+  "description": "Bảng điều khiển & Phê duyệt tài khoản di động cho Sếp Kha",
+  "start_url": "admin-mobile.html",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "shell/img/logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

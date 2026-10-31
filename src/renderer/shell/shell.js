@@ -2236,6 +2236,62 @@
     if (btnSetViewApprovals) btnSetViewApprovals.onclick = openApprovalsModal;
     if (btnCloseApprovals) btnCloseApprovals.onclick = closeApprovalsModal;
     if (btnCancelApprovals) btnCancelApprovals.onclick = closeApprovalsModal;
+
+    // Mobile Admin QR Modal
+    const btnOpenMobileAdmin = document.getElementById('btn-open-mobile-admin');
+    const modalMobileAdmin = document.getElementById('modal-mobile-admin');
+    const qrBox = document.getElementById('mobile-admin-qr-box');
+    const urlText = document.getElementById('mobile-admin-url-text');
+
+    function getMobileAdminUrl() {
+      let host = window.location.hostname;
+      if (!host || host === 'localhost' || host === '127.0.0.1') {
+        host = '172.27.1.132';
+      }
+      return `http://${host}:5055/admin-mobile.html`;
+    }
+
+    window.openMobileAdminModal = function() {
+      if (!modalMobileAdmin) return;
+      modalMobileAdmin.hidden = false;
+      const url = getMobileAdminUrl();
+      if (urlText) urlText.textContent = url;
+      if (qrBox) {
+        qrBox.innerHTML = '';
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(qrBox, {
+            text: url,
+            width: 160,
+            height: 160,
+            colorDark: '#09090b',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+      }
+    };
+
+    window.closeMobileAdminModal = function() {
+      if (modalMobileAdmin) modalMobileAdmin.hidden = true;
+    };
+
+    window.copyMobileAdminUrl = function() {
+      const url = getMobileAdminUrl();
+      navigator.clipboard.writeText(url).then(() => {
+        notify('Đã sao chép liên kết!', url, 'success');
+      }).catch(() => {
+        notify('Liên kết Mobile Admin:', url, 'info');
+      });
+    };
+
+    window.openMobileAdminInBrowser = function() {
+      const url = getMobileAdminUrl();
+      window.open(url, '_blank');
+    };
+
+    if (btnOpenMobileAdmin) {
+      btnOpenMobileAdmin.onclick = () => window.openMobileAdminModal();
+    }
     if (btnRefreshApprovals) {
       btnRefreshApprovals.onclick = async () => {
         btnRefreshApprovals.disabled = true;

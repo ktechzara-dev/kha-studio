@@ -13,6 +13,7 @@
   <script src="shell/registry.js"></script>
   <script src="shell/i18n.js"></script>
   <script src="shell/auth.js"></script>
+  <script src="shell/qrcode.min.js"></script>
   <script src="shell/shell.js" defer></script>
 </head>
 <body>
@@ -530,6 +531,10 @@
                           <button class="btn sm" id="btn-set-view-approvals" title="Xem và phê duyệt yêu cầu đăng ký từ app client">
                             <script>document.write(icon('user', 14));</script>
                             <span>Yêu cầu chờ duyệt (<b id="set-pending-count" style="color:var(--accent);">0</b>)</span>
+                          </button>
+                          <button class="btn sm" id="btn-open-mobile-admin" title="Mở bảng điều khiển và duyệt tài khoản trên điện thoại Android">
+                            <script>document.write(icon('monitor', 14));</script>
+                            <span>📱 Duyệt trên Mobile</span>
                           </button>
                           <button class="btn sm primary" id="btn-open-add-user">+ Thêm tài khoản</button>
                         </div>
@@ -1109,6 +1114,36 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Mobile Admin QR & Instructions -->
+  <div class="modal" id="modal-mobile-admin" hidden>
+    <div class="modal-backdrop" onclick="closeMobileAdminModal()"></div>
+    <div class="modal-panel" style="max-width:440px; text-align:center;">
+      <header class="modal-header" style="justify-content:space-between;">
+        <h3 style="display:flex; align-items:center; gap:8px;">
+          <span>📱</span>
+          <span>Kha Studio Admin trên Điện thoại</span>
+        </h3>
+        <button class="modal-close" onclick="closeMobileAdminModal()">&times;</button>
+      </header>
+      <div class="modal-body" style="padding:20px;">
+        <p style="font-size:13px; color:var(--text-2); margin-bottom:16px; line-height:1.5;">
+          Dùng camera điện thoại Android quét mã QR bên dưới để mở giao diện duyệt tài khoản:
+        </p>
+        <div id="mobile-admin-qr-box" style="background:#fff; padding:14px; border-radius:12px; display:inline-block; margin-bottom:16px; box-shadow:0 4px 16px rgba(0,0,0,0.3);"></div>
+        <div style="background:var(--bg-3); padding:10px 12px; border-radius:8px; font-size:12px; word-break:break-all; font-family:monospace; color:var(--accent); margin-bottom:16px;" id="mobile-admin-url-text">
+          Đang tạo liên kết…
+        </div>
+        <div style="text-align:left; font-size:12px; color:var(--text-3); line-height:1.6; background:rgba(255,255,255,0.03); padding:12px; border-radius:8px; border-left:3px solid var(--accent);">
+          💡 <strong>Mẹo cài thành App:</strong> Sau khi mở trên Chrome điện thoại, bấm dấu <strong>⋮</strong> ở góc phải &rarr; chọn <strong>"Cài đặt ứng dụng"</strong> để tạo icon App trên màn hình chính Android.
+        </div>
+      </div>
+      <footer class="modal-footer" style="justify-content:space-between;">
+        <button class="btn sm" onclick="copyMobileAdminUrl()">Sao chép liên kết</button>
+        <button class="btn sm primary" onclick="openMobileAdminInBrowser()">Mở tab trình duyệt</button>
+      </footer>
     </div>
   </div>
 
