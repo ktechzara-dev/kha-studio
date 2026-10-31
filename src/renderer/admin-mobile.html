@@ -596,6 +596,17 @@
       </div>
 
       <div class="req-card">
+        <h3 style="font-size:14px; margin-bottom:10px;">📦 Bản cài đặt Android APK (OTA Update)</h3>
+        <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
+          Phiên bản hiện tại: <strong id="app-version-badge" style="color:var(--accent);">v1.4.7</strong><br>
+          Ứng dụng hỗ trợ tự động kiểm tra và tải bản cập nhật mới từ xa mà không cần cài đặt lại thủ công.
+        </p>
+        <button class="btn btn-approve" onclick="checkRemoteUpdate()" style="height:38px; font-size:12.5px;">
+          🔄 Kiểm tra cập nhật ứng dụng từ xa
+        </button>
+      </div>
+
+      <div class="req-card">
         <h3 style="font-size:14px; margin-bottom:10px;">📱 Hướng dẫn cài đặt App lên màn hình Android</h3>
         <p style="font-size:12px; color:var(--text-muted); line-height:1.6;">
           1. Mở trang này bằng trình duyệt <strong>Google Chrome</strong> trên điện thoại.<br>
@@ -1111,12 +1122,42 @@
       }
     }
 
+    function checkRemoteUpdate() {
+      if (window.Android && window.Android.checkForUpdate) {
+        window.Android.checkForUpdate();
+      } else {
+        showToast('Đang kiểm tra bản cập nhật trên GitHub…');
+        fetch('https://api.github.com/repos/ktechzara-dev/kha-studio/releases/latest')
+          .then(res => res.json())
+          .then(rel => {
+            if (rel && rel.tag_name) {
+              const apkAsset = rel.assets?.find(a => a.name && a.name.toLowerCase().endsWith('.apk'));
+              if (apkAsset) {
+                showToast(`Bản mới nhất: ${rel.tag_name}. Bấm để tải APK!`);
+                window.open(apkAsset.browser_download_url, '_blank');
+              } else {
+                showToast(`Phiên bản mới nhất: ${rel.tag_name}`);
+              }
+            }
+          })
+          .catch(e => showToast('Không thể kiểm tra: ' + e.message));
+      }
+    }
+
     // Auto poll every 10 seconds
     setInterval(refreshData, 10000);
 
     // Initial run
     initInputs();
     refreshData();
+
+    if (window.Android && window.Android.getAppVersion) {
+      try {
+        const v = window.Android.getAppVersion();
+        const el = document.getElementById('app-version-badge');
+        if (el && v) el.textContent = 'v' + v;
+      } catch (_) {}
+    }
   </script>
 </body>
 </html>

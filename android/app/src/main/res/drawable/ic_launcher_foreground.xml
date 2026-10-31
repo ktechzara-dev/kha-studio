@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Blue Glow Circle -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M54,18 A36,36 0 1,1 53.99,18 Z"/>
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M54,26 A28,28 0 1,1 53.99,26 Z"/>
+    <!-- Letter K in White -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M44,38 L48,38 L48,51 L58,38 L64,38 L53,52 L65,70 L59,70 L48,55 L48,70 L44,70 Z"/>
+</vector>
