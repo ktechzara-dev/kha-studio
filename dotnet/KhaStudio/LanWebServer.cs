@@ -380,6 +380,26 @@ public class LanWebServer
                     }
                 }
 
+                // 10b. API: /api/cloud/config (Cấu hình Firebase Realtime Database & LAN URL)
+                if (cleanPath == "/api/cloud/config")
+                {
+                    if (method == "POST")
+                    {
+                        if (!string.IsNullOrWhiteSpace(body))
+                        {
+                            SaveToFile("cloud_config.json", body);
+                        }
+                        await SendJsonResponseAsync(stream, "{\"status\":\"ok\"}");
+                        return;
+                    }
+                    else
+                    {
+                        var data = GetFileContent("cloud_config.json", "{}");
+                        await SendJsonResponseAsync(stream, data);
+                        return;
+                    }
+                }
+
                 // 11. API: /api/email/test (Gửi thử email kiểm tra cấu hình)
                 if (cleanPath == "/api/email/test" && method == "POST")
                 {
@@ -507,6 +527,17 @@ public class LanWebServer
             File.WriteAllText(filePath, content, Encoding.UTF8);
         }
         catch { }
+    }
+
+    private string GetFileContent(string fileName, string fallback = "{}")
+    {
+        try
+        {
+            var filePath = Path.Combine(WwwRoot, "data", fileName);
+            if (File.Exists(filePath)) return File.ReadAllText(filePath, Encoding.UTF8);
+        }
+        catch { }
+        return fallback;
     }
 
     private void SavePendingRegistration(string jsonBody)

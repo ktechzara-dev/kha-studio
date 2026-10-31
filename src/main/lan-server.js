@@ -75,6 +75,26 @@ function startLanServer(port = 5055) {
           }
         }
 
+        // 1b. /api/cloud/config (Cấu hình Firebase Realtime Database & LAN URL)
+        if (pathname === '/api/cloud/config') {
+          if (req.method === 'POST') {
+            writeJsonFile('cloud_config.json', json);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'ok', config: json }));
+            return;
+          } else {
+            const cfg = readJsonFile('cloud_config.json', {
+              cloudUrl: '',
+              lanUrl: '',
+              autoSync: true,
+              pollIntervalMs: 15000
+            });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(cfg));
+            return;
+          }
+        }
+
         // 2. /api/email/test
         if (pathname === '/api/email/test' && req.method === 'POST') {
           try {

@@ -178,6 +178,9 @@
 
       // Bật sync nền nếu đang ở vai trò admin
       this.startBackgroundSync();
+
+      // Thử đồng bộ cấu hình Cloud từ LAN server nếu có
+      this.fetchServerCloudConfig().catch(() => {});
     }
 
     getUsers() {
@@ -245,15 +248,88 @@
         if (raw) return JSON.parse(raw);
       } catch (_) {}
       return {
-        cloudUrl: 'https://kha-studio-auth-default-rtdb.firebaseio.com',
+        cloudUrl: '',
         lanUrl: '',
         autoSync: true,
         pollIntervalMs: 15000
       };
     }
 
+    async fetchServerCloudConfig() {
+      try {
+        const lanBase = this.getLanBase();
+        const res = await fetch(`${lanBase}/api/cloud/config`, { method: 'GET' }).catch(() => null);
+        if (res && res.ok) {
+          const sCfg = await res.json();
+          if (sCfg && (sCfg.cloudUrl || sCfg.lanUrl)) {
+            const current = this.getCloudConfig();
+            if (!current.cloudUrl && sCfg.cloudUrl) {
+              current.cloudUrl = sCfg.cloudUrl;
+              this.saveCloudConfig(current);
+            }
+            return sCfg;
+          }
+        }
+      } catch (_) {}
+      return null;
+    }
+
     saveCloudConfig(cfg) {
       localStorage.setItem(STORAGE_CLOUD_CONFIG_KEY, JSON.stringify(cfg));
+      // Tự động đồng bộ lên LAN WebServer để các máy client khác trong mạng cùng thừa hưởng
+      try {
+        const lanBase = this.getLanBase();
+        fetch(`${lanBase}/api/cloud/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cfg)
+        }).catch(() => {});
+      } catch (_) {}
+    }
+
+    // Kiểm tra kết nối tới Firebase Realtime Database
+    async testCloudConnection(targetUrl) {
+      let u = String(targetUrl || '').trim();
+      if (!u) {
+        const cfg = this.getCloudConfig();
+        u = cfg?.cloudUrl || '';
+      }
+      if (!u) {
+        throw new Error('Vui lòng nhập đường dẫn Firebase Realtime Database URL (ví dụ: https://du-an-default-rtdb.asia-southeast1.firebasedatabase.app)');
+      }
+      if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+      const base = u.replace(/\/+$/, '');
+
+      try {
+        const testPayload = {
+          ping: 'ok',
+          appName: 'KhaStudio',
+          testedAt: new Date().toISOString()
+        };
+        const putRes = await fetch(`${base}/_connection_test.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(testPayload)
+        });
+
+        if (putRes.status === 401 || putRes.status === 403) {
+          throw new Error('Cơ sở dữ liệu bị chặn quyền (Permission Denied)! Hãy vào tab "Rules" trên Firebase Console và đổi thành:\n{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}');
+        }
+        if (putRes.status === 404) {
+          throw new Error('Không tìm thấy Database (404 Not Found)! Hãy kiểm tra lại URL dự án Firebase.');
+        }
+        if (!putRes.ok) {
+          throw new Error(`Firebase trả về lỗi HTTP ${putRes.status} (${putRes.statusText})`);
+        }
+
+        const data = await putRes.json();
+        if (data && data.ping === 'ok') {
+          return { success: true, message: 'Kết nối Firebase thành công! Quyền đọc và ghi cơ sở dữ liệu hoạt động hoàn hảo.' };
+        }
+        return { success: true, message: 'Kết nối Firebase thành công!' };
+      } catch (err) {
+        throw new Error(err.message || 'Không thể kết nối đến Firebase URL. Vui lòng kiểm tra lại mạng hoặc URL.');
+      }
     }
 
     getLanBase() {

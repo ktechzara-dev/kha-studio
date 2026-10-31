@@ -2560,6 +2560,112 @@
     // Tự động load SMTP settings
     window.loadSmtpUI();
 
+    // 11. Cấu hình Đồng bộ Đám mây (Firebase Realtime Database & LAN URL)
+    const cloudEnabled = document.getElementById('cloud-enabled');
+    const cloudUrlInput = document.getElementById('cloud-url');
+    const cloudLanUrlInput = document.getElementById('cloud-lan-url');
+    const cloudStatusMsg = document.getElementById('cloud-status-msg');
+    const btnSaveCloud = document.getElementById('btn-save-cloud');
+    const btnTestCloud = document.getElementById('btn-test-cloud');
+
+    window.loadCloudUI = async function() {
+      try {
+        let cfg = window.Auth ? window.Auth.getCloudConfig() : null;
+        if (!cfg?.cloudUrl && window.Auth?.fetchServerCloudConfig) {
+          const remoteCfg = await window.Auth.fetchServerCloudConfig();
+          if (remoteCfg) cfg = window.Auth.getCloudConfig();
+        }
+        if (cfg) {
+          if (cloudEnabled) cloudEnabled.checked = cfg.autoSync !== false;
+          if (cloudUrlInput) cloudUrlInput.value = cfg.cloudUrl || '';
+          if (cloudLanUrlInput) cloudLanUrlInput.value = cfg.lanUrl || '';
+        }
+      } catch (_) {}
+    };
+
+    if (btnSaveCloud) {
+      btnSaveCloud.onclick = async () => {
+        btnSaveCloud.disabled = true;
+        btnSaveCloud.textContent = 'Đang lưu…';
+        try {
+          const cfg = {
+            cloudUrl: cloudUrlInput ? cloudUrlInput.value.trim() : '',
+            lanUrl: cloudLanUrlInput ? cloudLanUrlInput.value.trim() : '',
+            autoSync: cloudEnabled ? cloudEnabled.checked : true,
+            pollIntervalMs: 15000
+          };
+          window.Auth.saveCloudConfig(cfg);
+          notify('Đã lưu cấu hình Cloud', 'Cấu hình đồng bộ đám mây đã được cập nhật thành công.', 'success');
+          if (cloudStatusMsg) {
+            cloudStatusMsg.style.display = 'block';
+            cloudStatusMsg.style.background = 'rgba(34, 197, 94, 0.12)';
+            cloudStatusMsg.style.color = '#4ade80';
+            cloudStatusMsg.style.border = '1px solid rgba(34, 197, 94, 0.25)';
+            cloudStatusMsg.textContent = '✓ Đã lưu cấu hình Cloud và đồng bộ hệ thống.';
+          }
+        } catch (err) {
+          notify('Lỗi lưu cấu hình', err.message, 'error');
+        } finally {
+          btnSaveCloud.disabled = false;
+          btnSaveCloud.textContent = 'Lưu cấu hình Cloud';
+        }
+      };
+    }
+
+    if (btnTestCloud) {
+      btnTestCloud.onclick = async () => {
+        const u = cloudUrlInput ? cloudUrlInput.value.trim() : '';
+        if (!u) {
+          notify('Chưa nhập URL', 'Vui lòng nhập đường dẫn Firebase Realtime Database URL trước khi kiểm tra.', 'warning');
+          return;
+        }
+
+        btnTestCloud.disabled = true;
+        btnTestCloud.textContent = 'Đang kiểm tra…';
+        if (cloudStatusMsg) {
+          cloudStatusMsg.style.display = 'block';
+          cloudStatusMsg.style.background = 'rgba(59, 130, 246, 0.1)';
+          cloudStatusMsg.style.color = '#60a5fa';
+          cloudStatusMsg.style.border = '1px solid rgba(59, 130, 246, 0.2)';
+          cloudStatusMsg.textContent = 'Đang kết nối tới Firebase Database…';
+        }
+
+        try {
+          const res = await window.Auth.testCloudConnection(u);
+          if (res && res.success) {
+            notify('Kết nối Firebase thành công!', res.message, 'success');
+            if (cloudStatusMsg) {
+              cloudStatusMsg.style.background = 'rgba(34, 197, 94, 0.12)';
+              cloudStatusMsg.style.color = '#4ade80';
+              cloudStatusMsg.style.border = '1px solid rgba(34, 197, 94, 0.25)';
+              cloudStatusMsg.textContent = '✓ ' + res.message;
+            }
+            const cfg = {
+              cloudUrl: u,
+              lanUrl: cloudLanUrlInput ? cloudLanUrlInput.value.trim() : '',
+              autoSync: cloudEnabled ? cloudEnabled.checked : true,
+              pollIntervalMs: 15000
+            };
+            window.Auth.saveCloudConfig(cfg);
+          }
+        } catch (err) {
+          notify('Lỗi kết nối Firebase', err.message, 'error');
+          if (cloudStatusMsg) {
+            cloudStatusMsg.style.background = 'rgba(239, 68, 68, 0.12)';
+            cloudStatusMsg.style.color = '#f87171';
+            cloudStatusMsg.style.border = '1px solid rgba(239, 68, 68, 0.25)';
+            cloudStatusMsg.textContent = '✗ ' + err.message;
+          }
+        } finally {
+          btnTestCloud.disabled = false;
+          btnTestCloud.textContent = 'Kiểm tra kết nối Firebase';
+        }
+      };
+    }
+
+    // Tự động load Cloud settings
+    window.loadCloudUI();
+
     // Lắng nghe sự kiện yêu cầu đăng ký mới
     window.addEventListener('ks:auth:pending_changed', (e) => {
       updateApprovalBadge(e.detail?.count);

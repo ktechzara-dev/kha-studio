@@ -1,7 +1,7 @@
 {
   "name": "pallet-studio",
   "productName": "K-Core Studio",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "K-Core Studio — Hệ thống Quản trị Kỹ thuật, Tự động hóa & Thị giác máy",
   "main": "src/main.js",
   "scripts": {
