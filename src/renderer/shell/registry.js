@@ -12,6 +12,15 @@ const CATEGORIES = {
 
 const TOOLS = [
   {
+    id: 'project-manager', icon: 'briefcase', color: ['#0284C7', '#38BDF8'], cat: 'industry',
+    name: { vi: 'Quản Trị Dự Án & Media Hiện Trường (Project & Site Hub)', en: 'Project & Site Operations Hub' },
+    desc: {
+      vi: 'Quản lý toàn diện dự án tự động hóa: Mã dự án, khách hàng, tiến độ, kho ảnh & video hiện trường đóng dấu Timemark, báo cáo site và mở thư mục máy tính.',
+      en: 'Complete automation project management: Project codes, clients, timeline, site photos with Timemark, videos, field reports and folder explorer.',
+    },
+    path: 'tools/project-manager/index.html', keywords: 'du an project site timemark photo video report hien truong quan ly du an',
+  },
+  {
     id: 'apm', icon: 'layers', color: ['#2463EB', '#60A5FA'], cat: 'industry',
     name: { vi: 'Automation Project Master (APM)', en: 'Automation Project Master (APM)' },
     desc: {

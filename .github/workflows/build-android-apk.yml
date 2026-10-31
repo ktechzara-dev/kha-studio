@@ -56,11 +56,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST_TAG="v1.4.8"
+          LATEST_TAG="v1.4.9"
           echo "Target release tag: $LATEST_TAG"
           if ! gh release view "$LATEST_TAG" >/dev/null 2>&1; then
             echo "Creating release $LATEST_TAG..."
-            gh release create "$LATEST_TAG" build-output/KhaStudio-Admin.apk --title "Kha Studio $LATEST_TAG" --notes "Bản phát hành cập nhật $LATEST_TAG: Tích hợp thông báo đẩy tức thì (Heads-up Notification & Rung chuông) và Cloud Firebase Realtime Database."
+            gh release create "$LATEST_TAG" build-output/KhaStudio-Admin.apk --title "Kha Studio $LATEST_TAG" --notes "Bản phát hành cập nhật $LATEST_TAG: Thêm đăng nhập RBAC (chỉ Admin duyệt), chụp ảnh Timemark lưu folder dự án trên PC, và trung tâm quản lý dự án."
           else
             echo "Uploading KhaStudio-Admin.apk to release $LATEST_TAG..."
             gh release upload "$LATEST_TAG" build-output/KhaStudio-Admin.apk --clobber

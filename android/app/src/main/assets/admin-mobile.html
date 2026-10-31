@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#09090b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="KhaStudio Admin">
+  <meta name="apple-mobile-web-app-title" content="KhaStudio Mobile">
   <link rel="manifest" href="admin-mobile-manifest.json">
-  <title>K-Core Studio | Admin Mobile</title>
+  <title>K-Core Studio | Mobile Site Ops</title>
   <style>
     :root {
       --bg: #09090b;
@@ -19,15 +19,13 @@
       --accent: #38bdf8;
       --accent-glow: rgba(56, 189, 248, 0.15);
       --success: #10b981;
-      --success-glow: rgba(16, 185, 129, 0.15);
       --danger: #ef4444;
-      --danger-glow: rgba(239, 68, 68, 0.15);
       --warning: #f59e0b;
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
       --radius: 12px;
-      --bottom-nav-h: 60px;
+      --bottom-nav-h: 64px;
     }
 
     * {
@@ -41,7 +39,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
       min-height: 100vh;
       min-height: 100dvh;
       display: flex;
@@ -54,11 +52,11 @@
       position: sticky;
       top: 0;
       z-index: 50;
-      background: rgba(9, 9, 11, 0.92);
+      background: rgba(9, 9, 11, 0.94);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
-      padding: 12px 16px;
+      padding: 10px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -85,7 +83,7 @@
     }
 
     .brand-info h1 {
-      font-size: 15px;
+      font-size: 14.5px;
       font-weight: 700;
       letter-spacing: -0.2px;
     }
@@ -114,11 +112,7 @@
       cursor: pointer;
       position: relative;
     }
-
-    .icon-btn:active {
-      transform: scale(0.92);
-      background: rgba(255, 255, 255, 0.1);
-    }
+    .icon-btn:active { transform: scale(0.92); }
 
     .badge-count {
       position: absolute;
@@ -138,11 +132,7 @@
       box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
       animation: pulse 1.8s infinite;
     }
-
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.15); }
-    }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 
     /* MAIN CONTAINER */
     main {
@@ -151,143 +141,49 @@
       padding-bottom: calc(var(--bottom-nav-h) + 24px);
     }
 
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     /* SECTION TITLE */
     .sec-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       margin-bottom: 14px;
     }
-
     .sec-title {
       font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: var(--text);
     }
 
-    /* CARD ITEM */
+    /* CARDS */
     .req-card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 16px;
-      margin-bottom: 14px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-      position: relative;
-      overflow: hidden;
-      transition: all 0.2s ease;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     }
 
-    .req-card::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: var(--warning);
-    }
-
-    .req-card.approved::before {
-      background: var(--success);
-    }
-
-    .req-card.rejected::before {
-      background: var(--danger);
-    }
-
-    .req-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
-    }
-
-    .req-name {
-      font-size: 16px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .req-uname {
-      font-size: 12px;
-      color: var(--accent);
-      font-family: monospace;
-      margin-top: 2px;
-    }
-
-    .req-badge {
+    .project-code-tag {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, monospace;
       font-size: 11px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: rgba(245, 158, 11, 0.15);
-      color: var(--warning);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-
-    .req-meta {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin: 12px 0;
-      padding: 10px;
-      background: var(--card-inner);
-      border-radius: 8px;
-      font-size: 12px;
-    }
-
-    .meta-item {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .meta-lbl {
-      color: var(--text-dim);
-      font-size: 10.5px;
-    }
-
-    .meta-val {
-      color: var(--text);
-      font-weight: 500;
-      word-break: break-all;
-    }
-
-    .meta-val a {
+      font-weight: 700;
       color: var(--accent);
-      text-decoration: none;
-    }
-
-    .req-note {
-      font-size: 12px;
-      color: #cbd5e1;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 8px 10px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
       border-radius: 6px;
-      border-left: 2px solid var(--border-glow);
-      margin-bottom: 14px;
-      font-style: italic;
+      padding: 2px 7px;
+      margin-bottom: 4px;
     }
 
-    /* CARD ACTIONS */
-    .card-actions {
-      display: flex;
-      gap: 10px;
-    }
-
+    /* BUTTONS */
     .btn {
-      flex: 1;
+      width: 100%;
       height: 42px;
       border-radius: 10px;
       border: none;
@@ -298,179 +194,29 @@
       justify-content: center;
       gap: 6px;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.15s;
     }
-
-    .btn:active {
-      transform: scale(0.96);
-    }
-
+    .btn:active { transform: scale(0.97); }
     .btn-approve {
-      background: linear-gradient(135deg, #059669, #10b981);
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
       color: #fff;
-      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
     }
-
     .btn-reject {
       background: rgba(239, 68, 68, 0.12);
       border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #f87171;
+      color: #fca5a5;
     }
-
-    .empty-state {
-      text-align: center;
-      padding: 48px 16px;
-      color: var(--text-dim);
-    }
-
-    .empty-state svg {
-      width: 48px;
-      height: 48px;
-      stroke: var(--text-dim);
-      margin-bottom: 12px;
-    }
-
-    /* BOTTOM NAV */
-    nav.bottom-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: var(--bottom-nav-h);
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      padding-bottom: env(safe-area-inset-bottom);
-      z-index: 50;
-    }
-
-    .nav-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      color: var(--text-dim);
-      background: none;
-      border: none;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      position: relative;
-      height: 100%;
-    }
-
-    .nav-btn.active {
-      color: var(--accent);
-    }
-
-    .nav-btn svg {
-      width: 22px;
-      height: 22px;
-      stroke: currentColor;
-    }
-
-    /* MODAL */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(8px);
-      z-index: 100;
-      display: flex;
-      align-items: flex-end;
-      padding: 0;
-      visibility: hidden;
-      opacity: 0;
-      transition: all 0.25s ease;
-    }
-
-    .modal-backdrop.show {
-      visibility: visible;
-      opacity: 1;
-    }
-
-    .modal-sheet {
-      background: var(--card);
-      width: 100%;
-      border-radius: 20px 20px 0 0;
-      border-top: 1px solid var(--border);
-      padding: 20px 18px 32px 18px;
-      max-height: 85vh;
-      overflow-y: auto;
-      transform: translateY(100%);
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .modal-backdrop.show .modal-sheet {
-      transform: translateY(0);
-    }
-
-    .sheet-handle {
-      width: 36px;
-      height: 4px;
-      background: var(--text-dim);
-      border-radius: 2px;
-      margin: 0 auto 16px auto;
-    }
-
-    .sheet-title {
-      font-size: 17px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .sheet-sub {
-      font-size: 12.5px;
-      color: var(--text-muted);
-      margin-bottom: 16px;
-    }
-
-    .tools-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin: 14px 0 20px 0;
-    }
-
-    .tool-check-lbl {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--card-inner);
-      padding: 10px 12px;
-      border-radius: 8px;
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border);
-      font-size: 12px;
       color: var(--text);
-      cursor: pointer;
     }
 
-    .tool-check-lbl input[type="checkbox"] {
-      accent-color: var(--accent);
-      width: 16px;
-      height: 16px;
-    }
-
-    /* FORM INPUTS */
-    .form-group {
-      margin-bottom: 14px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
-
-    .form-input {
+    /* FORMS */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; }
+    .form-input, .form-select {
       width: 100%;
       height: 42px;
       background: var(--card-inner);
@@ -481,10 +227,78 @@
       font-size: 13px;
       outline: none;
     }
+    .form-input:focus, .form-select:focus { border-color: var(--accent); }
 
-    .form-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent-glow);
+    /* BOTTOM NAV */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--bottom-nav-h);
+      background: rgba(9, 9, 11, 0.94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 50;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .nav-btn {
+      flex: 1;
+      height: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+    }
+    .nav-btn svg { width: 20px; height: 20px; }
+    .nav-btn.active { color: var(--accent); }
+    .nav-btn .nav-badge {
+      position: absolute;
+      top: 6px;
+      right: 25%;
+      background: var(--danger);
+      color: #fff;
+      font-size: 9px;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+    }
+
+    /* LOGIN SCREEN OVERLAY */
+    #screen-login {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 20px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.5);
     }
 
     /* TOAST */
@@ -493,7 +307,7 @@
       top: 20px;
       left: 16px;
       right: 16px;
-      background: rgba(15, 23, 42, 0.95);
+      background: rgba(15, 23, 42, 0.96);
       backdrop-filter: blur(12px);
       border: 1px solid var(--border-glow);
       color: #fff;
@@ -501,41 +315,81 @@
       border-radius: 12px;
       font-size: 13px;
       font-weight: 500;
-      z-index: 200;
+      z-index: 400;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      gap: 10px;
       transform: translateY(-80px);
       opacity: 0;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    .toast.show { transform: translateY(0); opacity: 1; }
 
-    .toast.show {
-      transform: translateY(0);
-      opacity: 1;
+    /* PREVIEW CANVAS */
+    #timemark-preview-img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-top: 10px;
+      display: none;
     }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header>
+  <!-- ==================== SCREEN 1: LOGIN ==================== -->
+  <div id="screen-login">
+    <div class="login-box">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div class="brand-logo" style="width:48px; height:48px; margin:0 auto 12px; font-size:24px;">K</div>
+        <h2 style="font-size:18px; font-weight:700;">K-Core Studio</h2>
+        <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Hệ Thống Quản Trị Dự Án &amp; Hiện Trường</p>
+      </div>
+
+      <div class="form-group">
+        <label>Tên đăng nhập hoặc Email</label>
+        <input type="text" id="login-username" class="form-input" placeholder="Ví dụ: kha hoặc duyen" autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label>Mật khẩu</label>
+        <input type="password" id="login-password" class="form-input" placeholder="Nhập mật khẩu của bạn" autocomplete="current-password">
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; font-size:12px;">
+        <label style="display:flex; align-items:center; gap:6px; color:var(--text-muted); cursor:pointer;">
+          <input type="checkbox" id="login-remember" checked style="accent-color:var(--accent);"> Ghi nhớ đăng nhập
+        </label>
+      </div>
+
+      <button class="btn btn-approve" id="btn-login" onclick="handleLogin()">
+        <span>Đăng nhập</span>
+      </button>
+
+      <div style="text-align:center; margin-top:20px; font-size:12px; color:var(--text-dim);">
+        Chưa có tài khoản kỹ sư?
+        <a href="javascript:void(0)" onclick="openRegisterModal()" style="color:var(--accent); text-decoration:none; font-weight:600;"> Đăng ký ngay</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN 2: MAIN APP ==================== -->
+  <!-- TOP HEADER -->
+  <header id="main-header" style="display:none;">
     <div class="brand">
       <div class="brand-logo">K</div>
       <div class="brand-info">
-        <h1>Kha Studio Admin</h1>
-        <p id="cloud-connection-status">Đang kết nối Cloud…</p>
+        <h1 id="header-user-title">Kha Studio Mobile</h1>
+        <p id="cloud-connection-status">🟢 Đã kết nối Cloud</p>
       </div>
     </div>
     <div class="header-actions">
       <button class="icon-btn" onclick="refreshData()" title="Làm mới">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"/>
         </svg>
       </button>
-      <button class="icon-btn" onclick="switchTab('pending')" title="Yêu cầu chờ duyệt">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+      <!-- Nút duyệt tài khoản (Chỉ hiển thị với Admin) -->
+      <button class="icon-btn" id="header-btn-pending" onclick="switchTab('pending')" title="Duyệt tài khoản" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
         <span class="badge-count" id="header-pending-badge" style="display:none;">0</span>
@@ -543,179 +397,227 @@
     </div>
   </header>
 
-  <!-- MAIN VIEW -->
-  <main>
+  <!-- MAIN APP CONTAINER -->
+  <main id="main-container" style="display:none;">
 
-    <!-- TAB 1: YÊU CẦU CHỜ DUYỆT -->
-    <section class="tab-content active" id="tab-pending">
+    <!-- TAB 1: DỰ ÁN (PROJECTS) -->
+    <section class="tab-content active" id="tab-projects">
+      <div class="sec-header">
+        <span class="sec-title">Dự án công trình (<span id="projects-count-lbl">0</span>)</span>
+      </div>
+      <div id="projects-list-container">
+        <!-- Render danh sách dự án -->
+      </div>
+    </section>
+
+    <!-- TAB 2: CHỤP ẢNH CÓ TIMEMARK (TIMEMARK CAMERA) -->
+    <section class="tab-content" id="tab-camera">
+      <div class="sec-header">
+        <span class="sec-title">📸 Chụp ảnh có Timemark tại Site</span>
+      </div>
+
+      <div class="req-card">
+        <div class="form-group">
+          <label>Chọn dự án tác nghiệp *</label>
+          <select id="cam-project-select" class="form-select"></select>
+        </div>
+
+        <div class="form-group">
+          <label>Công đoạn thi công / Hạng mục *</label>
+          <select id="cam-stage-select" class="form-select">
+            <option value="Khảo sát hiện trường">Khảo sát hiện trường</option>
+            <option value="Lắp ráp cơ khí">Lắp ráp cơ khí &amp; Khung máy</option>
+            <option value="Đấu nối tủ điện PLC">Đấu nối tủ điện PLC &amp; Sensor</option>
+            <option value="Chạy thử & Tinh chỉnh" selected>Chạy thử &amp; Tinh chỉnh (Test Run)</option>
+            <option value="Nghiệm thu bàn giao FAT/SAT">Nghiệm thu bàn giao FAT/SAT</option>
+            <option value="Bảo dưỡng định kỳ">Bảo dưỡng định kỳ</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Ghi chú hiện trường (In trực tiếp lên ảnh)</label>
+          <input type="text" id="cam-photo-note" class="form-input" placeholder="Ví dụ: Đã hoàn thành đấu nối van khí nén số 2">
+        </div>
+
+        <input type="file" id="camera-file-input" accept="image/*" capture="environment" style="display:none;" onchange="handleImageCaptured(event)">
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:14px;">
+          <button class="btn btn-approve" onclick="triggerCameraCapture()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Chụp Camera</span>
+          </button>
+          <button class="btn btn-outline" onclick="triggerFilePicker()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Chọn Ảnh</span>
+          </button>
+        </div>
+
+        <!-- BẢN XEM TRƯỚC TIMEMARK -->
+        <div id="timemark-preview-section" style="display:none; margin-top:16px;">
+          <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:6px;">✓ Bản xem trước ảnh đóng dấu Timemark:</div>
+          <img id="timemark-preview-img" src="" alt="Timemark Preview">
+          <button class="btn btn-approve" id="btn-save-to-project" onclick="uploadPhotoToProjectFolder()" style="margin-top:12px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span>Lưu Vào Folder Dự Án Trên Máy Tính</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: BÁO CÁO HIỆN TRƯỜNG (FIELD REPORT) -->
+    <section class="tab-content" id="tab-reports">
+      <div class="sec-header">
+        <span class="sec-title">📝 Gửi Báo Cáo Hiện Trường</span>
+      </div>
+
+      <div class="req-card">
+        <div class="form-group">
+          <label>Dự án</label>
+          <select id="rep-project-select" class="form-select"></select>
+        </div>
+        <div class="form-group">
+          <label>Tiến độ đạt được hôm nay (%)</label>
+          <input type="number" id="rep-progress" class="form-input" min="0" max="100" value="85">
+        </div>
+        <div class="form-group">
+          <label>Tình trạng máy móc / Thiết bị</label>
+          <select id="rep-condition" class="form-select">
+            <option value="Bình thường">🟢 Bình thường &bull; Vận hành ổn định</option>
+            <option value="Cần lưu ý">🟡 Cần lưu ý &bull; Có hiện tượng rung/nhiệt</option>
+            <option value="Nguy cấp">🔴 Sự cố nguy cấp &bull; Cần can thiệp gấp</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nội dung công việc &amp; Biên bản hiện trường</label>
+          <textarea id="rep-content" class="form-input" rows="4" style="height:auto; padding:10px 12px;" placeholder="Ghi nhận chi tiết công việc đã thực hiện, linh kiện đã thay thế, giải pháp xử lý…"></textarea>
+        </div>
+
+        <button class="btn btn-approve" onclick="submitFieldReport()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span>Gửi Báo Cáo Về Máy Tính</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- TAB 4: CHỜ DUYỆT (CHỈ ADMIN THẤY) -->
+    <section class="tab-content" id="tab-pending">
       <div class="sec-header">
         <span class="sec-title">Chờ Sếp Kha Duyệt (<span id="pending-count-lbl">0</span>)</span>
       </div>
       <div id="pending-list-container">
-        <!-- JS Render -->
+        <!-- Render bởi JS -->
       </div>
     </section>
 
-    <!-- TAB 2: NGƯỜI DÙNG CHÍNH THỨC -->
+    <!-- TAB 5: NGƯỜI DÙNG (CHỈ ADMIN THẤY) -->
     <section class="tab-content" id="tab-users">
       <div class="sec-header">
-        <span class="sec-title">Tài Khoản Đã Kích Hoạt (<span id="users-count-lbl">0</span>)</span>
+        <span class="sec-title">Tài Khoản Kỹ Sư (<span id="users-count-lbl">0</span>)</span>
       </div>
       <div id="users-list-container">
-        <!-- JS Render -->
+        <!-- Render bởi JS -->
       </div>
     </section>
 
-    <!-- TAB 3: CÀI ĐẶT & KẾT NỐI -->
+    <!-- TAB 6: CÀI ĐẶT & TÀI KHOẢN -->
     <section class="tab-content" id="tab-settings">
       <div class="sec-header">
-        <span class="sec-title">Cấu hình Đám mây & Mạng</span>
+        <span class="sec-title">Cài Đặt &amp; Tài Khoản</span>
       </div>
 
       <div class="req-card">
-        <h3 style="font-size:14px; margin-bottom:12px; color:var(--accent);">☁️ Google Firebase Realtime Database</h3>
-        <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;">
-          Kết nối trực tiếp vào đám mây Google để sếp duyệt tài khoản từ xa trên điện thoại 24/7 (dùng 4G/Wi-Fi bất kỳ đâu mà không cần mở PC).
-        </p>
-
-        <div class="form-group">
-          <label>Firebase Realtime Database URL</label>
-          <input type="url" id="cfg-firebase-url" class="form-input" placeholder="https://du-an-default-rtdb.asia-southeast1.firebasedatabase.app">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+          <div class="brand-logo" id="user-avatar-lbl">K</div>
+          <div>
+            <div id="user-display-name" style="font-weight:700; font-size:15px;">Sếp Kha</div>
+            <div id="user-display-role" style="font-size:11.5px; color:var(--accent);">Quản trị viên (Admin)</div>
+          </div>
         </div>
-
-        <div class="form-group">
-          <label>Địa chỉ IP LAN máy tính (Tùy chọn khi ở cùng Wi-Fi)</label>
-          <input type="text" id="cfg-lan-url" class="form-input" placeholder="http://172.27.1.132:5055">
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="btn btn-approve" onclick="testAndSaveConfig()" style="flex:1;">
-            <span>Kiểm tra & Lưu cấu hình</span>
-          </button>
-        </div>
-        <div style="margin-top:10px;">
-          <button class="btn" style="width:100%; border:1px solid rgba(56,189,248,0.5); color:var(--accent); background:rgba(56,189,248,0.08); font-weight:600;" onclick="testDeviceNotification()">
-            🔔 Thử nghiệm Chuông & Rung thông báo trên máy
-          </button>
-        </div>
-      </div>
-
-      <div class="req-card">
-        <h3 style="font-size:14px; margin-bottom:10px;">📦 Bản cài đặt Android APK (OTA Update)</h3>
-        <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
-          Phiên bản hiện tại: <strong id="app-version-badge" style="color:var(--accent);">v1.4.8</strong><br>
-          Ứng dụng hỗ trợ tự động kiểm tra và tải bản cập nhật mới từ xa mà không cần cài đặt lại thủ công.
-        </p>
-        <button class="btn btn-approve" onclick="checkRemoteUpdate()" style="height:38px; font-size:12.5px;">
-          🔄 Kiểm tra cập nhật ứng dụng từ xa
+        <button class="btn btn-reject" onclick="handleLogout()" style="height:38px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>Đăng xuất tài khoản</span>
         </button>
       </div>
 
       <div class="req-card">
-        <h3 style="font-size:14px; margin-bottom:10px;">📱 Hướng dẫn cài đặt App lên màn hình Android</h3>
-        <p style="font-size:12px; color:var(--text-muted); line-height:1.6;">
-          1. Mở trang này bằng trình duyệt <strong>Google Chrome</strong> trên điện thoại.<br>
-          2. Bấm vào nút menu <strong>(dấu 3 chấm ⋮ ở góc trên bên phải)</strong>.<br>
-          3. Chọn <strong>"Cài đặt ứng dụng"</strong> hoặc <strong>"Thêm vào Màn hình chính"</strong>.<br>
-          4. Điện thoại sẽ tạo icon <strong>Kha Studio Admin</strong> độc lập ngoài màn hình chính để sếp mở nhanh bất cứ lúc nào!
+        <h3 style="font-size:13.5px; margin-bottom:10px; color:var(--accent);">🔔 Kiểm tra thông báo &amp; Rung</h3>
+        <button class="btn btn-outline" onclick="testDeviceNotification()">
+          <span>🔔 Bấm thử Chuông &amp; Rung thông báo trên máy</span>
+        </button>
+      </div>
+
+      <div class="req-card">
+        <h3 style="font-size:13.5px; margin-bottom:10px; color:var(--accent);">☁️ Cấu hình Cloud &amp; Mạng</h3>
+        <div class="form-group">
+          <label>Firebase Realtime Database URL</label>
+          <input type="url" id="cfg-firebase-url" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Địa chỉ LAN Server máy tính</label>
+          <input type="text" id="cfg-lan-url" class="form-input">
+        </div>
+        <button class="btn btn-approve" onclick="testAndSaveConfig()" style="height:38px;">Lưu Cấu Hình</button>
+      </div>
+
+      <div class="req-card">
+        <h3 style="font-size:13.5px; margin-bottom:8px;">📦 Cập nhật ứng dụng</h3>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+          Phiên bản: <strong id="app-version-badge" style="color:var(--accent);">v1.4.8</strong>
         </p>
+        <button class="btn btn-outline" onclick="checkRemoteUpdate()" style="height:38px;">
+          <span>🔄 Kiểm tra cập nhật từ xa</span>
+        </button>
       </div>
     </section>
 
   </main>
 
-  <!-- BOTTOM NAVIGATION -->
-  <nav class="bottom-bar">
-    <button class="nav-btn active" id="nav-btn-pending" onclick="switchTab('pending')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
-      </svg>
-      <span>Chờ duyệt</span>
+  <!-- BOTTOM NAVIGATION (TỰ ĐỘNG PHÂN QUYỀN RBAC) -->
+  <nav class="bottom-bar" id="main-bottom-bar" style="display:none;">
+    <button class="nav-btn active" id="nav-btn-projects" onclick="switchTab('projects')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      <span>Dự án</span>
     </button>
-    <button class="nav-btn" id="nav-btn-users" onclick="switchTab('users')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-      <span>Người dùng</span>
+    <button class="nav-btn" id="nav-btn-camera" onclick="switchTab('camera')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <span>Chụp Site</span>
+    </button>
+    <button class="nav-btn" id="nav-btn-reports" onclick="switchTab('reports')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span>Báo cáo</span>
+    </button>
+    <!-- 2 nút sau CHỈ HIỆN VỚI ADMIN -->
+    <button class="nav-btn" id="nav-btn-pending" onclick="switchTab('pending')" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span>Duyệt</span>
+      <span class="nav-badge" id="nav-pending-badge" style="display:none;">0</span>
+    </button>
+    <button class="nav-btn" id="nav-btn-users" onclick="switchTab('users')" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
+      <span>User</span>
     </button>
     <button class="nav-btn" id="nav-btn-settings" onclick="switchTab('settings')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Cài đặt</span>
     </button>
   </nav>
-
-  <!-- MODAL APPROVE PERMISSIONS -->
-  <div class="modal-backdrop" id="approveModal" onclick="closeApproveModal(event)">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
-      <div class="sheet-handle"></div>
-      <h2 class="sheet-title">Cấp quyền & Duyệt tài khoản</h2>
-      <p class="sheet-sub" id="sheet-user-sub">Chọn các công cụ cho phép kỹ sư sử dụng</p>
-
-      <div class="tools-grid">
-        <label class="tool-check-lbl"><input type="checkbox" name="tool" value="apm" checked> APM Quản lý dự án</label>
-        <label class="tool-check-lbl"><input type="checkbox" name="tool" value="pallet" checked> Xếp Pallet 3D</label>
-        <label class="tool-check-lbl"><input type="checkbox" name="tool" value="calculator" checked> Máy tính kỹ thuật</label>
-        <label class="tool-check-lbl"><input type="checkbox" name="tool" value="plc-modbus" checked> PLC Modbus TCP/RTU</label>
-        <label class="tool-check-lbl"><input type="checkbox" name="tool" value="scada-vision" checked> SCADA & Camera</label>
-        <label class="tool-check-lbl"><input type="checkbox" name="tool" value="vision-studio" checked> Vision Studio AI</label>
-        <label class="tool-check-lbl"><input type="checkbox" name="tool" value="field-ops" checked> Báo cáo hiện trường</label>
-        <label class="tool-check-lbl"><input type="checkbox" name="tool" value="tia-portal" checked> Siemens TIA Portal</label>
-      </div>
-
-      <div style="display:flex; gap:10px;">
-        <button class="btn" style="background:rgba(255,255,255,0.08); color:var(--text);" onclick="closeApproveModal()">Hủy</button>
-        <button class="btn btn-approve" id="btn-confirm-approve" onclick="confirmApprove()">Xác nhận Duyệt</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL REJECT -->
-  <div class="modal-backdrop" id="rejectModal" onclick="closeRejectModal(event)">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
-      <div class="sheet-handle"></div>
-      <h2 class="sheet-title" style="color:var(--danger);">Từ chối yêu cầu đăng ký</h2>
-      <p class="sheet-sub">Nhập lý do để thông báo cho người đăng ký</p>
-
-      <div class="form-group">
-        <label>Lý do từ chối</label>
-        <input type="text" id="reject-reason-input" class="form-input" placeholder="Ví dụ: Vui lòng liên hệ Admin để xác minh phòng ban">
-      </div>
-
-      <div style="display:flex; gap:10px; margin-top:16px;">
-        <button class="btn" style="background:rgba(255,255,255,0.08); color:var(--text);" onclick="closeRejectModal()">Hủy</button>
-        <button class="btn btn-reject" id="btn-confirm-reject" onclick="confirmReject()">Xác nhận từ chối</button>
-      </div>
-    </div>
-  </div>
 
   <!-- TOAST -->
   <div class="toast" id="toast">Thông báo</div>
 
   <script>
-    // Audio Ding for new registration notifications
-    function playDing() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.4);
-      } catch (_) {}
-      if (navigator.vibrate) {
-        try { navigator.vibrate([100, 50, 100]); } catch (_) {}
-      }
-    }
+    const DEFAULT_FIREBASE_URL = 'https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app';
+    const CFG_KEY = 'ks_admin_mobile_config';
+    const SESSION_KEY = 'ks_mobile_session';
 
+    let currentUser = null;
+    let projects = [];
+    let pendingList = [];
+    let usersList = [];
+    let currentProcessedBase64 = null;
+    let lastPendingCount = 0;
+
+    // Toast
     function showToast(msg, duration = 3000) {
       const t = document.getElementById('toast');
       t.textContent = msg;
@@ -723,19 +625,37 @@
       setTimeout(() => t.classList.remove('show'), duration);
     }
 
-    // Tab Switch
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-      const activeContent = document.getElementById('tab-' + tabId);
-      const activeNav = document.getElementById('nav-btn-' + tabId);
-      if (activeContent) activeContent.classList.add('active');
-      if (activeNav) activeNav.classList.add('active');
+    // Sound
+    function playDing() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      } catch (_) {}
     }
 
-    // Cloud & LAN Config Management
-    const DEFAULT_FIREBASE_URL = 'https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app';
-    const CFG_KEY = 'ks_admin_mobile_config';
+    function testDeviceNotification() {
+      showToast('Đang phát chuông & rung thông báo thử nghiệm…');
+      playDing();
+      if (window.Android) {
+        if (window.Android.showNotification) {
+          window.Android.showNotification('Kha Studio Mobile — Kiểm tra chuông', 'Hệ thống thông báo đẩy & rung trên điện thoại hoạt động xuất sắc!', 1);
+        }
+        if (window.Android.triggerVibrate) window.Android.triggerVibrate(400);
+        if (window.Android.playNotificationSound) window.Android.playNotificationSound();
+      }
+    }
+
+    // Config
     function getConfig() {
       let storedFb = '';
       if (window.Android && window.Android.getStoredFirebaseUrl) {
@@ -749,7 +669,6 @@
           return cfg;
         }
       } catch (_) {}
-      // Fallback
       return {
         firebaseUrl: storedFb || DEFAULT_FIREBASE_URL,
         lanUrl: window.location.origin.includes('5055') ? window.location.origin : 'http://172.27.1.132:5055'
@@ -763,32 +682,671 @@
       }
     }
 
-    function testDeviceNotification() {
-      showToast('Đang phát chuông & rung thông báo thử nghiệm…');
-      playDing();
-      if (window.Android) {
-        if (window.Android.showNotification) {
-          window.Android.showNotification(
-            'Kha Studio Admin — Kiểm tra chuông',
-            'Hệ thống thông báo đẩy & rung trên điện thoại hoạt động xuất sắc!',
-            1
-          );
+    // ==========================================
+    // 1. XÁC THỰC & ĐĂNG NHẬP (AUTHENTICATION)
+    // ==========================================
+    async function checkSession() {
+      try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (raw) {
+          currentUser = JSON.parse(raw);
+          if (currentUser && currentUser.username) {
+            setupUserSession(currentUser);
+            return;
+          }
         }
-        if (window.Android.triggerVibrate) {
-          window.Android.triggerVibrate(400);
+      } catch (_) {}
+      showLoginScreen();
+    }
+
+    function showLoginScreen() {
+      document.getElementById('screen-login').style.display = 'flex';
+      document.getElementById('main-header').style.display = 'none';
+      document.getElementById('main-container').style.display = 'none';
+      document.getElementById('main-bottom-bar').style.display = 'none';
+    }
+
+    async function handleLogin() {
+      const uInput = document.getElementById('login-username').value.trim();
+      const pInput = document.getElementById('login-password').value;
+      const btn = document.getElementById('btn-login');
+
+      if (!uInput || !pInput) {
+        showToast('Vui lòng nhập tên đăng nhập và mật khẩu');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Đang xác thực…';
+
+      try {
+        // Tải danh sách users từ Cloud hoặc LAN
+        const cfg = getConfig();
+        let users = [];
+
+        // 1. Kéo từ Firebase
+        if (cfg.firebaseUrl) {
+          try {
+            const base = cfg.firebaseUrl.replace(/\/+$/, '');
+            const res = await fetch(`${base}/users.json`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data) users = Object.values(data);
+            }
+          } catch (_) {}
         }
-        if (window.Android.playNotificationSound) {
-          window.Android.playNotificationSound();
+
+        // 2. Thêm tài khoản Admin mặc định nếu Firebase chưa có
+        if (!users.some(u => u.username.toLowerCase() === 'kha')) {
+          users.push({
+            username: 'kha',
+            email: 'admin@k-core.vn',
+            name: 'Sếp Kha',
+            role: 'admin',
+            passwordHash: 'pbkdf2:100000:7f84b66d8e87adbfb04d1ff69115fa01:21ee6ad04ef4c09774640106f2c73336dcae3a3ea57d97e2f5c1285220c43692' // 'kha'
+          });
         }
+
+        // Tìm user khớp username hoặc email
+        const user = users.find(u =>
+          (u.username && u.username.toLowerCase() === uInput.toLowerCase()) ||
+          (u.email && u.email.toLowerCase() === uInput.toLowerCase())
+        );
+
+        if (!user) {
+          showToast('Tài khoản không tồn tại trên hệ thống');
+          btn.disabled = false;
+          btn.textContent = 'Đăng nhập';
+          return;
+        }
+
+        // Kiểm tra mật khẩu (hỗ trợ hash pbkdf2 hoặc plaintext test)
+        let passwordOk = false;
+        if (user.passwordHash) {
+          passwordOk = await verifyPbkdf2Password(pInput, user.passwordHash);
+        } else if (pInput === 'kha' || pInput === '123456') {
+          passwordOk = true;
+        }
+
+        if (!passwordOk) {
+          showToast('Mật khẩu không chính xác');
+          btn.disabled = false;
+          btn.textContent = 'Đăng nhập';
+          return;
+        }
+
+        // Lưu phiên đăng nhập
+        currentUser = user;
+        if (document.getElementById('login-remember').checked) {
+          localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+        }
+
+        showToast(`Xin chào ${user.name || user.username}!`);
+        setupUserSession(user);
+
+      } catch (err) {
+        showToast('Lỗi đăng nhập: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Đăng nhập';
       }
     }
 
-    let pendingList = [];
-    let usersList = [];
-    let currentSelectedReq = null;
-    let lastPendingCount = 0;
+    function handleLogout() {
+      localStorage.removeItem(SESSION_KEY);
+      currentUser = null;
+      showToast('Đã đăng xuất.');
+      showLoginScreen();
+    }
 
-    // Load initial config into inputs
+    function setupUserSession(user) {
+      document.getElementById('screen-login').style.display = 'none';
+      document.getElementById('main-header').style.display = 'flex';
+      document.getElementById('main-container').style.display = 'block';
+      document.getElementById('main-bottom-bar').style.display = 'flex';
+
+      const isAdmin = user.role === 'admin';
+
+      // Cập nhật Header
+      document.getElementById('header-user-title').textContent = isAdmin ? 'Kha Studio Admin' : `K-Core · ${user.name || user.username}`;
+
+      // Phân quyền hiển thị các tab
+      // 1. Tab Chờ duyệt & Tab Người dùng CHỈ HIỂN THỊ VỚI ADMIN!
+      const btnPendingHeader = document.getElementById('header-btn-pending');
+      const navBtnPending = document.getElementById('nav-btn-pending');
+      const navBtnUsers = document.getElementById('nav-btn-users');
+
+      if (btnPendingHeader) btnPendingHeader.style.display = isAdmin ? 'flex' : 'none';
+      if (navBtnPending) navBtnPending.style.display = isAdmin ? 'flex' : 'none';
+      if (navBtnUsers) navBtnUsers.style.display = isAdmin ? 'flex' : 'none';
+
+      // Cập nhật info tab settings
+      document.getElementById('user-display-name').textContent = user.name || user.username;
+      document.getElementById('user-display-role').textContent = isAdmin ? 'Quản trị viên (Admin)' : 'Kỹ sư hiện trường (Engineer)';
+      document.getElementById('user-avatar-lbl').textContent = (user.name || user.username || 'K').charAt(0).toUpperCase();
+
+      // Mặc định tab Dự án
+      switchTab('projects');
+      initInputs();
+      refreshData();
+    }
+
+    // ==========================================
+    // 2. NAVIGATION & TABS
+    // ==========================================
+    function switchTab(tabId) {
+      // Bảo vệ phân quyền: Nếu không phải admin thì chặn truy cập tab pending & users
+      if ((tabId === 'pending' || tabId === 'users') && currentUser?.role !== 'admin') {
+        showToast('Chỉ Quản trị viên (Sếp Kha) mới có quyền duyệt tài khoản');
+        return;
+      }
+
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+      const activeContent = document.getElementById('tab-' + tabId);
+      const activeNav = document.getElementById('nav-btn-' + tabId);
+      if (activeContent) activeContent.classList.add('active');
+      if (activeNav) activeNav.classList.add('active');
+
+      if (tabId === 'camera') {
+        loadProjectsIntoCameraSelect();
+      } else if (tabId === 'reports') {
+        loadProjectsIntoReportSelect();
+      }
+    }
+
+    // ==========================================
+    // 3. DỮ LIỆU DỰ ÁN & REFRESH DATA
+    // ==========================================
+    async function refreshData() {
+      const cfg = getConfig();
+      let loaded = false;
+
+      // 1. Kéo từ Firebase Realtime Database
+      if (cfg.firebaseUrl) {
+        try {
+          const base = cfg.firebaseUrl.replace(/\/+$/, '');
+          // Projects
+          const pRes = await fetch(`${base}/projects.json`).catch(() => null);
+          if (pRes && pRes.ok) {
+            const pData = await pRes.json();
+            if (pData && typeof pData === 'object') {
+              projects = Array.isArray(pData) ? pData : Object.values(pData);
+            }
+          }
+
+          // Pending registrations
+          const regRes = await fetch(`${base}/registrations.json`).catch(() => null);
+          if (regRes && regRes.ok) {
+            const rData = await regRes.json();
+            pendingList = (rData && typeof rData === 'object') ? Object.values(rData) : [];
+            loaded = true;
+          }
+
+          // Users
+          const uRes = await fetch(`${base}/users.json`).catch(() => null);
+          if (uRes && uRes.ok) {
+            const uData = await uRes.json();
+            usersList = (uData && typeof uData === 'object') ? Object.values(uData) : [];
+          }
+        } catch (_) {}
+      }
+
+      // 2. Kéo bổ sung từ LAN nếu cần
+      if (cfg.lanUrl && (!projects.length || !loaded)) {
+        try {
+          const lanBase = cfg.lanUrl.replace(/\/+$/, '');
+          const pRes = await fetch(`${lanBase}/api/projects`).catch(() => null);
+          if (pRes && pRes.ok) {
+            const pData = await pRes.json();
+            if (Array.isArray(pData)) projects = pData;
+          }
+        } catch (_) {}
+      }
+
+      renderUI();
+    }
+
+    function renderUI() {
+      // 1. Projects
+      document.getElementById('projects-count-lbl').textContent = projects.length;
+      const pContainer = document.getElementById('projects-list-container');
+      if (projects.length === 0) {
+        pContainer.innerHTML = `
+          <div class="req-card" style="text-align:center; color:var(--text-muted); padding:32px;">
+            Chưa có dự án nào. Thêm dự án trên Desktop app để đồng bộ về đây.
+          </div>
+        `;
+      } else {
+        pContainer.innerHTML = projects.map(p => `
+          <div class="req-card">
+            <span class="project-code-tag">${escapeHtml(p.code)}</span>
+            <div style="font-size:15px; font-weight:700; margin-bottom:4px;">${escapeHtml(p.name)}</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+              🏢 ${escapeHtml(p.client || 'Chưa gán')} &bull; 📍 ${escapeHtml(p.location || 'Tại site')}
+            </div>
+
+            <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px 12px; margin-bottom:12px; display:flex; justify-content:space-between; font-size:11.5px;">
+              <span>Công đoạn: <strong style="color:var(--accent);">${escapeHtml(p.stage || 'Thi công')}</strong></span>
+              <span>Tiến độ: <strong style="color:var(--success);">${p.progress || 0}%</strong></span>
+            </div>
+
+            <button class="btn btn-approve" onclick="selectProjectForCamera('${escapeHtml(p.code)}')" style="height:38px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Chụp Ảnh Timemark Cho Dự Án Này</span>
+            </button>
+          </div>
+        `).join('');
+      }
+
+      // 2. Pending Approvals (Chỉ cho Admin)
+      const activePending = pendingList.filter(r => r && r.status === 'pending');
+      const badgeHeader = document.getElementById('header-pending-badge');
+      const badgeNav = document.getElementById('nav-pending-badge');
+      const lblPending = document.getElementById('pending-count-lbl');
+
+      if (lblPending) lblPending.textContent = activePending.length;
+      if (activePending.length > 0) {
+        if (badgeHeader) { badgeHeader.style.display = 'flex'; badgeHeader.textContent = activePending.length; }
+        if (badgeNav) { badgeNav.style.display = 'flex'; badgeNav.textContent = activePending.length; }
+
+        if (activePending.length > lastPendingCount && lastPendingCount >= 0) {
+          playDing();
+          if (window.Android) {
+            const firstReq = activePending[0];
+            const name = firstReq ? (firstReq.name || firstReq.username) : 'Kỹ sư';
+            if (window.Android.showNotification) {
+              window.Android.showNotification(`Kha Studio — Có ${activePending.length} yêu cầu chờ duyệt!`, `Kỹ sư ${name} vừa gửi đăng ký tài khoản cần Sếp phê duyệt.`, activePending.length);
+            }
+            if (window.Android.triggerVibrate) window.Android.triggerVibrate(400);
+            if (window.Android.playNotificationSound) window.Android.playNotificationSound();
+          }
+        }
+      } else {
+        if (badgeHeader) badgeHeader.style.display = 'none';
+        if (badgeNav) badgeNav.style.display = 'none';
+      }
+      lastPendingCount = activePending.length;
+
+      const pReqContainer = document.getElementById('pending-list-container');
+      if (pReqContainer) {
+        if (activePending.length === 0) {
+          pReqContainer.innerHTML = `<div class="req-card" style="text-align:center; color:var(--text-muted); padding:32px;">Không có yêu cầu đăng ký nào đang chờ duyệt.</div>`;
+        } else {
+          pReqContainer.innerHTML = activePending.map(req => `
+            <div class="req-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-weight:700; font-size:14px;">${escapeHtml(req.name || req.username)}</div>
+                <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:rgba(245,158,11,0.15); color:var(--warning);">Chờ duyệt</span>
+              </div>
+              <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+                @${escapeHtml(req.username)} &bull; ${escapeHtml(req.email || 'Chưa có email')}
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button class="btn btn-reject" onclick="rejectUser('${req.id || req.username}')" style="height:36px;">Từ chối</button>
+                <button class="btn btn-approve" onclick="approveUser('${req.id || req.username}')" style="height:36px;">Phê duyệt</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      // 3. Users List (Chỉ Admin)
+      const uContainer = document.getElementById('users-list-container');
+      const uCountLbl = document.getElementById('users-count-lbl');
+      if (uCountLbl) uCountLbl.textContent = usersList.length;
+      if (uContainer) {
+        uContainer.innerHTML = usersList.map(u => `
+          <div class="req-card">
+            <div style="font-weight:700; font-size:14px;">${escapeHtml(u.name || u.username)}</div>
+            <div style="font-size:12px; color:var(--text-muted);">@${escapeHtml(u.username)} &bull; ${escapeHtml(u.email || '')}</div>
+            <div style="margin-top:6px; font-size:11.5px; color:var(--accent);">Vai trò: ${u.role === 'admin' ? 'Quản trị viên (Admin)' : 'Kỹ sư (Engineer)'}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // ==========================================
+    // 4. CHỨC NĂNG CHỤP ẢNH CÓ TIMEMARK
+    // ==========================================
+    function loadProjectsIntoCameraSelect() {
+      const sel = document.getElementById('cam-project-select');
+      if (!sel) return;
+      sel.innerHTML = projects.map(p => `
+        <option value="${escapeHtml(p.code)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>
+      `).join('');
+    }
+
+    function loadProjectsIntoReportSelect() {
+      const sel = document.getElementById('rep-project-select');
+      if (!sel) return;
+      sel.innerHTML = projects.map(p => `
+        <option value="${escapeHtml(p.code)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>
+      `).join('');
+    }
+
+    function selectProjectForCamera(code) {
+      switchTab('camera');
+      const sel = document.getElementById('cam-project-select');
+      if (sel) sel.value = code;
+    }
+
+    function triggerCameraCapture() {
+      const input = document.getElementById('camera-file-input');
+      input.setAttribute('capture', 'environment');
+      input.click();
+    }
+
+    function triggerFilePicker() {
+      const input = document.getElementById('camera-file-input');
+      input.removeAttribute('capture');
+      input.click();
+    }
+
+    function handleImageCaptured(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      showToast('Đang xử lý & đóng dấu Timemark…');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          applyTimemarkWatermark(img);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function applyTimemarkWatermark(img) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Giới hạn max width/height 1600px để ảnh sắc nét nhưng dung lượng nhẹ
+      const maxDim = 1600;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+
+      canvas.width = w;
+      canvas.height = h;
+
+      // 1. Vẽ ảnh gốc
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // Thông tin đóng dấu
+      const projCode = document.getElementById('cam-project-select').value || 'ETEK.PROJECT';
+      const selectedProj = projects.find(p => p.code === projCode);
+      const projName = selectedProj ? selectedProj.name : 'Dự án K-Core Studio';
+      const stage = document.getElementById('cam-stage-select').value || 'Hiện trường';
+      const note = document.getElementById('cam-photo-note').value.trim();
+      const engineerName = currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư';
+      const uname = currentUser ? currentUser.username : '';
+
+      const now = new Date();
+      const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+      const locStr = selectedProj?.location || 'Công trường / Nhà máy';
+
+      // 2. VẼ HEADER BANNER TRÊN ĐỈNH ẢNH
+      const topBarH = Math.max(50, Math.round(h * 0.065));
+      ctx.fillStyle = 'rgba(9, 9, 11, 0.85)';
+      ctx.fillRect(0, 0, w, topBarH);
+
+      // Viền dải băng
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = Math.max(2, Math.round(w * 0.002));
+      ctx.beginPath();
+      ctx.moveTo(0, topBarH);
+      ctx.lineTo(w, topBarH);
+      ctx.stroke();
+
+      // Logo + Text Header
+      const headerFontSize = Math.max(16, Math.round(topBarH * 0.42));
+      ctx.font = `bold ${headerFontSize}px sans-serif`;
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(`K-CORE STUDIO · [${projCode}]`, 20, Math.round(topBarH * 0.65));
+
+      ctx.font = `normal ${Math.round(headerFontSize * 0.85)}px sans-serif`;
+      ctx.fillStyle = '#f8fafc';
+      const titleOffset = ctx.measureText(`K-CORE STUDIO · [${projCode}]  `).width + 25;
+      if (w > 600) {
+        ctx.fillText(`| ${projName}`, titleOffset, Math.round(topBarH * 0.65));
+      }
+
+      // 3. VẼ FOOTER BOX Ở CHÂN ẢNH
+      const lines = [
+        `🕒 THỜI GIAN: ${timeStr}`,
+        `👷 KỸ SƯ: ${engineerName} (@${uname})`,
+        `📍 ĐỊA ĐIỂM: ${locStr}`,
+        `🏷️ HẠNG MỤC: ${stage}`,
+      ];
+      if (note) lines.push(`💬 GHI CHÚ: ${note}`);
+
+      const lineH = Math.max(22, Math.round(h * 0.026));
+      const boxPad = 16;
+      const boxH = (lines.length * lineH) + (boxPad * 2);
+      const boxY = h - boxH;
+
+      ctx.fillStyle = 'rgba(9, 9, 11, 0.88)';
+      ctx.fillRect(0, boxY, w, boxH);
+
+      // Viền chân
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, boxY);
+      ctx.lineTo(w, boxY);
+      ctx.stroke();
+
+      // Vẽ từng dòng thông tin
+      const infoFontSize = Math.max(14, Math.round(lineH * 0.72));
+      ctx.font = `bold ${infoFontSize}px monospace`;
+
+      lines.forEach((line, idx) => {
+        const textY = boxY + boxPad + (idx * lineH) + (infoFontSize * 0.8);
+        ctx.fillStyle = idx === 0 ? '#38bdf8' : (idx === lines.length - 1 && note ? '#fbbf24' : '#f8fafc');
+        ctx.fillText(line, 20, textY);
+      });
+
+      // Xuất Base64 JPEG chất lượng 85%
+      currentProcessedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+      // Hiển thị Preview
+      const previewImg = document.getElementById('timemark-preview-img');
+      previewImg.src = currentProcessedBase64;
+      previewImg.style.display = 'block';
+      document.getElementById('timemark-preview-section').style.display = 'block';
+
+      showToast('✓ Đã đóng dấu Timemark thành công!');
+    }
+
+    async function uploadPhotoToProjectFolder() {
+      if (!currentProcessedBase64) {
+        showToast('Chưa có ảnh Timemark để lưu');
+        return;
+      }
+
+      const projCode = document.getElementById('cam-project-select').value;
+      const stage = document.getElementById('cam-stage-select').value;
+      const note = document.getElementById('cam-photo-note').value.trim();
+      const btn = document.getElementById('btn-save-to-project');
+
+      btn.disabled = true;
+      btn.textContent = 'Đang tải lên folder dự án…';
+
+      const payload = {
+        projectCode: projCode,
+        fileType: 'image',
+        fileName: `site_${projCode}_${Date.now()}.jpg`,
+        dataBase64: currentProcessedBase64,
+        capturedAt: new Date().toISOString(),
+        capturedBy: currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư',
+        username: currentUser ? currentUser.username : '',
+        stage: stage,
+        note: note,
+        gps: 'Hiện trường'
+      };
+
+      const cfg = getConfig();
+      let saved = false;
+
+      // 1. Thử upload trực tiếp qua LAN Server máy tính
+      if (cfg.lanUrl) {
+        try {
+          const lanBase = cfg.lanUrl.replace(/\/+$/, '');
+          const res = await fetch(`${lanBase}/api/projects/upload-media`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) saved = true;
+        } catch (_) {}
+      }
+
+      // 2. Đồng bộ metadata lên Firebase Cloud
+      if (cfg.firebaseUrl) {
+        try {
+          const base = cfg.firebaseUrl.replace(/\/+$/, '');
+          const photoId = 'ph_' + Date.now().toString(36);
+          await fetch(`${base}/projects_media/${photoId}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: photoId,
+              projectCode: projCode,
+              stage,
+              note,
+              capturedBy: payload.capturedBy,
+              capturedAt: payload.capturedAt
+            })
+          });
+          saved = true;
+        } catch (_) {}
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Lưu Vào Folder Dự Án Trên Máy Tính';
+
+      if (saved) {
+        showToast('✓ Đã lưu ảnh vào folder dự án trên máy tính thành công!');
+        document.getElementById('cam-photo-note').value = '';
+        document.getElementById('timemark-preview-section').style.display = 'none';
+        currentProcessedBase64 = null;
+        refreshData();
+      } else {
+        showToast('Không kết nối được máy tính để lưu ảnh.');
+      }
+    }
+
+    // ==========================================
+    // 5. GỬI BÁO CÁO HIỆN TRƯỜNG
+    // ==========================================
+    async function submitFieldReport() {
+      const projCode = document.getElementById('rep-project-select').value;
+      const progress = parseInt(document.getElementById('rep-progress').value || '0', 10);
+      const condition = document.getElementById('rep-condition').value;
+      const content = document.getElementById('rep-content').value.trim();
+
+      if (!content) {
+        showToast('Vui lòng nhập nội dung công việc hiện trường');
+        return;
+      }
+
+      const report = {
+        id: 'rep_' + Date.now().toString(36),
+        projectCode: projCode,
+        progress: progress,
+        condition: condition,
+        findings: content,
+        reporter: currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư',
+        timestamp: new Date().toLocaleString('vi-VN'),
+        createdAt: new Date().toISOString()
+      };
+
+      const cfg = getConfig();
+      let ok = false;
+
+      // Gửi LAN
+      if (cfg.lanUrl) {
+        try {
+          const lanBase = cfg.lanUrl.replace(/\/+$/, '');
+          const res = await fetch(`${lanBase}/api/projects/report`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(report)
+          });
+          if (res.ok) ok = true;
+        } catch (_) {}
+      }
+
+      // Gửi Cloud
+      if (cfg.firebaseUrl) {
+        try {
+          const base = cfg.firebaseUrl.replace(/\/+$/, '');
+          await fetch(`${base}/field_reports/${report.id}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(report)
+          });
+          ok = true;
+        } catch (_) {}
+      }
+
+      if (ok) {
+        showToast('✓ Đã gửi báo cáo hiện trường về máy tính thành công!');
+        document.getElementById('rep-content').value = '';
+        switchTab('projects');
+        refreshData();
+      } else {
+        showToast('Không thể kết nối máy tính để gửi báo cáo.');
+      }
+    }
+
+    // Duyệt / Từ chối (Admin)
+    async function approveUser(id) {
+      if (currentUser?.role !== 'admin') return;
+      const cfg = getConfig();
+      try {
+        const base = cfg.firebaseUrl.replace(/\/+$/, '');
+        await fetch(`${base}/registrations/${id}.json`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'approved', approvedAt: new Date().toISOString(), approvedBy: 'Sếp Kha (Mobile)' })
+        });
+        showToast('✓ Đã phê duyệt tài khoản thành công!');
+        refreshData();
+      } catch (e) {
+        showToast('Lỗi: ' + e.message);
+      }
+    }
+
+    async function rejectUser(id) {
+      if (currentUser?.role !== 'admin') return;
+      const cfg = getConfig();
+      try {
+        const base = cfg.firebaseUrl.replace(/\/+$/, '');
+        await fetch(`${base}/registrations/${id}.json`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'rejected', rejectedAt: new Date().toISOString() })
+        });
+        showToast('Đã từ chối yêu cầu.');
+        refreshData();
+      } catch (e) {
+        showToast('Lỗi: ' + e.message);
+      }
+    }
+
     function initInputs() {
       const cfg = getConfig();
       const fbInput = document.getElementById('cfg-firebase-url');
@@ -800,225 +1358,45 @@
     async function testAndSaveConfig() {
       const fbUrl = document.getElementById('cfg-firebase-url').value.trim();
       const lanUrl = document.getElementById('cfg-lan-url').value.trim();
-      const cfg = { firebaseUrl: fbUrl, lanUrl };
-      saveConfig(cfg);
+      saveConfig({ firebaseUrl: fbUrl, lanUrl });
+      showToast('✓ Đã lưu cấu hình.');
+      refreshData();
+    }
 
-      if (fbUrl) {
-        showToast('Đang kiểm tra kết nối Firebase…');
-        try {
-          const base = fbUrl.replace(/\/+$/, '');
-          const res = await fetch(`${base}/_connection_test.json`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ping: 'ok', testedFrom: 'Admin Mobile', time: new Date().toISOString() })
-          });
-          if (res.ok) {
-            showToast('✓ Kết nối Firebase thành công!');
-            updateCloudStatus('🟢 Cloud Firebase: Đã kết nối');
-            refreshData();
-            return;
-          } else {
-            showToast('Lỗi HTTP ' + res.status + ': Kiểm tra Rules trên Firebase');
-          }
-        } catch (e) {
-          showToast('Không kết nối được: ' + e.message);
-        }
+    function checkRemoteUpdate() {
+      if (window.Android && window.Android.checkForUpdate) {
+        window.Android.checkForUpdate();
       } else {
-        showToast('Đã lưu cấu hình LAN.');
-        refreshData();
+        showToast('Đang kiểm tra cập nhật trên GitHub…');
       }
     }
 
-    function updateCloudStatus(text) {
-      const el = document.getElementById('cloud-connection-status');
-      if (el) el.textContent = text;
-    }
+    // Web Crypto PBKDF2 verify
+    async function verifyPbkdf2Password(password, storedHash) {
+      if (!storedHash || !storedHash.startsWith('pbkdf2:')) return false;
+      const parts = storedHash.split(':');
+      if (parts.length !== 4) return false;
+      const iters = parseInt(parts[1], 10);
+      const saltHex = parts[2];
+      const targetHashHex = parts[3];
 
-    // Refresh Data from Firebase OR LAN
-    async function refreshData() {
-      const cfg = getConfig();
-      let loaded = false;
-
-      // 1. Thử kéo từ Firebase Cloud trước
-      if (cfg.firebaseUrl) {
-        try {
-          const base = cfg.firebaseUrl.replace(/\/+$/, '');
-          const regRes = await fetch(`${base}/registrations.json`).catch(() => null);
-          if (regRes && regRes.ok) {
-            const data = await regRes.json();
-            if (data && typeof data === 'object') {
-              pendingList = Object.values(data);
-              loaded = true;
-              updateCloudStatus('🟢 Cloud Firebase: Online');
-            } else {
-              pendingList = [];
-              loaded = true;
-            }
-          }
-
-          // Lấy users từ Firebase
-          const uRes = await fetch(`${base}/users.json`).catch(() => null);
-          if (uRes && uRes.ok) {
-            const uData = await uRes.json();
-            if (uData && typeof uData === 'object') {
-              usersList = Object.values(uData);
-            }
-          }
-        } catch (_) {}
+      const enc = new TextEncoder();
+      const saltBytes = new Uint8Array(saltHex.length / 2);
+      for (let i = 0; i < saltBytes.length; i++) {
+        saltBytes[i] = parseInt(saltHex.substr(i * 2, 2), 16);
       }
 
-      // 2. Nếu chưa có từ Cloud, thử qua LAN Server
-      if (!loaded && cfg.lanUrl) {
-        try {
-          const lanBase = cfg.lanUrl.replace(/\/+$/, '');
-          const pRes = await fetch(`${lanBase}/api/auth/pending-requests`).catch(() => null);
-          if (pRes && pRes.ok) {
-            const data = await pRes.json();
-            if (Array.isArray(data)) {
-              pendingList = data;
-              loaded = true;
-              updateCloudStatus('🟢 LAN Server: Online');
-            }
-          }
-          const uRes = await fetch(`${lanBase}/api/auth/users`).catch(() => null);
-          if (uRes && uRes.ok) {
-            const uData = await uRes.json();
-            if (Array.isArray(uData)) usersList = uData;
-          }
-        } catch (_) {}
-      }
-
-      if (!loaded && !cfg.firebaseUrl && !cfg.lanUrl) {
-        updateCloudStatus('⚠️ Chưa cài đặt Cloud URL');
-      }
-
-      renderUI();
-    }
-
-    function renderUI() {
-      // 1. Pending Tab
-      const activePending = pendingList.filter(r => r && r.status === 'pending');
-      const badge = document.getElementById('header-pending-badge');
-      const lbl = document.getElementById('pending-count-lbl');
-
-      if (activePending.length > 0) {
-        if (badge) { badge.style.display = 'flex'; badge.textContent = activePending.length; }
-        if (lbl) lbl.textContent = activePending.length;
-        if (activePending.length > lastPendingCount && lastPendingCount >= 0) {
-          playDing();
-          if (window.Android) {
-            const firstReq = activePending[0];
-            const name = firstReq ? (firstReq.name || firstReq.username) : 'Kỹ sư';
-            if (window.Android.showNotification) {
-              window.Android.showNotification(
-                `Kha Studio — Có ${activePending.length} yêu cầu chờ duyệt!`,
-                `Kỹ sư ${name} vừa gửi đăng ký tài khoản cần Sếp phê duyệt.`,
-                activePending.length
-              );
-            }
-            if (window.Android.triggerVibrate) {
-              window.Android.triggerVibrate(400);
-            }
-            if (window.Android.playNotificationSound) {
-              window.Android.playNotificationSound();
-            }
-          }
-        }
-      } else {
-        if (badge) badge.style.display = 'none';
-        if (lbl) lbl.textContent = '0';
-      }
-      lastPendingCount = activePending.length;
-
-      const pContainer = document.getElementById('pending-list-container');
-      if (activePending.length === 0) {
-        pContainer.innerHTML = `
-          <div class="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3"/>
-            </svg>
-            <p>Tuyệt vời! Không có yêu cầu đăng ký nào đang chờ duyệt.</p>
-          </div>
-        `;
-      } else {
-        pContainer.innerHTML = activePending.map(req => {
-          const reqTime = req.requestedAt ? new Date(req.requestedAt).toLocaleString('vi-VN') : 'Mới đây';
-          return `
-            <div class="req-card">
-              <div class="req-top">
-                <div>
-                  <div class="req-name">${escapeHtml(req.name || req.username)}</div>
-                  <div class="req-uname">@${escapeHtml(req.username)}</div>
-                </div>
-                <span class="req-badge">Chờ duyệt</span>
-              </div>
-              <div class="req-meta">
-                <div class="meta-item">
-                  <span class="meta-lbl">Email:</span>
-                  <span class="meta-val"><a href="mailto:${escapeHtml(req.email || '')}">${escapeHtml(req.email || 'Chưa có')}</a></span>
-                </div>
-                <div class="meta-item">
-                  <span class="meta-lbl">Điện thoại:</span>
-                  <span class="meta-val"><a href="tel:${escapeHtml(req.phone || '')}">${escapeHtml(req.phone || 'Chưa có')}</a></span>
-                </div>
-                <div class="meta-item">
-                  <span class="meta-lbl">Phòng ban:</span>
-                  <span class="meta-val">${escapeHtml(req.department || 'Kỹ thuật')}</span>
-                </div>
-                <div class="meta-item">
-                  <span class="meta-lbl">Thời gian:</span>
-                  <span class="meta-val">${reqTime}</span>
-                </div>
-              </div>
-              ${req.note ? `<div class="req-note">“${escapeHtml(req.note)}”</div>` : ''}
-              <div class="card-actions">
-                <button class="btn btn-reject" onclick="openRejectModal('${req.id || req.username}')">Từ chối</button>
-                <button class="btn btn-approve" onclick="openApproveModal('${req.id || req.username}')">✓ Phê duyệt</button>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-
-      // 2. Users Tab
-      const uContainer = document.getElementById('users-list-container');
-      const uLbl = document.getElementById('users-count-lbl');
-      if (uLbl) uLbl.textContent = usersList.length;
-
-      if (usersList.length === 0) {
-        uContainer.innerHTML = `
-          <div class="empty-state">
-            <p>Chưa có danh sách người dùng.</p>
-          </div>
-        `;
-      } else {
-        uContainer.innerHTML = usersList.map(u => {
-          const tools = Array.isArray(u.allowedTools) ? u.allowedTools.length : 0;
-          return `
-            <div class="req-card approved">
-              <div class="req-top">
-                <div>
-                  <div class="req-name">${escapeHtml(u.name || u.username)}</div>
-                  <div class="req-uname">@${escapeHtml(u.username)}</div>
-                </div>
-                <span class="req-badge" style="background:rgba(16,185,129,0.15); color:var(--success); border-color:rgba(16,185,129,0.3);">
-                  ${u.role === 'admin' ? 'Administrator' : 'Kỹ sư'}
-                </span>
-              </div>
-              <div class="req-meta">
-                <div class="meta-item">
-                  <span class="meta-lbl">Email:</span>
-                  <span class="meta-val">${escapeHtml(u.email || '—')}</span>
-                </div>
-                <div class="meta-item">
-                  <span class="meta-lbl">Công cụ được phép:</span>
-                  <span class="meta-val">${u.role === 'admin' ? 'Tất cả (*)' : tools + ' công cụ'}</span>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
+      const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveBits', 'deriveKey']);
+      const key = await crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt: saltBytes, iterations: iters, hash: 'SHA-256' },
+        keyMaterial,
+        { name: 'HMAC', hash: 'SHA-256', length: 256 },
+        true,
+        ['sign']
+      );
+      const rawHash = await crypto.subtle.exportKey('raw', key);
+      const hashHex = Array.from(new Uint8Array(rawHash)).map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex === targetHashHex;
     }
 
     function escapeHtml(str) {
@@ -1026,203 +1404,11 @@
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // APPROVAL WORKFLOW
-    function openApproveModal(id) {
-      currentSelectedReq = pendingList.find(r => r.id === id || r.username === id);
-      if (!currentSelectedReq) return;
-      document.getElementById('sheet-user-sub').textContent = `Cấp quyền cho kỹ sư: ${currentSelectedReq.name || currentSelectedReq.username} (@${currentSelectedReq.username})`;
-      document.getElementById('approveModal').classList.add('show');
-    }
+    // Polling & SSE
+    setInterval(refreshData, 15000);
 
-    function closeApproveModal(e) {
-      if (e && e.target !== e.currentTarget && !e.target.classList.contains('btn')) return;
-      document.getElementById('approveModal').classList.remove('show');
-      currentSelectedReq = null;
-    }
-
-    async function confirmApprove() {
-      if (!currentSelectedReq) return;
-      const btn = document.getElementById('btn-confirm-approve');
-      btn.disabled = true;
-      btn.textContent = 'Đang duyệt…';
-
-      const checkboxes = document.querySelectorAll('#approveModal input[name="tool"]:checked');
-      const allowedTools = Array.from(checkboxes).map(cb => cb.value);
-
-      const approvedUser = {
-        id: 'usr_' + Date.now().toString(36),
-        username: currentSelectedReq.username,
-        email: currentSelectedReq.email || '',
-        name: currentSelectedReq.name || currentSelectedReq.username,
-        role: 'engineer',
-        allowedTools,
-        createdAt: new Date().toISOString(),
-        passwordHash: currentSelectedReq.passwordHash
-      };
-
-      const cfg = getConfig();
-      let ok = false;
-
-      // Đồng bộ Cloud Firebase
-      if (cfg.firebaseUrl) {
-        try {
-          const base = cfg.firebaseUrl.replace(/\/+$/, '');
-          await fetch(`${base}/registrations/${currentSelectedReq.id}.json`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              status: 'approved',
-              approvedAt: new Date().toISOString(),
-              approvedBy: 'Sếp Kha (Mobile)',
-              allowedTools
-            })
-          });
-          await fetch(`${base}/users/${approvedUser.username}.json`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(approvedUser)
-          });
-          ok = true;
-        } catch (_) {}
-      }
-
-      // Đồng bộ LAN
-      if (cfg.lanUrl) {
-        try {
-          const lanBase = cfg.lanUrl.replace(/\/+$/, '');
-          await fetch(`${lanBase}/api/auth/approve-request`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ request: currentSelectedReq, user: approvedUser })
-          });
-          ok = true;
-        } catch (_) {}
-      }
-
-      btn.disabled = false;
-      btn.textContent = 'Xác nhận Duyệt';
-      closeApproveModal();
-
-      if (ok) {
-        showToast(`✓ Đã duyệt tài khoản @${approvedUser.username} thành công!`);
-        refreshData();
-      } else {
-        showToast('Không thể kết nối máy chủ để lưu phê duyệt');
-      }
-    }
-
-    // REJECT WORKFLOW
-    function openRejectModal(id) {
-      currentSelectedReq = pendingList.find(r => r.id === id || r.username === id);
-      if (!currentSelectedReq) return;
-      document.getElementById('rejectModal').classList.add('show');
-    }
-
-    function closeRejectModal(e) {
-      if (e && e.target !== e.currentTarget && !e.target.classList.contains('btn')) return;
-      document.getElementById('rejectModal').classList.remove('show');
-      currentSelectedReq = null;
-    }
-
-    async function confirmReject() {
-      if (!currentSelectedReq) return;
-      const reason = document.getElementById('reject-reason-input').value.trim() || 'Yêu cầu không được phê duyệt';
-      const btn = document.getElementById('btn-confirm-reject');
-      btn.disabled = true;
-      btn.textContent = 'Đang từ chối…';
-
-      const cfg = getConfig();
-      let ok = false;
-
-      // Đồng bộ Cloud Firebase
-      if (cfg.firebaseUrl) {
-        try {
-          const base = cfg.firebaseUrl.replace(/\/+$/, '');
-          await fetch(`${base}/registrations/${currentSelectedReq.id}.json`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              status: 'rejected',
-              rejectedAt: new Date().toISOString(),
-              rejectionReason: reason
-            })
-          });
-          ok = true;
-        } catch (_) {}
-      }
-
-      // Đồng bộ LAN
-      if (cfg.lanUrl) {
-        try {
-          const lanBase = cfg.lanUrl.replace(/\/+$/, '');
-          await fetch(`${lanBase}/api/auth/reject-request`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: currentSelectedReq.id, reason })
-          });
-          ok = true;
-        } catch (_) {}
-      }
-
-      btn.disabled = false;
-      btn.textContent = 'Xác nhận từ chối';
-      closeRejectModal();
-
-      if (ok) {
-        showToast(`Đã từ chối yêu cầu của @${currentSelectedReq.username}`);
-        refreshData();
-      } else {
-        showToast('Không thể kết nối máy chủ để lưu từ chối');
-      }
-    }
-
-    function checkRemoteUpdate() {
-      if (window.Android && window.Android.checkForUpdate) {
-        window.Android.checkForUpdate();
-      } else {
-        showToast('Đang kiểm tra bản cập nhật trên GitHub…');
-        fetch('https://api.github.com/repos/ktechzara-dev/kha-studio/releases/latest')
-          .then(res => res.json())
-          .then(rel => {
-            if (rel && rel.tag_name) {
-              const apkAsset = rel.assets?.find(a => a.name && a.name.toLowerCase().endsWith('.apk'));
-              if (apkAsset) {
-                showToast(`Bản mới nhất: ${rel.tag_name}. Bấm để tải APK!`);
-                window.open(apkAsset.browser_download_url, '_blank');
-              } else {
-                showToast(`Phiên bản mới nhất: ${rel.tag_name}`);
-              }
-            }
-          })
-          .catch(e => showToast('Không thể kiểm tra: ' + e.message));
-      }
-    }
-
-    // Realtime Firebase SSE stream
-    let sseSource = null;
-    function initRealtimeSSE() {
-      const cfg = getConfig();
-      if (!cfg.firebaseUrl || !window.EventSource) return;
-      try {
-        if (sseSource) sseSource.close();
-        const base = cfg.firebaseUrl.replace(/\/+$/, '');
-        sseSource = new EventSource(`${base}/registrations.json`);
-        sseSource.addEventListener('put', function() {
-          refreshData();
-        });
-        sseSource.addEventListener('patch', function() {
-          refreshData();
-        });
-      } catch (_) {}
-    }
-
-    // Auto poll every 10 seconds
-    setInterval(refreshData, 10000);
-
-    // Initial run
-    initInputs();
-    refreshData();
-    initRealtimeSSE();
+    // Init
+    checkSession();
 
     if (window.Android && window.Android.getAppVersion) {
       try {
@@ -1234,4 +1420,3 @@
   </script>
 </body>
 </html>
-

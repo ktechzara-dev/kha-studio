@@ -237,6 +237,141 @@ function startLanServer(port = 5055) {
           return;
         }
 
+        // 9. /api/projects (Quản lý dự án)
+        if (pathname === '/api/projects') {
+          const projFile = path.join(getDataDir(), 'projects', 'projects.json');
+          if (req.method === 'POST') {
+            const list = fs.existsSync(projFile) ? JSON.parse(fs.readFileSync(projFile, 'utf8')) : [];
+            const code = json.code;
+            if (code) {
+              const idx = list.findIndex(p => (p.code || '').toLowerCase() === code.toLowerCase());
+              if (idx >= 0) list[idx] = json; else list.push(json);
+              const dir = path.join(getDataDir(), 'projects', code);
+              if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+              ['photos', 'videos', 'reports'].forEach(sub => {
+                const subDir = path.join(dir, sub);
+                if (!fs.existsSync(subDir)) fs.mkdirSync(subDir, { recursive: true });
+              });
+              fs.writeFileSync(path.join(dir, 'project.json'), JSON.stringify(json, null, 2), 'utf8');
+              fs.writeFileSync(projFile, JSON.stringify(list, null, 2), 'utf8');
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'ok', project: json }));
+            return;
+          } else {
+            let list = fs.existsSync(projFile) ? JSON.parse(fs.readFileSync(projFile, 'utf8')) : [];
+            list.forEach(p => {
+              const pDir = path.join(getDataDir(), 'projects', p.code || '');
+              p.photoCount = fs.existsSync(path.join(pDir, 'photos')) ? fs.readdirSync(path.join(pDir, 'photos')).length : 0;
+              p.videoCount = fs.existsSync(path.join(pDir, 'videos')) ? fs.readdirSync(path.join(pDir, 'videos')).length : 0;
+              p.reportCount = fs.existsSync(path.join(pDir, 'reports')) ? fs.readdirSync(path.join(pDir, 'reports')).length : 0;
+            });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(list));
+            return;
+          }
+        }
+
+        // 10. /api/projects/upload-media (Upload ảnh/video từ mobile)
+        if (pathname === '/api/projects/upload-media' && req.method === 'POST') {
+          const { projectCode, fileType, fileName, dataBase64, capturedBy, username, capturedAt, stage, note, gps } = json;
+          if (!projectCode || !dataBase64) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'error', message: 'Thiếu thông tin hoặc dữ liệu ảnh' }));
+            return;
+          }
+          const cleanCode = projectCode.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const sub = fileType === 'video' ? 'videos' : 'photos';
+          const ext = fileType === 'video' ? '.mp4' : '.jpg';
+          const targetDir = path.join(getDataDir(), 'projects', cleanCode, sub);
+          if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+
+          const ts = new Date().toISOString().replace(/[:.]/g, '-');
+          const uniqueName = `${ts}_${Math.random().toString(36).substr(2, 6)}${ext}`;
+          const filePath = path.join(targetDir, uniqueName);
+
+          const b64Data = dataBase64.replace(/^data:[^;]+;base64,/, '');
+          fs.writeFileSync(filePath, Buffer.from(b64Data, 'base64'));
+
+          const indexPath = path.join(getDataDir(), 'projects', cleanCode, 'media_index.json');
+          const list = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, 'utf8')) : [];
+          const itemObj = {
+            id: 'med_' + Date.now().toString(36),
+            projectCode,
+            fileName: uniqueName,
+            originalName: fileName,
+            fileType: fileType || 'image',
+            url: `/data/projects/${cleanCode}/${sub}/${uniqueName}`,
+            size: Buffer.byteLength(b64Data, 'base64'),
+            capturedAt: capturedAt || new Date().toISOString(),
+            capturedBy: capturedBy || 'Kỹ sư',
+            username: username || '',
+            stage: stage || 'Hiện trường',
+            note: note || '',
+            gps: gps || ''
+          };
+          list.unshift(itemObj);
+          fs.writeFileSync(indexPath, JSON.stringify(list, null, 2), 'utf8');
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok', url: itemObj.url, item: itemObj }));
+          return;
+        }
+
+        // 11. /api/projects/media (Lấy danh sách ảnh/video dự án)
+        if (pathname === '/api/projects/media') {
+          const code = urlObj.searchParams.get('code') || '';
+          const cleanCode = code.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const indexPath = path.join(getDataDir(), 'projects', cleanCode, 'media_index.json');
+          const list = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, 'utf8')) : [];
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(list));
+          return;
+        }
+
+        // 12. /api/projects/report (Gửi báo cáo hiện trường)
+        if (pathname === '/api/projects/report' && req.method === 'POST') {
+          const code = json.projectCode || '';
+          const cleanCode = code.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const repDir = path.join(getDataDir(), 'projects', cleanCode, 'reports');
+          if (!fs.existsSync(repDir)) fs.mkdirSync(repDir, { recursive: true });
+          const repId = json.id || ('rep_' + Date.now().toString(36));
+          json.id = repId;
+          fs.writeFileSync(path.join(repDir, `${repId}.json`), JSON.stringify(json, null, 2), 'utf8');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok', id: repId }));
+          return;
+        }
+
+        // 13. /api/projects/reports
+        if (pathname === '/api/projects/reports') {
+          const code = urlObj.searchParams.get('code') || '';
+          const cleanCode = code.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const repDir = path.join(getDataDir(), 'projects', cleanCode, 'reports');
+          const list = [];
+          if (fs.existsSync(repDir)) {
+            fs.readdirSync(repDir).filter(f => f.endsWith('.json')).forEach(f => {
+              try { list.push(JSON.parse(fs.readFileSync(path.join(repDir, f), 'utf8'))); } catch (_) {}
+            });
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(list));
+          return;
+        }
+
+        // 14. /api/projects/open-folder
+        if (pathname === '/api/projects/open-folder' && req.method === 'POST') {
+          const code = json.code || '';
+          const cleanCode = code.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const targetDir = code ? path.join(getDataDir(), 'projects', cleanCode) : path.join(getDataDir(), 'projects');
+          if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+          const { exec } = require('child_process');
+          exec(`explorer.exe "${targetDir}"`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'ok', path: targetDir }));
+          return;
+        }
+
         // Static or not found
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Not found' }));

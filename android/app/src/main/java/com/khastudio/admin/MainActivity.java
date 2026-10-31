@@ -4,9 +4,11 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -27,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
     private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
     private UpdateManager updateManager;
+    private ValueCallback<Uri[]> uploadMessage;
+    private final static int FILECHOOSER_RESULTCODE = 1002;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -50,6 +54,25 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        // Yêu cầu quyền Camera & Location cho chức năng chụp ảnh có Timemark
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            String[] permissions = new String[]{
+                    android.Manifest.permission.CAMERA,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+            };
+            boolean needPerm = false;
+            for (String p : permissions) {
+                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
+                    needPerm = true;
+                    break;
+                }
+            }
+            if (needPerm) {
+                requestPermissions(permissions, 1003);
+            }
+        }
+
         // Khởi động dịch vụ kiểm tra nền nhận thông báo tức thời
         try {
             Intent serviceIntent = new Intent(this, BackgroundCheckService.class);
@@ -68,6 +91,8 @@ public class MainActivity extends AppCompatActivity {
         settings.setLoadWithOverviewMode(true);
         settings.setSupportZoom(false);
         settings.setDisplayZoomControls(false);
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setGeolocationEnabled(true);
 
         // Bridge giao tiếp Android <-> JavaScript
         webView.addJavascriptInterface(new WebAppInterface(this, updateManager), "Android");
@@ -81,6 +106,25 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     progressBar.setVisibility(View.GONE);
                 }
+            }
+
+            // Mở hộp thoại chọn file hoặc chụp ảnh Camera trên điện thoại
+            @Override
+            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+                if (uploadMessage != null) {
+                    uploadMessage.onReceiveValue(null);
+                    uploadMessage = null;
+                }
+                uploadMessage = filePathCallback;
+
+                Intent intent = fileChooserParams.createIntent();
+                try {
+                    startActivityForResult(intent, FILECHOOSER_RESULTCODE);
+                } catch (Exception e) {
+                    uploadMessage = null;
+                    return false;
+                }
+                return true;
             }
         });
 
@@ -126,6 +170,16 @@ public class MainActivity extends AppCompatActivity {
 
         // Tự động kiểm tra bản cập nhật mới từ xa (GitHub Releases OTA)
         updateManager.checkForUpdates(false);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FILECHOOSER_RESULTCODE) {
+            if (uploadMessage == null) return;
+            uploadMessage.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+            uploadMessage = null;
+        }
     }
 
     @Override

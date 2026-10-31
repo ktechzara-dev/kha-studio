@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Trị Dự Án & Media Hiện Trường · K-Core Studio</title>
+  <style>
+    :root {
+      --bg-main: #09090b;
+      --bg-panel: #121215;
+      --bg-card: #18181b;
+      --bg-hover: #27272a;
+      --border: #27272a;
+      --border-focus: #38bdf8;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --accent: #38bdf8;
+      --primary: #0284c7;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-main);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-main); }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+    /* HEADER */
+    .app-header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);
+    }
+
+    .brand-info h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: var(--text);
+    }
+
+    .brand-info p {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* BUTTONS */
+    .btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: var(--bg-hover); border-color: #3f3f46; }
+    .btn.primary {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border-color: #38bdf8;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.4);
+    }
+    .btn.primary:hover { background: linear-gradient(135deg, #0369a1 0%, #075985 100%); }
+    .btn.outline { background: transparent; border-color: rgba(56, 189, 248, 0.4); color: var(--accent); }
+    .btn.outline:hover { background: rgba(56, 189, 248, 0.08); }
+
+    /* MAIN CONTAINER */
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* STATS STRIP */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .stat-card:hover { transform: translateY(-2px); border-color: rgba(56, 189, 248, 0.3); }
+
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .stat-icon.blue { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+    .stat-icon.green { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .stat-icon.orange { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .stat-icon.purple { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+
+    .stat-val { font-size: 24px; font-weight: 800; line-height: 1.1; }
+    .stat-lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* TOOLBAR */
+    .toolbar-wrap {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .input-search {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      color: var(--text);
+      font-size: 12.5px;
+      width: 260px;
+      outline: none;
+    }
+    .input-search:focus { border-color: var(--accent); }
+
+    .select-filter {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      color: var(--text);
+      font-size: 12.5px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* PROJECTS GRID */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 18px;
+    }
+
+    .project-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+    .project-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .project-code-badge {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 6px;
+      padding: 2px 8px;
+      margin-bottom: 6px;
+    }
+
+    .stage-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 12px;
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      white-space: nowrap;
+    }
+    .stage-badge.done {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .project-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .project-client {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .progress-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+    }
+    .progress-track {
+      height: 7px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0284c7, #38bdf8);
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    .card-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      padding: 10px 12px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      font-size: 11.5px;
+    }
+    .meta-col { display: flex; flex-direction: column; }
+    .meta-lbl { color: var(--text-dim); font-size: 10.5px; }
+    .meta-val { color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .card-stats-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+    .card-stats-pill span { display: flex; align-items: center; gap: 4px; }
+
+    .card-footer-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .card-footer-btns .btn { flex: 1; justify-content: center; font-size: 12px; }
+
+    /* DETAIL VIEW (Full screen overlay / View) */
+    .detail-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg-main);
+      z-index: 200;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .detail-overlay.active { display: block; }
+
+    .detail-header {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .detail-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .detail-tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .detail-tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* GALLERY GRID */
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .media-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .media-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+    .media-thumb-wrap {
+      width: 100%;
+      height: 200px;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+    }
+    .media-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.25s;
+    }
+    .media-card:hover .media-thumb-wrap img { transform: scale(1.04); }
+
+    .media-badge-stage {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .media-meta-box {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .media-title { font-weight: 600; font-size: 12.5px; }
+    .media-time { color: var(--text-muted); font-size: 11px; }
+    .media-note { color: var(--text); font-size: 11.5px; font-style: italic; margin-top: 4px; }
+
+    /* LIGHTBOX MODAL */
+    .lightbox-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(8px);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .lightbox-modal.active { display: flex; }
+    .lightbox-content {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .lightbox-img-wrap {
+      max-height: 65vh;
+      background: #050505;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .lightbox-img-wrap img {
+      max-width: 100%;
+      max-height: 65vh;
+      object-fit: contain;
+    }
+    .lightbox-info {
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* FORM MODAL */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 250;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-sheet {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      max-width: 540px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.5);
+    }
+    .modal-sheet h2 { font-size: 16px; margin-bottom: 14px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 11.5px; color: var(--text-muted); margin-bottom: 4px; }
+    .form-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 12.5px;
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--accent); }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      border: 1px solid var(--accent);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 400;
+      display: none;
+      font-size: 12.5px;
+    }
+    .toast.show { display: block; animation: slideUp 0.25s ease-out; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="brand-wrap">
+      <div class="brand-logo">K</div>
+      <div class="brand-info">
+        <h1>Quản Trị Dự Án &amp; Hiện Trường (Project &amp; Site Hub)</h1>
+        <p>Hệ thống đồng bộ ảnh có Timemark, video công trình và báo cáo hiện trường 2 chiều</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn outline" onclick="openRootFolder()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span>Mở Thư Mục Trên Máy Tính</span>
+      </button>
+      <button class="btn primary" onclick="openCreateProjectModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>+ Thêm Dự Án Mới</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- STATS -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">📁</div>
+        <div>
+          <div class="stat-val" id="stat-total-projects">3</div>
+          <div class="stat-lbl">Tổng số dự án</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange">⚡</div>
+        <div>
+          <div class="stat-val" id="stat-active-projects">3</div>
+          <div class="stat-lbl">Đang thi công tại site</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">📸</div>
+        <div>
+          <div class="stat-val" id="stat-total-photos">0</div>
+          <div class="stat-lbl">Ảnh hiện trường có Timemark</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple">📑</div>
+        <div>
+          <div class="stat-val" id="stat-total-reports">0</div>
+          <div class="stat-lbl">Phiếu báo cáo nghiệm thu</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar-wrap">
+      <div class="tool-group">
+        <input type="text" id="inp-search" class="input-search" placeholder="Tìm kiếm mã dự án, tên, khách hàng…" oninput="renderProjects()">
+        <select id="sel-filter-stage" class="select-filter" onchange="renderProjects()">
+          <option value="all">Tất cả công đoạn</option>
+          <option value="Khảo sát">Khảo sát hiện trường</option>
+          <option value="Cơ khí">Lắp ráp cơ khí</option>
+          <option value="Tủ điện">Đấu nối tủ điện &amp; Camera</option>
+          <option value="Chạy thử">Chạy thử &amp; Tinh chỉnh</option>
+          <option value="Nghiệm thu">Nghiệm thu bàn giao</option>
+        </select>
+        <select id="sel-filter-status" class="select-filter" onchange="renderProjects()">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang triển khai</option>
+          <option value="completed">Đã hoàn thành</option>
+        </select>
+      </div>
+      <div class="tool-group">
+        <button class="btn" onclick="fetchProjects()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span>Làm mới</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- PROJECTS GRID CONTAINER -->
+    <div class="projects-grid" id="projects-grid-container"></div>
+
+  </main>
+
+  <!-- DETAIL OVERLAY -->
+  <div class="detail-overlay" id="detail-overlay">
+    <div style="max-width: 1440px; margin: 0 auto;">
+      <div style="margin-bottom: 16px;">
+        <button class="btn outline" onclick="closeDetailView()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          <span>Quay lại danh sách dự án</span>
+        </button>
+      </div>
+
+      <div class="detail-header" id="detail-header-card"></div>
+
+      <!-- TABS -->
+      <div class="detail-tabs">
+        <button class="detail-tab-btn active" id="btn-tab-media" onclick="switchDetailTab('media')">
+          <span>📸 Kho Ảnh &amp; Video Hiện Trường</span>
+          <span id="tab-media-count" style="background:rgba(56,189,248,0.15); color:var(--accent); padding:1px 6px; border-radius:10px; font-size:11px;">0</span>
+        </button>
+        <button class="detail-tab-btn" id="btn-tab-reports" onclick="switchDetailTab('reports')">
+          <span>📋 Báo Cáo Hiện Trường</span>
+          <span id="tab-reports-count" style="background:rgba(16,185,129,0.15); color:var(--success); padding:1px 6px; border-radius:10px; font-size:11px;">0</span>
+        </button>
+        <button class="detail-tab-btn" id="btn-tab-info" onclick="switchDetailTab('info')">
+          <span>⚙️ Thông Tin &amp; Cấu Hình Dự Án</span>
+        </button>
+      </div>
+
+      <!-- TAB 1: MEDIA GALLERY -->
+      <div id="tab-content-media">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="font-size:15px;">Thư viện ảnh hiện trường đóng dấu Timemark</h3>
+          <div style="display:flex; gap:10px;">
+            <button class="btn" onclick="openCurrentProjectFolder()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>Mở Thư Mục Ảnh Trên Máy Tính</span>
+            </button>
+          </div>
+        </div>
+        <div class="media-grid" id="media-grid-container"></div>
+      </div>
+
+      <!-- TAB 2: REPORTS -->
+      <div id="tab-content-reports" style="display:none;">
+        <div class="media-grid" id="reports-grid-container"></div>
+      </div>
+
+      <!-- TAB 3: INFO -->
+      <div id="tab-content-info" style="display:none;">
+        <div style="background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:600px;">
+          <h3 style="margin-bottom:14px;">Thông tin dự án</h3>
+          <div id="project-info-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX MODAL -->
+  <div class="lightbox-modal" id="lightbox-modal" onclick="closeLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <div class="lightbox-img-wrap">
+        <img id="lightbox-img" src="" alt="Site Photo">
+      </div>
+      <div class="lightbox-info">
+        <div>
+          <div id="lightbox-title" style="font-size:14px; font-weight:700;">Ảnh Hiện Trường</div>
+          <div id="lightbox-desc" style="color:var(--text-muted); font-size:12px; margin-top:2px;"></div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <a id="lightbox-download" class="btn" href="" download target="_blank">Tải Về</a>
+          <button class="btn primary" onclick="closeLightbox()">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CREATE PROJECT -->
+  <div class="modal-backdrop" id="modal-create-project" onclick="closeCreateModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <h2>Thêm Dự Án Mới</h2>
+      <div class="form-group">
+        <label>Mã dự án (Project Code) *</label>
+        <input type="text" id="inp-pcode" class="form-input" placeholder="Ví dụ: ETEK.2026-025_01">
+      </div>
+      <div class="form-group">
+        <label>Tên dự án *</label>
+        <input type="text" id="inp-pname" class="form-input" placeholder="Ví dụ: Dây chuyền Đóng gói Tự động">
+      </div>
+      <div class="form-group">
+        <label>Khách hàng / Nhà máy</label>
+        <input type="text" id="inp-pclient" class="form-input" placeholder="Ví dụ: VinFast Auto">
+      </div>
+      <div class="form-group">
+        <label>Địa điểm thi công (Site Location)</label>
+        <input type="text" id="inp-ploc" class="form-input" placeholder="Ví dụ: KCN Cát Hải, Hải Phòng">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div class="form-group">
+          <label>Công đoạn hiện tại</label>
+          <select id="inp-pstage" class="form-input">
+            <option value="Khảo sát">Khảo sát hiện trường</option>
+            <option value="Cơ khí">Lắp ráp cơ khí</option>
+            <option value="Tủ điện">Đấu nối tủ điện &amp; Camera</option>
+            <option value="Chạy thử" selected>Chạy thử &amp; Tinh chỉnh</option>
+            <option value="Nghiệm thu">Nghiệm thu bàn giao</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tiến độ (%)</label>
+          <input type="number" id="inp-pprogress" class="form-input" min="0" max="100" value="50">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Mô tả kỹ thuật</label>
+        <textarea id="inp-pdesc" class="form-input" rows="3" placeholder="Ghi chú tổng quan dự án…"></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <button class="btn" onclick="closeCreateModal()">Hủy</button>
+        <button class="btn primary" onclick="submitCreateProject()">Lưu &amp; Tạo Thư Mục</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">Thông báo</div>
+
+  <script>
+    let projects = [];
+    let currentProject = null;
+    let currentMediaList = [];
+
+    const API_BASE = window.location.origin.includes('5055') ? window.location.origin : 'http://172.27.1.132:5055';
+    const FIREBASE_URL = 'https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    async function fetchProjects() {
+      try {
+        // 1. Thử fetch từ LAN Server trước
+        let res = await fetch(`${API_BASE}/api/projects`).catch(() => null);
+        if (res && res.ok) {
+          projects = await res.json();
+        } else {
+          // 2. Thử fetch từ Firebase Cloud
+          let fbRes = await fetch(`${FIREBASE_URL}/projects.json`).catch(() => null);
+          if (fbRes && fbRes.ok) {
+            const data = await fbRes.json();
+            if (data && typeof data === 'object') {
+              projects = Array.isArray(data) ? data : Object.values(data);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Lỗi fetch projects:', e);
+      }
+
+      if (!Array.isArray(projects) || projects.length === 0) {
+        projects = [
+          {
+            code: "ETEK.2026-015_01",
+            name: "Dây chuyền Đóng thùng Tự động Casepacker Line Glass",
+            client: "SABECO - Bia Sài Gòn Củ Chi",
+            location: "Nhà máy Bia Sài Gòn Củ Chi, TP.HCM",
+            manager: "Sếp Kha",
+            stage: "Chạy thử & Tinh chỉnh",
+            status: "active",
+            progress: 85,
+            photoCount: 0,
+            videoCount: 0,
+            reportCount: 0
+          }
+        ];
+      }
+
+      updateMetrics();
+      renderProjects();
+    }
+
+    function updateMetrics() {
+      document.getElementById('stat-total-projects').textContent = projects.length;
+      document.getElementById('stat-active-projects').textContent = projects.filter(p => p.status === 'active').length;
+      const totalPhotos = projects.reduce((acc, p) => acc + (p.photoCount || 0), 0);
+      const totalReports = projects.reduce((acc, p) => acc + (p.reportCount || 0), 0);
+      document.getElementById('stat-total-photos').textContent = totalPhotos;
+      document.getElementById('stat-total-reports').textContent = totalReports;
+    }
+
+    function renderProjects() {
+      const q = (document.getElementById('inp-search').value || '').toLowerCase().trim();
+      const stageFilter = document.getElementById('sel-filter-stage').value;
+      const statusFilter = document.getElementById('sel-filter-status').value;
+
+      const filtered = projects.filter(p => {
+        if (!p) return false;
+        const code = (p.code || '').toLowerCase();
+        const name = (p.name || '').toLowerCase();
+        const client = (p.client || '').toLowerCase();
+        const stage = p.stage || '';
+        const status = p.status || 'active';
+
+        if (q && !code.includes(q) && !name.includes(q) && !client.includes(q)) return false;
+        if (stageFilter !== 'all' && !stage.includes(stageFilter)) return false;
+        if (statusFilter !== 'all' && status !== statusFilter) return false;
+        return true;
+      });
+
+      const container = document.getElementById('projects-grid-container');
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1/-1; text-align:center; padding:48px; color:var(--text-muted);">
+            Không tìm thấy dự án nào phù hợp.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(p => {
+        const isDone = p.progress >= 100 || p.stage === 'Nghiệm thu';
+        return `
+          <div class="project-card">
+            <div class="card-top">
+              <div>
+                <span class="project-code-badge">${escapeHtml(p.code)}</span>
+                <div class="project-title" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
+                <div class="project-client">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                  <span>${escapeHtml(p.client || 'Chưa gán khách hàng')}</span>
+                </div>
+              </div>
+              <span class="stage-badge ${isDone ? 'done' : ''}">${escapeHtml(p.stage || 'Thi công')}</span>
+            </div>
+
+            <div class="progress-bar-wrap">
+              <div class="progress-info">
+                <span style="color:var(--text-muted);">Tiến độ công việc</span>
+                <span style="font-weight:700; color:${p.progress >= 80 ? 'var(--success)' : 'var(--accent)'};">${p.progress || 0}%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width: ${p.progress || 0}%;"></div>
+              </div>
+            </div>
+
+            <div class="card-meta">
+              <div class="meta-col">
+                <span class="meta-lbl">Địa điểm thi công</span>
+                <span class="meta-val" title="${escapeHtml(p.location || 'Tại xưởng')}">${escapeHtml(p.location || 'Tại xưởng')}</span>
+              </div>
+              <div class="meta-col">
+                <span class="meta-lbl">Quản lý</span>
+                <span class="meta-val">${escapeHtml(p.manager || 'Sếp Kha')}</span>
+              </div>
+            </div>
+
+            <div class="card-stats-pill">
+              <span>📷 <strong>${p.photoCount || 0}</strong> ảnh site</span>
+              <span>🎥 <strong>${p.videoCount || 0}</strong> video</span>
+              <span>📋 <strong>${p.reportCount || 0}</strong> báo cáo</span>
+            </div>
+
+            <div class="card-footer-btns">
+              <button class="btn" onclick="openProjectFolder('${escapeHtml(p.code)}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <span>Mở Folder</span>
+              </button>
+              <button class="btn primary" onclick="viewProjectDetail('${escapeHtml(p.code)}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Kho Ảnh &amp; Báo Cáo</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function viewProjectDetail(code) {
+      currentProject = projects.find(p => p.code === code);
+      if (!currentProject) return;
+
+      const header = document.getElementById('detail-header-card');
+      header.innerHTML = `
+        <div>
+          <span class="project-code-badge" style="font-size:13px;">${escapeHtml(currentProject.code)}</span>
+          <h2 style="font-size:20px; font-weight:700; margin-top:4px;">${escapeHtml(currentProject.name)}</h2>
+          <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+            Khách hàng: <strong>${escapeHtml(currentProject.client || '')}</strong> &bull; Địa điểm: <strong>${escapeHtml(currentProject.location || 'Tại xưởng')}</strong>
+          </p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn" onclick="openCurrentProjectFolder()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>Mở Folder Trên Máy Tính</span>
+          </button>
+        </div>
+      `;
+
+      document.getElementById('detail-overlay').classList.add('active');
+      fetchProjectMedia(code);
+    }
+
+    function closeDetailView() {
+      document.getElementById('detail-overlay').classList.remove('active');
+    }
+
+    async function fetchProjectMedia(code) {
+      try {
+        const res = await fetch(`${API_BASE}/api/projects/media?code=${encodeURIComponent(code)}`);
+        if (res.ok) {
+          currentMediaList = await res.json();
+          renderMediaGrid();
+        }
+      } catch (_) {
+        currentMediaList = [];
+        renderMediaGrid();
+      }
+    }
+
+    function renderMediaGrid() {
+      const container = document.getElementById('media-grid-container');
+      const badge = document.getElementById('tab-media-count');
+      if (badge) badge.textContent = currentMediaList.length;
+
+      if (currentMediaList.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1/-1; text-align:center; padding:48px; background:var(--bg-panel); border:1px solid var(--border); border-radius:12px;">
+            <div style="font-size:32px; margin-bottom:8px;">📸</div>
+            <h4 style="font-size:14px; margin-bottom:4px;">Chưa có ảnh nào được gửi từ công trường</h4>
+            <p style="font-size:12px; color:var(--text-muted);">
+              Kỹ sư mở app điện thoại Android &bull; Chọn dự án <strong>${escapeHtml(currentProject ? currentProject.code : '')}</strong> &bull; Chụp ảnh có Timemark để tự động đồng bộ về đây!
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = currentMediaList.map(m => {
+        const fullUrl = m.url.startsWith('http') ? m.url : `${API_BASE}${m.url}`;
+        const timeStr = m.capturedAt ? new Date(m.capturedAt).toLocaleString('vi-VN') : '';
+        return `
+          <div class="media-card" onclick="openLightbox('${fullUrl}', '${escapeHtml(m.stage || 'Hiện trường')}', '${escapeHtml(timeStr)} - ${escapeHtml(m.capturedBy || 'Kỹ sư')}')">
+            <div class="media-thumb-wrap">
+              <img src="${fullUrl}" alt="${escapeHtml(m.stage || 'Ảnh site')}" loading="lazy">
+              <span class="media-badge-stage">${escapeHtml(m.stage || 'Thi công')}</span>
+            </div>
+            <div class="media-meta-box">
+              <div class="media-title">${escapeHtml(m.stage || 'Hiện trường')}</div>
+              <div class="media-time">🕒 ${escapeHtml(timeStr)} &bull; 👷 ${escapeHtml(m.capturedBy || 'Kỹ sư')}</div>
+              ${m.note ? `<div class="media-note">“${escapeHtml(m.note)}”</div>` : ''}
+              ${m.gps ? `<div style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">📍 ${escapeHtml(m.gps)}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function switchDetailTab(tabId) {
+      document.querySelectorAll('.detail-tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-tab-' + tabId).classList.add('active');
+      document.getElementById('tab-content-media').style.display = tabId === 'media' ? 'block' : 'none';
+      document.getElementById('tab-content-reports').style.display = tabId === 'reports' ? 'block' : 'none';
+      document.getElementById('tab-content-info').style.display = tabId === 'info' ? 'block' : 'none';
+    }
+
+    function openLightbox(url, title, desc) {
+      document.getElementById('lightbox-img').src = url;
+      document.getElementById('lightbox-title').textContent = title;
+      document.getElementById('lightbox-desc').textContent = desc;
+      document.getElementById('lightbox-download').href = url;
+      document.getElementById('lightbox-modal').classList.add('active');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox-modal').classList.remove('active');
+    }
+
+    async function openProjectFolder(code) {
+      try {
+        await fetch(`${API_BASE}/api/projects/open-folder`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        showToast('Đang mở thư mục dự án trên Windows Explorer…');
+      } catch (e) {
+        showToast('Lỗi mở thư mục: ' + e.message);
+      }
+    }
+
+    function openCurrentProjectFolder() {
+      if (currentProject) openProjectFolder(currentProject.code);
+    }
+
+    async function openRootFolder() {
+      try {
+        await fetch(`${API_BASE}/api/projects/open-folder`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: '' })
+        });
+        showToast('Đang mở thư mục data/projects trên Windows Explorer…');
+      } catch (e) {
+        showToast('Lỗi mở thư mục: ' + e.message);
+      }
+    }
+
+    function openCreateProjectModal() {
+      document.getElementById('modal-create-project').classList.add('active');
+    }
+
+    function closeCreateModal(e) {
+      if (!e || e.target.id === 'modal-create-project' || e.target.tagName === 'BUTTON') {
+        document.getElementById('modal-create-project').classList.remove('active');
+      }
+    }
+
+    async function submitCreateProject() {
+      const code = document.getElementById('inp-pcode').value.trim();
+      const name = document.getElementById('inp-pname').value.trim();
+      const client = document.getElementById('inp-pclient').value.trim();
+      const loc = document.getElementById('inp-ploc').value.trim();
+      const stage = document.getElementById('inp-pstage').value;
+      const progress = parseInt(document.getElementById('inp-pprogress').value || '0', 10);
+      const desc = document.getElementById('inp-pdesc').value.trim();
+
+      if (!code || !name) {
+        alert('Vui lòng nhập Mã dự án và Tên dự án');
+        return;
+      }
+
+      const newProj = {
+        code,
+        name,
+        client,
+        location: loc,
+        manager: 'Sếp Kha',
+        stage,
+        status: 'active',
+        progress,
+        description: desc,
+        startDate: new Date().toISOString().split('T')[0],
+        photoCount: 0,
+        videoCount: 0,
+        reportCount: 0
+      };
+
+      try {
+        // 1. Lưu vào Server
+        await fetch(`${API_BASE}/api/projects`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newProj)
+        });
+
+        // 2. Đồng bộ Firebase
+        await fetch(`${FIREBASE_URL}/projects.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify([...projects, newProj])
+        }).catch(() => {});
+
+        showToast('✓ Đã tạo dự án & thư mục thành công!');
+        closeCreateModal();
+        fetchProjects();
+      } catch (e) {
+        alert('Lỗi tạo dự án: ' + e.message);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Initial load
+    fetchProjects();
+  </script>
+</body>
+</html>

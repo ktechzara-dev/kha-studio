@@ -213,6 +213,91 @@ public class LanWebServer
                     }
                 }
 
+                // 1b. API: /api/projects (Quản lý dự án, ảnh, video, báo cáo hiện trường)
+                if (cleanPath == "/api/projects")
+                {
+                    if (method == "POST")
+                    {
+                        var res = SaveProjectJson(body);
+                        await SendJsonResponseAsync(stream, res);
+                        return;
+                    }
+                    else
+                    {
+                        var data = GetProjectsJson();
+                        await SendJsonResponseAsync(stream, data);
+                        return;
+                    }
+                }
+
+                // 1c. API: /api/projects/upload-media (Upload ảnh/video có timemark từ điện thoại)
+                if (cleanPath == "/api/projects/upload-media" && method == "POST")
+                {
+                    var res = UploadMediaJson(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
+                // 1d. API: /api/projects/media (Lấy danh sách ảnh/video của dự án)
+                if (cleanPath == "/api/projects/media")
+                {
+                    var qCode = "";
+                    if (rawPath.Contains("?"))
+                    {
+                        var q = rawPath.Split('?')[1];
+                        foreach (var kv in q.Split('&'))
+                        {
+                            var partsKv = kv.Split('=');
+                            if (partsKv.Length == 2 && partsKv[0].Equals("code", StringComparison.OrdinalIgnoreCase))
+                            {
+                                qCode = WebUtility.UrlDecode(partsKv[1]).Trim();
+                                break;
+                            }
+                        }
+                    }
+                    var data = GetProjectMediaJson(qCode);
+                    await SendJsonResponseAsync(stream, data);
+                    return;
+                }
+
+                // 1e. API: /api/projects/report (Gửi báo cáo hiện trường từ mobile)
+                if (cleanPath == "/api/projects/report" && method == "POST")
+                {
+                    var res = SaveProjectReportJson(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
+                // 1f. API: /api/projects/reports (Lấy danh sách báo cáo của dự án)
+                if (cleanPath == "/api/projects/reports")
+                {
+                    var qCode = "";
+                    if (rawPath.Contains("?"))
+                    {
+                        var q = rawPath.Split('?')[1];
+                        foreach (var kv in q.Split('&'))
+                        {
+                            var partsKv = kv.Split('=');
+                            if (partsKv.Length == 2 && partsKv[0].Equals("code", StringComparison.OrdinalIgnoreCase))
+                            {
+                                qCode = WebUtility.UrlDecode(partsKv[1]).Trim();
+                                break;
+                            }
+                        }
+                    }
+                    var data = GetProjectReportsJson(qCode);
+                    await SendJsonResponseAsync(stream, data);
+                    return;
+                }
+
+                // 1g. API: /api/projects/open-folder (Mở Windows Explorer tại folder dự án)
+                if (cleanPath == "/api/projects/open-folder" && method == "POST")
+                {
+                    var res = OpenProjectFolder(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
                 // 2. API: /api/work_plans (Kế hoạch công việc bảo trì & kiểm tra)
                 if (cleanPath == "/api/work_plans")
                 {
@@ -542,6 +627,401 @@ public class LanWebServer
         }
         catch { }
         return fallback;
+    }
+
+    private static string CleanFileName(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "unnamed";
+        var invalids = Path.GetInvalidFileNameChars();
+        return string.Join("_", s.Split(invalids, StringSplitOptions.RemoveEmptyEntries)).Trim();
+    }
+
+    private string GetProjectsJson()
+    {
+        try
+        {
+            var dataDir = Path.Combine(WwwRoot, "data", "projects");
+            if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
+
+            var pFile = Path.Combine(dataDir, "projects.json");
+            var list = new JsonArray();
+            if (File.Exists(pFile))
+            {
+                var content = File.ReadAllText(pFile, Encoding.UTF8);
+                if (JsonNode.Parse(content) is JsonArray arr) list = arr;
+            }
+            else
+            {
+                if (JsonNode.Parse(GetDefaultProjectsJson()) is JsonArray defArr)
+                {
+                    list = defArr;
+                    File.WriteAllText(pFile, list.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+                }
+            }
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] is JsonObject proj)
+                {
+                    var code = proj["code"]?.ToString() ?? "";
+                    var safe = CleanFileName(code);
+                    var projDir = Path.Combine(dataDir, safe);
+                    if (Directory.Exists(projDir))
+                    {
+                        var photoDir = Path.Combine(projDir, "photos");
+                        var videoDir = Path.Combine(projDir, "videos");
+                        var reportDir = Path.Combine(projDir, "reports");
+
+                        proj["photoCount"] = Directory.Exists(photoDir) ? Directory.GetFiles(photoDir).Length : 0;
+                        proj["videoCount"] = Directory.Exists(videoDir) ? Directory.GetFiles(videoDir).Length : 0;
+                        proj["reportCount"] = Directory.Exists(reportDir) ? Directory.GetFiles(reportDir).Length : 0;
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(Path.Combine(projDir, "photos"));
+                        Directory.CreateDirectory(Path.Combine(projDir, "videos"));
+                        Directory.CreateDirectory(Path.Combine(projDir, "reports"));
+                        proj["photoCount"] = 0;
+                        proj["videoCount"] = 0;
+                        proj["reportCount"] = 0;
+                    }
+                }
+            }
+
+            return list.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return GetDefaultProjectsJson();
+        }
+    }
+
+    private string SaveProjectJson(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body) as JsonObject;
+            if (node == null) return "{\"status\":\"error\",\"message\":\"Payload trống\"}";
+
+            var code = node["code"]?.ToString()?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(code)) return "{\"status\":\"error\",\"message\":\"Thiếu mã dự án\"}";
+
+            var safe = CleanFileName(code);
+            var dataDir = Path.Combine(WwwRoot, "data", "projects");
+            var pFile = Path.Combine(dataDir, "projects.json");
+            var list = new JsonArray();
+            if (File.Exists(pFile))
+            {
+                if (JsonNode.Parse(File.ReadAllText(pFile, Encoding.UTF8)) is JsonArray arr) list = arr;
+            }
+
+            int foundIdx = -1;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i]?["code"]?.ToString().Equals(code, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    foundIdx = i;
+                    break;
+                }
+            }
+
+            if (foundIdx >= 0)
+            {
+                list[foundIdx] = node;
+            }
+            else
+            {
+                list.Add(node);
+            }
+
+            if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
+            File.WriteAllText(pFile, list.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+
+            var projDir = Path.Combine(dataDir, safe);
+            Directory.CreateDirectory(Path.Combine(projDir, "photos"));
+            Directory.CreateDirectory(Path.Combine(projDir, "videos"));
+            Directory.CreateDirectory(Path.Combine(projDir, "reports"));
+            File.WriteAllText(Path.Combine(projDir, "project.json"), node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+
+            return $"{{\"status\":\"ok\",\"code\":\"{code}\"}}";
+        }
+        catch (Exception ex)
+        {
+            return $"{{\"status\":\"error\",\"message\":\"{ex.Message}\"}}";
+        }
+    }
+
+    private string UploadMediaJson(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body) as JsonObject;
+            if (node == null) return "{\"status\":\"error\",\"message\":\"Payload trống\"}";
+
+            var projectCode = node["projectCode"]?.ToString()?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(projectCode)) return "{\"status\":\"error\",\"message\":\"Thiếu mã dự án\"}";
+
+            var safeCode = CleanFileName(projectCode);
+            var fileType = node["fileType"]?.ToString()?.ToLowerInvariant() ?? "image";
+            var fileName = node["fileName"]?.ToString()?.Trim() ?? "";
+            var dataBase64 = node["dataBase64"]?.ToString()?.Trim() ?? "";
+            var capturedBy = node["capturedBy"]?.ToString() ?? "Kỹ sư";
+            var username = node["username"]?.ToString() ?? "";
+            var capturedAt = node["capturedAt"]?.ToString() ?? DateTime.UtcNow.ToString("o");
+            var stage = node["stage"]?.ToString() ?? "Hiện trường";
+            var note = node["note"]?.ToString() ?? "";
+            var gps = node["gps"]?.ToString() ?? "";
+
+            if (string.IsNullOrWhiteSpace(dataBase64)) return "{\"status\":\"error\",\"message\":\"Thiếu dữ liệu ảnh\"}";
+
+            var commaIdx = dataBase64.IndexOf(',');
+            if (commaIdx >= 0) dataBase64 = dataBase64.Substring(commaIdx + 1);
+
+            byte[] bytes = Convert.FromBase64String(dataBase64);
+
+            var projDir = Path.Combine(WwwRoot, "data", "projects", safeCode);
+            var subFolder = fileType == "video" ? "videos" : "photos";
+            var targetDir = Path.Combine(projDir, subFolder);
+            if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
+
+            var ext = fileType == "video" ? ".mp4" : ".jpg";
+            var ts = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var uniqueName = $"{ts}_{Guid.NewGuid().ToString("N").Substring(0, 6)}{ext}";
+            var filePath = Path.Combine(targetDir, uniqueName);
+
+            File.WriteAllBytes(filePath, bytes);
+
+            var indexPath = Path.Combine(projDir, "media_index.json");
+            var list = new JsonArray();
+            if (File.Exists(indexPath))
+            {
+                var existing = File.ReadAllText(indexPath, Encoding.UTF8);
+                if (JsonNode.Parse(existing) is JsonArray arr) list = arr;
+            }
+
+            var itemObj = new JsonObject
+            {
+                ["id"] = "med_" + Guid.NewGuid().ToString("N"),
+                ["projectCode"] = projectCode,
+                ["fileName"] = uniqueName,
+                ["originalName"] = fileName,
+                ["fileType"] = fileType,
+                ["url"] = $"/data/projects/{safeCode}/{subFolder}/{uniqueName}",
+                ["size"] = bytes.Length,
+                ["capturedAt"] = capturedAt,
+                ["capturedBy"] = capturedBy,
+                ["username"] = username,
+                ["stage"] = stage,
+                ["note"] = note,
+                ["gps"] = gps
+            };
+            list.Insert(0, itemObj);
+            File.WriteAllText(indexPath, list.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+
+            return new JsonObject
+            {
+                ["status"] = "ok",
+                ["url"] = $"/data/projects/{safeCode}/{subFolder}/{uniqueName}",
+                ["item"] = itemObj
+            }.ToJsonString();
+        }
+        catch (Exception ex)
+        {
+            return $"{{\"status\":\"error\",\"message\":\"{WebUtility.HtmlEncode(ex.Message)}\"}}";
+        }
+    }
+
+    private string GetProjectMediaJson(string code)
+    {
+        try
+        {
+            var safe = CleanFileName(code);
+            var projDir = Path.Combine(WwwRoot, "data", "projects", safe);
+            var indexPath = Path.Combine(projDir, "media_index.json");
+            if (File.Exists(indexPath))
+            {
+                return File.ReadAllText(indexPath, Encoding.UTF8);
+            }
+
+            var list = new JsonArray();
+            var photoDir = Path.Combine(projDir, "photos");
+            if (Directory.Exists(photoDir))
+            {
+                foreach (var f in Directory.GetFiles(photoDir))
+                {
+                    var fi = new FileInfo(f);
+                    list.Add(new JsonObject
+                    {
+                        ["id"] = "med_" + fi.Name.GetHashCode().ToString("X"),
+                        ["projectCode"] = code,
+                        ["fileName"] = fi.Name,
+                        ["originalName"] = fi.Name,
+                        ["fileType"] = "image",
+                        ["url"] = $"/data/projects/{safe}/photos/{fi.Name}",
+                        ["size"] = fi.Length,
+                        ["capturedAt"] = fi.LastWriteTimeUtc.ToString("o"),
+                        ["capturedBy"] = "Hiện trường",
+                        ["stage"] = "Thi công site"
+                    });
+                }
+            }
+            return list.ToJsonString();
+        }
+        catch
+        {
+            return "[]";
+        }
+    }
+
+    private string SaveProjectReportJson(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body) as JsonObject;
+            if (node == null) return "{\"status\":\"error\",\"message\":\"Payload trống\"}";
+
+            var projectCode = node["projectCode"]?.ToString()?.Trim() ?? "";
+            var safe = CleanFileName(projectCode);
+            var reportId = node["id"]?.ToString() ?? ("rep_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+            node["id"] = reportId;
+
+            var projDir = Path.Combine(WwwRoot, "data", "projects", safe);
+            var repDir = Path.Combine(projDir, "reports");
+            if (!Directory.Exists(repDir)) Directory.CreateDirectory(repDir);
+
+            File.WriteAllText(Path.Combine(repDir, $"{reportId}.json"), node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+
+            var allReportsFile = Path.Combine(WwwRoot, "data", "field_reports.json");
+            var allList = new JsonArray();
+            if (File.Exists(allReportsFile))
+            {
+                if (JsonNode.Parse(File.ReadAllText(allReportsFile, Encoding.UTF8)) is JsonArray arr) allList = arr;
+            }
+            allList.Insert(0, node);
+            File.WriteAllText(allReportsFile, allList.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+
+            return $"{{\"status\":\"ok\",\"id\":\"{reportId}\"}}";
+        }
+        catch (Exception ex)
+        {
+            return $"{{\"status\":\"error\",\"message\":\"{ex.Message}\"}}";
+        }
+    }
+
+    private string GetProjectReportsJson(string code)
+    {
+        try
+        {
+            var safe = CleanFileName(code);
+            var repDir = Path.Combine(WwwRoot, "data", "projects", safe, "reports");
+            var list = new JsonArray();
+            if (Directory.Exists(repDir))
+            {
+                foreach (var f in Directory.GetFiles(repDir, "*.json"))
+                {
+                    try
+                    {
+                        if (JsonNode.Parse(File.ReadAllText(f, Encoding.UTF8)) is JsonObject obj)
+                        {
+                            list.Add(obj);
+                        }
+                    }
+                    catch { }
+                }
+            }
+            return list.ToJsonString();
+        }
+        catch
+        {
+            return "[]";
+        }
+    }
+
+    private string OpenProjectFolder(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body) as JsonObject;
+            var code = node?["code"]?.ToString()?.Trim() ?? "";
+            var safeCode = CleanFileName(code);
+            var projDir = string.IsNullOrWhiteSpace(code)
+                ? Path.Combine(WwwRoot, "data", "projects")
+                : Path.Combine(WwwRoot, "data", "projects", safeCode);
+
+            if (!Directory.Exists(projDir)) Directory.CreateDirectory(projDir);
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{projDir}\"",
+                UseShellExecute = true
+            });
+
+            return $"{{\"status\":\"ok\",\"path\":\"{projDir.Replace('\\', '/')}\"}}";
+        }
+        catch (Exception ex)
+        {
+            return $"{{\"status\":\"error\",\"message\":\"{ex.Message}\"}}";
+        }
+    }
+
+    private static string GetDefaultProjectsJson()
+    {
+        return """
+        [
+          {
+            "code": "ETEK.2026-015_01",
+            "name": "Dây chuyền Đóng thùng Tự động Casepacker Line Glass",
+            "client": "SABECO - Bia Sài Gòn Củ Chi",
+            "location": "Nhà máy Bia Sài Gòn Củ Chi, TP.HCM",
+            "manager": "Sếp Kha",
+            "engineers": ["duyen", "duyen1"],
+            "stage": "Chạy thử & Tinh chỉnh",
+            "status": "active",
+            "progress": 85,
+            "startDate": "2026-09-01",
+            "deadline": "2026-11-15",
+            "description": "Thiết kế, chế tạo và lắp đặt dây chuyền đóng thùng carton tự động cho chai thủy tinh 330ml, tích hợp Robot Delta xếp pallet.",
+            "photoCount": 0,
+            "videoCount": 0,
+            "reportCount": 0
+          },
+          {
+            "code": "ETEK.2026-018_02",
+            "name": "Trạm Kiểm tra Ngoại quan Khuyết tật bằng AI (Vision Pro Studio)",
+            "client": "VinFast Auto - Hải Phòng",
+            "location": "Tổ hợp Nhà máy VinFast Cát Hải, Hải Phòng",
+            "manager": "Sếp Kha",
+            "engineers": ["duyen"],
+            "stage": "Lắp đặt tủ điện & Camera",
+            "status": "active",
+            "progress": 60,
+            "startDate": "2026-10-10",
+            "deadline": "2026-12-05",
+            "description": "Trạm kiểm tra lỗi bề mặt linh kiện cơ khí chính xác sử dụng 4 camera GigE và mô hình AI Vision.",
+            "photoCount": 0,
+            "videoCount": 0,
+            "reportCount": 0
+          },
+          {
+            "code": "ETEK.2026-020_03",
+            "name": "Hệ thống Điều khiển SCADA & Giám sát Bồn Bể Hóa Chất",
+            "client": "Unilever Việt Nam",
+            "location": "KCN Tây Bắc Củ Chi, TP.HCM",
+            "manager": "Sếp Kha",
+            "engineers": ["duyen1"],
+            "stage": "Khảo sát hiện trường",
+            "status": "active",
+            "progress": 25,
+            "startDate": "2026-10-25",
+            "deadline": "2026-12-30",
+            "description": "Nâng cấp tủ PLC S7-1500, mạng Profinet và hệ thống SCADA theo chuẩn ISA-101.",
+            "photoCount": 0,
+            "videoCount": 0,
+            "reportCount": 0
+          }
+        ]
+        """;
     }
 
     private void SavePendingRegistration(string jsonBody)
