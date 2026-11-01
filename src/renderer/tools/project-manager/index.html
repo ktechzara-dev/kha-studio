@@ -874,6 +874,27 @@
         ];
       }
 
+      // Cập nhật số lượng ảnh thực tế từ Firebase Cloud
+      try {
+        const fbRes = await fetch(`${FIREBASE_URL}/projects_media.json`).catch(() => null);
+        if (fbRes && fbRes.ok) {
+          const media = await fbRes.json();
+          if (media && typeof media === 'object') {
+            const counts = {};
+            Object.values(media).forEach(m => {
+              if (m && m.projectCode) {
+                counts[m.projectCode] = (counts[m.projectCode] || 0) + 1;
+              }
+            });
+            projects.forEach(p => {
+              if (counts[p.code]) {
+                p.photoCount = Math.max(p.photoCount || 0, counts[p.code]);
+              }
+            });
+          }
+        }
+      } catch (_) {}
+
       updateMetrics();
       renderProjects();
 
@@ -1011,12 +1032,42 @@
         const res = await fetch(`${API_BASE}/api/projects/media?code=${encodeURIComponent(code)}`);
         if (res.ok) {
           currentMediaList = await res.json();
-          renderMediaGrid();
+        } else {
+          currentMediaList = [];
         }
       } catch (_) {
         currentMediaList = [];
-        renderMediaGrid();
       }
+
+      // Hợp nhất thêm dữ liệu ảnh/báo cáo từ Firebase Cloud
+      try {
+        const fbRes = await fetch(`${FIREBASE_URL}/projects_media.json`).catch(() => null);
+        if (fbRes && fbRes.ok) {
+          const cloudMedia = await fbRes.json();
+          if (cloudMedia && typeof cloudMedia === 'object') {
+            Object.values(cloudMedia).forEach(cm => {
+              if (cm && cm.projectCode === code) {
+                if (!currentMediaList.some(lm => lm.id === cm.id)) {
+                  currentMediaList.push({
+                    id: cm.id,
+                    projectCode: cm.projectCode,
+                    fileType: cm.fileType || 'image',
+                    fileName: cm.fileName || `${cm.id}.jpg`,
+                    url: cm.dataBase64 || '',
+                    capturedBy: cm.capturedBy || 'Kỹ sư',
+                    capturedAt: cm.capturedAt || '',
+                    stage: cm.stage || 'Hiện trường',
+                    note: cm.note || '',
+                    fromCloud: true
+                  });
+                }
+              }
+            });
+          }
+        }
+      } catch (_) {}
+
+      renderMediaGrid();
     }
 
     function renderMediaGrid() {
@@ -1038,12 +1089,14 @@
       }
 
       container.innerHTML = currentMediaList.map(m => {
-        const fullUrl = m.url.startsWith('http') ? m.url : `${API_BASE}${m.url}`;
+        const fullUrl = m.url ? (m.url.startsWith('http') || m.url.startsWith('data:') ? m.url : `${API_BASE}${m.url}`) : '';
         const timeStr = m.capturedAt ? new Date(m.capturedAt).toLocaleString('vi-VN') : '';
         return `
-          <div class="media-card" onclick="openLightbox('${fullUrl}', '${escapeHtml(m.stage || 'Hiện trường')}', '${escapeHtml(timeStr)} - ${escapeHtml(m.capturedBy || 'Kỹ sư')}')">
-            <div class="media-thumb-wrap">
-              <img src="${fullUrl}" alt="${escapeHtml(m.stage || 'Ảnh site')}" loading="lazy">
+          <div class="media-card" onclick="${fullUrl ? `openLightbox('${fullUrl}', '${escapeHtml(m.stage || 'Hiện trường')}', '${escapeHtml(timeStr)} - ${escapeHtml(m.capturedBy || 'Kỹ sư')}')` : ''}">
+            <div class="media-thumb-wrap" style="${!fullUrl ? 'display:flex; align-items:center; justify-content:center; background:#18181b; min-height:160px;' : ''}">
+              ${fullUrl 
+                ? `<img src="${fullUrl}" alt="${escapeHtml(m.stage || 'Ảnh site')}" loading="lazy">` 
+                : `<div style="text-align:center; padding:12px; color:var(--text-muted);"><div style="font-size:28px;">📱</div><div style="font-size:11px; margin-top:4px;">Ghi nhận từ Mobile cũ<br>(Cần update APK v1.5.0 để truyền ảnh)</div></div>`}
               <span class="media-badge-stage">${escapeHtml(m.stage || 'Thi công')}</span>
             </div>
             <div class="media-meta-box">
