@@ -936,6 +936,8 @@
       }
 
       renderUI();
+      loadProjectsIntoCameraSelect();
+      loadProjectsIntoReportSelect();
     }
 
     function renderUI() {
@@ -1043,17 +1045,35 @@
     function loadProjectsIntoCameraSelect() {
       const sel = document.getElementById('cam-project-select');
       if (!sel) return;
-      sel.innerHTML = projects.map(p => `
+      const list = (projects && projects.length > 0) ? projects : [
+        { code: 'ETEK.2026-015_01', name: 'Dây chuyền Đóng thùng Tự động Casepacker Line Glass' },
+        { code: 'ETEK.2026-018_02', name: 'Trạm Kiểm tra Ngoại quan Khuyết tật bằng AI (Vision Pro Studio)' },
+        { code: 'ETEK.2026-020_03', name: 'Hệ thống Điều khiển SCADA & Giám sát Bồn Bể Hóa Chất' }
+      ];
+      const curVal = sel.value;
+      sel.innerHTML = list.map(p => `
         <option value="${escapeHtml(p.code)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>
       `).join('');
+      if (curVal && list.some(p => p.code === curVal)) {
+        sel.value = curVal;
+      }
     }
 
     function loadProjectsIntoReportSelect() {
       const sel = document.getElementById('rep-project-select');
       if (!sel) return;
-      sel.innerHTML = projects.map(p => `
+      const list = (projects && projects.length > 0) ? projects : [
+        { code: 'ETEK.2026-015_01', name: 'Dây chuyền Đóng thùng Tự động Casepacker Line Glass' },
+        { code: 'ETEK.2026-018_02', name: 'Trạm Kiểm tra Ngoại quan Khuyết tật bằng AI (Vision Pro Studio)' },
+        { code: 'ETEK.2026-020_03', name: 'Hệ thống Điều khiển SCADA & Giám sát Bồn Bể Hóa Chất' }
+      ];
+      const curVal = sel.value;
+      sel.innerHTML = list.map(p => `
         <option value="${escapeHtml(p.code)}">${escapeHtml(p.code)} - ${escapeHtml(p.name)}</option>
       `).join('');
+      if (curVal && list.some(p => p.code === curVal)) {
+        sel.value = curVal;
+      }
     }
 
     function selectProjectForCamera(code) {
@@ -1063,6 +1083,12 @@
     }
 
     function triggerCameraCapture() {
+      // 1. Ưu tiên mở máy ảnh Native của Android nếu chạy trong ứng dụng APK
+      if (window.Android && typeof window.Android.openCamera === 'function') {
+        window.Android.openCamera();
+        return;
+      }
+      // 2. Chạy trên trình duyệt Web điện thoại
       const input = document.getElementById('camera-file-input');
       input.setAttribute('capture', 'environment');
       input.click();
@@ -1073,6 +1099,17 @@
       input.removeAttribute('capture');
       input.click();
     }
+
+    // Nhận ảnh từ Android Native Camera Bridge
+    window.handleNativePhotoCaptured = function(base64Data) {
+      if (!base64Data) return;
+      showToast('Đang xử lý & đóng dấu Timemark…');
+      const img = new Image();
+      img.onload = function() {
+        applyTimemarkWatermark(img);
+      };
+      img.src = base64Data;
+    };
 
     function handleImageCaptured(event) {
       const file = event.target.files?.[0];

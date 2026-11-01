@@ -26,6 +26,15 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
+    public void openCamera() {
+        activity.runOnUiThread(() -> {
+            if (activity instanceof MainActivity) {
+                ((MainActivity) activity).openNativeCameraDirect();
+            }
+        });
+    }
+
+    @JavascriptInterface
     public String getAppVersion() {
         return BuildConfig.VERSION_NAME;
     }

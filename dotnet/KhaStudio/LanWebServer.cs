@@ -947,7 +947,7 @@ public class LanWebServer
             {
                 ["status"] = "ok",
                 ["url"] = $"/data/projects/{safeCode}/{subFolder}/{uniqueName}",
-                ["item"] = itemObj
+                ["item"] = itemObj.DeepClone()
             }.ToJsonString();
         }
         catch (Exception ex)
@@ -1022,7 +1022,7 @@ public class LanWebServer
             {
                 if (JsonNode.Parse(File.ReadAllText(allReportsFile, Encoding.UTF8)) is JsonArray arr) allList = arr;
             }
-            allList.Insert(0, node);
+            allList.Insert(0, node.DeepClone());
             File.WriteAllText(allReportsFile, allList.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
 
             return $"{{\"status\":\"ok\",\"id\":\"{reportId}\"}}";

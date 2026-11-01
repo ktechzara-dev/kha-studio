@@ -56,15 +56,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST_TAG="v1.5.0"
+          LATEST_TAG="v1.5.1"
           echo "Target release tag: $LATEST_TAG"
           if ! gh release view "$LATEST_TAG" >/dev/null 2>&1; then
             echo "Creating release $LATEST_TAG..."
-            gh release create "$LATEST_TAG" build-output/KhaStudio-Admin.apk --title "Kha Studio $LATEST_TAG" --notes "Bản phát hành cập nhật $LATEST_TAG: Sửa lỗi tự động cập nhật OTA trên Android (User-Agent header & FileProvider), bổ sung nút tải trực tiếp APK, quản lý dự án & timemark camera."
+            gh release create "$LATEST_TAG" build-output/KhaStudio-Admin.apk --title "Kha Studio $LATEST_TAG" --notes "Bản phát hành cập nhật $LATEST_TAG: Mở camera trực tiếp trên điện thoại (Native Camera Intent), hỗ trợ chụp ảnh có Timemark, cấp quyền WebRTC & Geolocation cho WebView, đồng bộ dự án và ảnh hiện trường sang máy tính."
           else
             echo "Uploading KhaStudio-Admin.apk to release $LATEST_TAG..."
             gh release upload "$LATEST_TAG" build-output/KhaStudio-Admin.apk --clobber
           fi
-          # Cập nhật song song vào release v1.4.9
+          # Cập nhật song song vào release v1.5.0 và v1.4.9 để các bản cũ tự động kéo về
+          gh release upload "v1.5.0" build-output/KhaStudio-Admin.apk --clobber || true
           gh release upload "v1.4.9" build-output/KhaStudio-Admin.apk --clobber || true
 
