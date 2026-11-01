@@ -449,6 +449,50 @@
     .media-time { color: var(--text-muted); font-size: 11px; }
     .media-note { color: var(--text); font-size: 11.5px; font-style: italic; margin-top: 4px; }
 
+    /* REPORT CARD */
+    .report-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .report-card:hover { transform: translateY(-2px); border-color: var(--success); }
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .report-badge-ok {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .report-content {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+      background: var(--bg-card);
+      padding: 10px 12px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+    }
+    .report-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
     /* LIGHTBOX MODAL */
     .lightbox-modal {
       display: none;
@@ -821,8 +865,35 @@
             }
           }
         }
+        // Đồng bộ thêm báo cáo hiện trường từ Firebase Cloud
+        const repRes = await fetch(`${FIREBASE_URL}/field_reports.json`).catch(() => null);
+        if (repRes && repRes.ok) {
+          const allReports = await repRes.json();
+          if (allReports && typeof allReports === 'object') {
+            for (const [id, r] of Object.entries(allReports)) {
+              if (r && r.projectCode && !r.syncedToLocal) {
+                try {
+                  const saveRes = await fetch(`${API_BASE}/api/projects/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(r)
+                  });
+                  if (saveRes.ok) {
+                    syncedAny = true;
+                    fetch(`${FIREBASE_URL}/field_reports/${id}.json`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ syncedToLocal: true })
+                    }).catch(() => {});
+                  }
+                } catch (_) {}
+              }
+            }
+          }
+        }
+
         if (syncedAny) {
-          showToast('✓ Đã đồng bộ ảnh mới từ điện thoại về máy tính!');
+          showToast('✓ Đã đồng bộ ảnh và báo cáo mới từ điện thoại về máy tính!');
           // Tải lại số liệu từ máy chủ LAN
           const pRes = await fetch(`${API_BASE}/api/projects`).catch(() => null);
           if (pRes && pRes.ok) {
@@ -889,6 +960,27 @@
             projects.forEach(p => {
               if (counts[p.code]) {
                 p.photoCount = Math.max(p.photoCount || 0, counts[p.code]);
+              }
+            });
+          }
+        }
+      } catch (_) {}
+
+      // Cập nhật số lượng phiếu báo cáo từ Firebase Cloud
+      try {
+        const fbRepRes = await fetch(`${FIREBASE_URL}/field_reports.json`).catch(() => null);
+        if (fbRepRes && fbRepRes.ok) {
+          const reports = await fbRepRes.json();
+          if (reports && typeof reports === 'object') {
+            const repCounts = {};
+            Object.values(reports).forEach(r => {
+              if (r && r.projectCode) {
+                repCounts[r.projectCode] = (repCounts[r.projectCode] || 0) + 1;
+              }
+            });
+            projects.forEach(p => {
+              if (repCounts[p.code]) {
+                p.reportCount = Math.max(p.reportCount || 0, repCounts[p.code]);
               }
             });
           }
@@ -1021,6 +1113,7 @@
 
       document.getElementById('detail-overlay').classList.add('active');
       fetchProjectMedia(code);
+      fetchProjectReports(code);
     }
 
     function closeDetailView() {
@@ -1110,6 +1203,88 @@
       }).join('');
     }
 
+    let currentReportsList = [];
+
+    async function fetchProjectReports(code) {
+      try {
+        const res = await fetch(`${API_BASE}/api/projects/reports?code=${encodeURIComponent(code)}`);
+        if (res.ok) {
+          currentReportsList = await res.json();
+        } else {
+          currentReportsList = [];
+        }
+      } catch (_) {
+        currentReportsList = [];
+      }
+
+      // Hợp nhất thêm báo cáo từ Firebase Cloud
+      try {
+        const fbRes = await fetch(`${FIREBASE_URL}/field_reports.json`).catch(() => null);
+        if (fbRes && fbRes.ok) {
+          const cloudReports = await fbRes.json();
+          if (cloudReports && typeof cloudReports === 'object') {
+            Object.values(cloudReports).forEach(cr => {
+              if (cr && cr.projectCode === code) {
+                if (!currentReportsList.some(lr => lr.id === cr.id)) {
+                  currentReportsList.push(cr);
+                }
+              }
+            });
+          }
+        }
+      } catch (_) {}
+
+      // Sắp xếp báo cáo mới nhất lên đầu
+      currentReportsList.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+      renderReports();
+    }
+
+    function renderReports() {
+      const container = document.getElementById('reports-grid-container');
+      const badgeCount = document.getElementById('tab-reports-count');
+      if (badgeCount) badgeCount.textContent = currentReportsList.length;
+
+      if (!currentReportsList || currentReportsList.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1/-1; text-align:center; padding:48px; background:var(--bg-panel); border:1px solid var(--border); border-radius:12px;">
+            <div style="font-size:32px; margin-bottom:8px;">📝</div>
+            <h4 style="font-size:14px; margin-bottom:4px;">Chưa có phiếu báo cáo nào</h4>
+            <p style="font-size:12px; color:var(--text-muted);">
+              Kỹ sư mở app điện thoại Android &bull; Vào mục <strong>Gửi Báo Cáo Hiện Trường</strong> để gửi phiếu nghiệm thu/tiến độ về máy tính!
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = currentReportsList.map(r => {
+        const timeStr = r.timestamp || (r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : 'Vừa xong');
+        const reporterName = r.reporter || r.authorName || r.engineer || 'Kỹ sư';
+        const conditionText = r.condition || 'Bình thường';
+        const progressVal = r.progress !== undefined ? r.progress : (currentProject ? currentProject.progress : 0);
+        const textContent = r.findings || r.content || r.title || 'Đã ghi nhận công việc tại site.';
+        const stageName = r.stage || (currentProject ? currentProject.stage : 'Thi công');
+
+        return `
+          <div class="report-card">
+            <div class="report-header">
+              <span class="report-badge-ok">✓ ${escapeHtml(conditionText)}</span>
+              <span style="font-size:11.5px; color:var(--accent); font-weight:600;">Tiến độ: ${progressVal}%</span>
+            </div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">
+              Công đoạn: <strong style="color:var(--text);">${escapeHtml(stageName)}</strong>
+            </div>
+            <div class="report-content">${escapeHtml(textContent)}</div>
+            <div class="report-footer">
+              <span>🕒 ${escapeHtml(timeStr)}</span>
+              <span>👷 ${escapeHtml(reporterName)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function switchDetailTab(tabId) {
       document.querySelectorAll('.detail-tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('btn-tab-' + tabId).classList.add('active');
@@ -1131,11 +1306,21 @@
     }
 
     async function openProjectFolder(code) {
+      if (window.chrome?.webview?.postMessage) {
+        window.chrome.webview.postMessage({ cmd: 'project.open_folder', code: code || '' });
+        showToast('✓ Đang mở thư mục dự án trên Windows Explorer…');
+        return;
+      }
+      if (window.parent?.chrome?.webview?.postMessage) {
+        window.parent.chrome.webview.postMessage({ cmd: 'project.open_folder', code: code || '' });
+        showToast('✓ Đang mở thư mục dự án trên Windows Explorer…');
+        return;
+      }
       try {
         const res = await fetch(`${API_BASE}/api/projects/open-folder`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code })
+          body: JSON.stringify({ code: code || '' })
         });
         if (res.ok) {
           showToast('✓ Đang mở thư mục dự án trên Windows Explorer…');
@@ -1152,6 +1337,16 @@
     }
 
     async function openRootFolder() {
+      if (window.chrome?.webview?.postMessage) {
+        window.chrome.webview.postMessage({ cmd: 'project.open_folder', code: '' });
+        showToast('✓ Đang mở thư mục data/projects trên Windows Explorer…');
+        return;
+      }
+      if (window.parent?.chrome?.webview?.postMessage) {
+        window.parent.chrome.webview.postMessage({ cmd: 'project.open_folder', code: '' });
+        showToast('✓ Đang mở thư mục data/projects trên Windows Explorer…');
+        return;
+      }
       try {
         const res = await fetch(`${API_BASE}/api/projects/open-folder`, {
           method: 'POST',

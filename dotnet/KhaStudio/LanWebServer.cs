@@ -206,6 +206,57 @@ public class LanWebServer
                         }
                     }
                 }
+
+                // 3. Kéo phiếu Báo cáo hiện trường từ Firebase Cloud về lưu vào ổ cứng máy tính
+                var repRes = await http.GetAsync($"{fbUrl}/field_reports.json", ct);
+                if (repRes.IsSuccessStatusCode)
+                {
+                    var repJson = await repRes.Content.ReadAsStringAsync(ct);
+                    if (!string.IsNullOrWhiteSpace(repJson) && repJson.Trim() != "null")
+                    {
+                        if (JsonNode.Parse(repJson) is JsonObject repObj)
+                        {
+                            foreach (var (key, val) in repObj)
+                            {
+                                if (val is JsonObject repNode)
+                                {
+                                    var repProjCode = repNode["projectCode"]?.ToString() ?? "";
+                                    var repId = repNode["id"]?.ToString() ?? key;
+                                    if (!string.IsNullOrWhiteSpace(repProjCode))
+                                    {
+                                        var safe = CleanFileName(repProjCode);
+                                        var safeRepId = CleanFileName(repId);
+                                        var projDir = Path.Combine(UserDataDir, "projects", safe);
+                                        var repDir = Path.Combine(projDir, "reports");
+                                        if (!Directory.Exists(repDir)) Directory.CreateDirectory(repDir);
+
+                                        var repFile = Path.Combine(repDir, $"{safeRepId}.json");
+                                        if (!File.Exists(repFile))
+                                        {
+                                            try
+                                            {
+                                                File.WriteAllText(repFile, repNode.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+
+                                                var allReportsFile = Path.Combine(UserDataDir, "field_reports.json");
+                                                var allList = new JsonArray();
+                                                if (File.Exists(allReportsFile))
+                                                {
+                                                    if (JsonNode.Parse(File.ReadAllText(allReportsFile, Encoding.UTF8)) is JsonArray arr) allList = arr;
+                                                }
+                                                if (!allList.Any(item => item?["id"]?.ToString() == repId))
+                                                {
+                                                    allList.Insert(0, repNode.DeepClone());
+                                                    File.WriteAllText(allReportsFile, allList.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+                                                }
+                                            }
+                                            catch { }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             catch { }
 
@@ -754,7 +805,7 @@ public class LanWebServer
         return fallback;
     }
 
-    private static string CleanFileName(string s)
+    public static string CleanFileName(string s)
     {
         if (string.IsNullOrWhiteSpace(s)) return "unnamed";
         var invalids = Path.GetInvalidFileNameChars();
@@ -813,7 +864,9 @@ public class LanWebServer
                 }
             }
 
-            return list.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+            var outputJson = list.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+            try { File.WriteAllText(pFile, outputJson, Encoding.UTF8); } catch { }
+            return outputJson;
         }
         catch
         {

@@ -652,6 +652,20 @@ public partial class MainWindow : Window
                         });
                         break;
                     }
+                case "project.open_folder":
+                    {
+                        try
+                        {
+                            var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                            var pCode = root.TryGetProperty("code", out var cElem) ? cElem.GetString() ?? "" : "";
+                            var baseDir = Path.Combine(LanWebServer.UserDataDir, "projects");
+                            var targetDir = string.IsNullOrWhiteSpace(pCode) ? baseDir : Path.Combine(baseDir, LanWebServer.CleanFileName(pCode));
+                            if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
+                            Process.Start(new ProcessStartInfo { FileName = targetDir, UseShellExecute = true });
+                        }
+                        catch { }
+                        break;
+                    }
                 case string c when c.StartsWith("tia."):
                     {
                         var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
