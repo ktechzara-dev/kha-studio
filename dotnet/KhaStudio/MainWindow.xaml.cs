@@ -146,18 +146,35 @@ public partial class MainWindow : Window
                     break;
                 case "update.check":
                     Send(new { type = "checking" });
-                    if (!_updater.IsInstalled)
+                    try
                     {
-                        Send(new { type = "dev_mode", message = "Bản chạy trực tiếp (Local Build) không cần cập nhật qua mạng." });
-                        break;
+                        if (!_updater.IsInstalled)
+                        {
+                            Send(new { type = "dev_mode", message = "Bản chạy trực tiếp (Local Build) không cần cập nhật qua mạng." });
+                            break;
+                        }
+                        var v = await _updater.CheckAsync();
+                        Send(v == null ? new { type = "latest" } : new { type = "available", version = v });
                     }
-                    var v = await _updater.CheckAsync();
-                    Send(v == null ? new { type = "none" } : new { type = "available", version = v });
+                    catch (Exception ex)
+                    {
+                        Send(new { type = "error", message = ex.Message });
+                    }
                     break;
                 case "update.install":
-                    Send(new { type = "progress", percent = 0 });
-                    await _updater.DownloadAndRestartAsync(p => Dispatcher.Invoke(() => Send(new { type = "progress", percent = p })));
-                    Send(new { type = "restarting" });
+                    try
+                    {
+                        Send(new { type = "progress", percent = 0 });
+                        await _updater.DownloadAndRestartAsync(p => Dispatcher.Invoke(() => Send(new { type = "progress", percent = p })));
+                        Send(new { type = "restarting" });
+                        _lanServer?.Stop();
+                        TiaBridge.Shutdown();
+                        Environment.Exit(0);
+                    }
+                    catch (Exception ex)
+                    {
+                        Send(new { type = "error", message = ex.Message });
+                    }
                     break;
                 case "window.drag":
                     Dispatcher.Invoke(() =>

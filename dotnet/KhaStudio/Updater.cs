@@ -66,5 +66,7 @@ public sealed class Updater
         if (_pending == null) throw new InvalidOperationException("Hãy kiểm tra cập nhật trước.");
         await Manager().DownloadUpdatesAsync(_pending, progress);
         Manager().ApplyUpdatesAndRestart(_pending);
+        // Thoát tiến trình ngay để Update.exe ghi đè file và tự động khởi động lại
+        Environment.Exit(0);
     }
 }

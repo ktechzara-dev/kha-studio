@@ -32,10 +32,17 @@ public class EmailService
     public EmailService(string wwwRoot)
     {
         _wwwRoot = wwwRoot;
-        var dataDir = Path.Combine(_wwwRoot, "data");
+        var dataDir = LanWebServer.UserDataDir;
         if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
         _configFilePath = Path.Combine(dataDir, "smtp_config.json");
         _logFilePath = Path.Combine(dataDir, "email_logs.json");
+
+        // Di chuyển config cũ từ wwwRoot nếu chưa có trong UserDataDir
+        var oldConfig = Path.Combine(_wwwRoot, "data", "smtp_config.json");
+        if (File.Exists(oldConfig) && !File.Exists(_configFilePath))
+        {
+            try { File.Copy(oldConfig, _configFilePath, true); } catch { }
+        }
     }
 
     public SmtpConfig GetConfig()

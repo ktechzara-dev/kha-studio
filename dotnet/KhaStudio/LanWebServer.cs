@@ -21,6 +21,16 @@ public class LanWebServer
     public bool IsRunning { get; private set; }
     public EmailService EmailSvc { get; }
 
+    public static string UserDataDir
+    {
+        get
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "KhaStudioData");
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            return dir;
+        }
+    }
+
     public LanWebServer(string wwwRoot)
     {
         WwwRoot = wwwRoot;
@@ -32,8 +42,29 @@ public class LanWebServer
     {
         try
         {
-            var dataDir = Path.Combine(WwwRoot, "data");
+            var dataDir = UserDataDir;
             if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
+
+            // Tự động di chuyển dữ liệu cũ từ wwwroot/data (nếu có) sang UserDataDir để tránh bị khóa thư mục khi cập nhật
+            var oldDataDir = Path.Combine(WwwRoot, "data");
+            if (Directory.Exists(oldDataDir))
+            {
+                try
+                {
+                    foreach (var f in Directory.GetFiles(oldDataDir))
+                    {
+                        var dest = Path.Combine(dataDir, Path.GetFileName(f));
+                        if (!File.Exists(dest)) File.Copy(f, dest, true);
+                    }
+                    var oldProjDir = Path.Combine(oldDataDir, "projects");
+                    var newProjDir = Path.Combine(dataDir, "projects");
+                    if (Directory.Exists(oldProjDir) && !Directory.Exists(newProjDir))
+                    {
+                        CopyDirectory(oldProjDir, newProjDir);
+                    }
+                }
+                catch { }
+            }
 
             var plansFile = Path.Combine(dataDir, "work_plans.json");
             if (File.Exists(plansFile))
@@ -58,6 +89,23 @@ public class LanWebServer
             }
         }
         catch { }
+    }
+
+    private static void CopyDirectory(string sourceDir, string destinationDir)
+    {
+        var dir = new DirectoryInfo(sourceDir);
+        if (!dir.Exists) return;
+        Directory.CreateDirectory(destinationDir);
+        foreach (var file in dir.GetFiles())
+        {
+            var targetFilePath = Path.Combine(destinationDir, file.Name);
+            file.CopyTo(targetFilePath, true);
+        }
+        foreach (var subDir in dir.GetDirectories())
+        {
+            var newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+            CopyDirectory(subDir.FullName, newDestinationDir);
+        }
     }
 
     public void Start(int preferredPort = 5055)
@@ -623,6 +671,17 @@ public class LanWebServer
                 cleanPath = cleanPath.Replace('\\', '/').TrimStart('/');
                 var localFilePath = Path.Combine(WwwRoot, cleanPath.Replace('/', Path.DirectorySeparatorChar));
 
+                // Nếu đường dẫn là data/..., ưu tiên phục vụ từ UserDataDir (ảnh, video, báo cáo)
+                if (cleanPath.StartsWith("data/", StringComparison.OrdinalIgnoreCase))
+                {
+                    var rel = cleanPath.Substring(5).Replace('/', Path.DirectorySeparatorChar);
+                    var userPath = Path.Combine(UserDataDir, rel);
+                    if (File.Exists(userPath))
+                    {
+                        localFilePath = userPath;
+                    }
+                }
+
                 if (!File.Exists(localFilePath))
                 {
                     var notFound = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
@@ -674,7 +733,7 @@ public class LanWebServer
     {
         try
         {
-            var dataDir = Path.Combine(WwwRoot, "data");
+            var dataDir = UserDataDir;
             if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
             var filePath = Path.Combine(dataDir, fileName);
             File.WriteAllText(filePath, content, Encoding.UTF8);
@@ -686,8 +745,10 @@ public class LanWebServer
     {
         try
         {
-            var filePath = Path.Combine(WwwRoot, "data", fileName);
+            var filePath = Path.Combine(UserDataDir, fileName);
             if (File.Exists(filePath)) return File.ReadAllText(filePath, Encoding.UTF8);
+            var oldPath = Path.Combine(WwwRoot, "data", fileName);
+            if (File.Exists(oldPath)) return File.ReadAllText(oldPath, Encoding.UTF8);
         }
         catch { }
         return fallback;
@@ -704,7 +765,7 @@ public class LanWebServer
     {
         try
         {
-            var dataDir = Path.Combine(WwwRoot, "data", "projects");
+            var dataDir = Path.Combine(UserDataDir, "projects");
             if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
 
             var pFile = Path.Combine(dataDir, "projects.json");
@@ -771,7 +832,7 @@ public class LanWebServer
             if (string.IsNullOrWhiteSpace(code)) return "{\"status\":\"error\",\"message\":\"Thiếu mã dự án\"}";
 
             var safe = CleanFileName(code);
-            var dataDir = Path.Combine(WwwRoot, "data", "projects");
+            var dataDir = Path.Combine(UserDataDir, "projects");
             var pFile = Path.Combine(dataDir, "projects.json");
             var list = new JsonArray();
             if (File.Exists(pFile))
@@ -843,7 +904,7 @@ public class LanWebServer
 
             byte[] bytes = Convert.FromBase64String(dataBase64);
 
-            var projDir = Path.Combine(WwwRoot, "data", "projects", safeCode);
+            var projDir = Path.Combine(UserDataDir, "projects", safeCode);
             var subFolder = fileType == "video" ? "videos" : "photos";
             var targetDir = Path.Combine(projDir, subFolder);
             if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
@@ -900,7 +961,7 @@ public class LanWebServer
         try
         {
             var safe = CleanFileName(code);
-            var projDir = Path.Combine(WwwRoot, "data", "projects", safe);
+            var projDir = Path.Combine(UserDataDir, "projects", safe);
             var indexPath = Path.Combine(projDir, "media_index.json");
             if (File.Exists(indexPath))
             {
@@ -949,13 +1010,13 @@ public class LanWebServer
             var reportId = node["id"]?.ToString() ?? ("rep_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
             node["id"] = reportId;
 
-            var projDir = Path.Combine(WwwRoot, "data", "projects", safe);
+            var projDir = Path.Combine(UserDataDir, "projects", safe);
             var repDir = Path.Combine(projDir, "reports");
             if (!Directory.Exists(repDir)) Directory.CreateDirectory(repDir);
 
             File.WriteAllText(Path.Combine(repDir, $"{reportId}.json"), node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
 
-            var allReportsFile = Path.Combine(WwwRoot, "data", "field_reports.json");
+            var allReportsFile = Path.Combine(UserDataDir, "field_reports.json");
             var allList = new JsonArray();
             if (File.Exists(allReportsFile))
             {
@@ -977,7 +1038,7 @@ public class LanWebServer
         try
         {
             var safe = CleanFileName(code);
-            var repDir = Path.Combine(WwwRoot, "data", "projects", safe, "reports");
+            var repDir = Path.Combine(UserDataDir, "projects", safe, "reports");
             var list = new JsonArray();
             if (Directory.Exists(repDir))
             {
@@ -1009,8 +1070,8 @@ public class LanWebServer
             var code = node?["code"]?.ToString()?.Trim() ?? "";
             var safeCode = CleanFileName(code);
             var projDir = string.IsNullOrWhiteSpace(code)
-                ? Path.Combine(WwwRoot, "data", "projects")
-                : Path.Combine(WwwRoot, "data", "projects", safeCode);
+                ? Path.Combine(UserDataDir, "projects")
+                : Path.Combine(UserDataDir, "projects", safeCode);
 
             if (!Directory.Exists(projDir)) Directory.CreateDirectory(projDir);
 
