@@ -769,7 +769,7 @@
     let currentProject = null;
     let currentMediaList = [];
 
-    const API_BASE = window.location.origin.includes('5055') ? window.location.origin : 'http://172.27.1.132:5055';
+    const API_BASE = (window.location.origin && window.location.origin.includes('5055')) ? window.location.origin : 'http://127.0.0.1:5055';
     const FIREBASE_URL = 'https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app';
 
     function showToast(msg) {
@@ -779,9 +779,66 @@
       setTimeout(() => t.classList.remove('show'), 3000);
     }
 
+    // Tự động kéo ảnh chụp Timemark từ Firebase Cloud về lưu vào folder dự án trên máy tính
+    async function syncCloudMediaToLocal() {
+      try {
+        const fbRes = await fetch(`${FIREBASE_URL}/projects_media.json`).catch(() => null);
+        if (!fbRes || !fbRes.ok) return;
+        const allMedia = await fbRes.json();
+        if (!allMedia || typeof allMedia !== 'object') return;
+
+        let syncedAny = false;
+        for (const [id, m] of Object.entries(allMedia)) {
+          if (m && m.dataBase64 && m.projectCode) {
+            try {
+              const res = await fetch(`${API_BASE}/api/projects/upload-media`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  projectCode: m.projectCode,
+                  fileType: m.fileType || 'image',
+                  fileName: m.fileName || `site_${m.projectCode}_${Date.now()}.jpg`,
+                  dataBase64: m.dataBase64,
+                  capturedBy: m.capturedBy || 'Kỹ sư',
+                  username: m.username || '',
+                  capturedAt: m.capturedAt || new Date().toISOString(),
+                  stage: m.stage || 'Hiện trường',
+                  note: m.note || '',
+                  gps: m.gps || ''
+                })
+              });
+              if (res.ok) {
+                syncedAny = true;
+                // Xóa dataBase64 nặng khỏi Firebase và đánh dấu đã lưu về máy tính
+                fetch(`${FIREBASE_URL}/projects_media/${id}.json`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ dataBase64: null, syncedToLocal: true })
+                }).catch(() => {});
+              }
+            } catch (err) {
+              console.warn('Sync cloud photo to local failed:', err);
+            }
+          }
+        }
+        if (syncedAny) {
+          showToast('✓ Đã đồng bộ ảnh mới từ điện thoại về máy tính!');
+          // Tải lại số liệu từ máy chủ LAN
+          const pRes = await fetch(`${API_BASE}/api/projects`).catch(() => null);
+          if (pRes && pRes.ok) {
+            projects = await pRes.json();
+            updateMetrics();
+            renderProjects();
+          }
+        }
+      } catch (e) {
+        console.warn('Sync cloud media check error:', e);
+      }
+    }
+
     async function fetchProjects() {
       try {
-        // 1. Thử fetch từ LAN Server trước
+        // 1. Thử fetch từ LAN Server trước (Localhost:5055 trên PC)
         let res = await fetch(`${API_BASE}/api/projects`).catch(() => null);
         if (res && res.ok) {
           projects = await res.json();
@@ -819,6 +876,9 @@
 
       updateMetrics();
       renderProjects();
+
+      // Kiểm tra đồng bộ ảnh từ điện thoại qua Firebase
+      syncCloudMediaToLocal();
     }
 
     function updateMetrics() {
@@ -1019,12 +1079,16 @@
 
     async function openProjectFolder(code) {
       try {
-        await fetch(`${API_BASE}/api/projects/open-folder`, {
+        const res = await fetch(`${API_BASE}/api/projects/open-folder`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code })
         });
-        showToast('Đang mở thư mục dự án trên Windows Explorer…');
+        if (res.ok) {
+          showToast('✓ Đang mở thư mục dự án trên Windows Explorer…');
+        } else {
+          showToast('Máy chủ trả về mã ' + res.status);
+        }
       } catch (e) {
         showToast('Lỗi mở thư mục: ' + e.message);
       }
@@ -1036,12 +1100,16 @@
 
     async function openRootFolder() {
       try {
-        await fetch(`${API_BASE}/api/projects/open-folder`, {
+        const res = await fetch(`${API_BASE}/api/projects/open-folder`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: '' })
         });
-        showToast('Đang mở thư mục data/projects trên Windows Explorer…');
+        if (res.ok) {
+          showToast('✓ Đang mở thư mục data/projects trên Windows Explorer…');
+        } else {
+          showToast('Máy chủ trả về mã ' + res.status);
+        }
       } catch (e) {
         showToast('Lỗi mở thư mục: ' + e.message);
       }

@@ -671,13 +671,36 @@
         if (raw) {
           const cfg = JSON.parse(raw);
           if (!cfg.firebaseUrl) cfg.firebaseUrl = storedFb || DEFAULT_FIREBASE_URL;
+          if (cfg.lanUrl && cfg.lanUrl.includes('172.27.1.132')) {
+            cfg.lanUrl = 'http://172.27.7.131:5055';
+          }
           return cfg;
         }
       } catch (_) {}
       return {
         firebaseUrl: storedFb || DEFAULT_FIREBASE_URL,
-        lanUrl: window.location.origin.includes('5055') ? window.location.origin : 'http://172.27.1.132:5055'
+        lanUrl: window.location.origin.includes('5055') ? window.location.origin : 'http://172.27.7.131:5055'
       };
+    }
+
+    // Tự động nhận diện IP LAN mới nhất của máy tính thông qua Firebase
+    async function autoDiscoverLanServerFromCloud() {
+      try {
+        const fbUrl = (getConfig().firebaseUrl || DEFAULT_FIREBASE_URL).replace(/\/+$/, '');
+        const res = await fetch(`${fbUrl}/lan_server.json`);
+        if (res.ok) {
+          const info = await res.json();
+          if (info && info.lanUrl) {
+            const cfg = getConfig();
+            cfg.lanUrl = info.lanUrl;
+            saveConfig(cfg);
+            const inp = document.getElementById('cfg-lan-url');
+            if (inp) inp.value = info.lanUrl;
+            return info.lanUrl;
+          }
+        }
+      } catch (_) {}
+      return null;
     }
 
     function saveConfig(cfg) {
@@ -1207,7 +1230,13 @@
       const cfg = getConfig();
       let saved = false;
 
-      // 1. Thử upload trực tiếp qua LAN Server máy tính
+      // 1. Tự động cập nhật IP LAN máy tính từ Cloud nếu nghi ngờ chưa có
+      if (!cfg.lanUrl || cfg.lanUrl.includes('172.27.1.132')) {
+        const cloudLan = await autoDiscoverLanServerFromCloud();
+        if (cloudLan) cfg.lanUrl = cloudLan;
+      }
+
+      // 2. Thử upload trực tiếp qua LAN Server máy tính (nếu cùng Wi-Fi)
       if (cfg.lanUrl) {
         try {
           const lanBase = cfg.lanUrl.replace(/\/+$/, '');
@@ -1220,7 +1249,7 @@
         } catch (_) {}
       }
 
-      // 2. Đồng bộ metadata lên Firebase Cloud
+      // 3. Đồng bộ lên Firebase Cloud (gửi kèm cả ảnh dataBase64 để máy tính tự động tải về)
       if (cfg.firebaseUrl) {
         try {
           const base = cfg.firebaseUrl.replace(/\/+$/, '');
@@ -1231,10 +1260,15 @@
             body: JSON.stringify({
               id: photoId,
               projectCode: projCode,
+              fileType: payload.fileType,
+              fileName: payload.fileName,
+              dataBase64: payload.dataBase64,
               stage,
               note,
               capturedBy: payload.capturedBy,
-              capturedAt: payload.capturedAt
+              capturedAt: payload.capturedAt,
+              username: payload.username,
+              gps: payload.gps
             })
           });
           saved = true;
@@ -1418,6 +1452,7 @@
 
     // Init
     checkSession();
+    autoDiscoverLanServerFromCloud();
 
     if (window.Android && window.Android.getAppVersion) {
       try {

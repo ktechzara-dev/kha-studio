@@ -75,6 +75,7 @@ public class LanWebServer
                 IsRunning = true;
                 _cts = new CancellationTokenSource();
                 _ = ListenLoopAsync(_cts.Token);
+                _ = Task.Run(() => BackgroundFirebaseSyncLoopAsync(_cts.Token), _cts.Token);
                 break;
             }
             catch
@@ -104,6 +105,67 @@ public class LanWebServer
             {
                 if (ct.IsCancellationRequested) break;
             }
+        }
+    }
+
+    private async Task BackgroundFirebaseSyncLoopAsync(CancellationToken ct)
+    {
+        using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        const string fbUrl = "https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                // 1. Tự động công bố IP LAN hiện tại lên Firebase để điện thoại kết nối chính xác
+                var ip = GetLocalIpAddress();
+                var lanPayload = JsonSerializer.Serialize(new
+                {
+                    lanUrl = $"http://{ip}:{Port}",
+                    ip = ip,
+                    port = Port,
+                    machineName = Environment.MachineName,
+                    updatedAt = DateTime.UtcNow.ToString("o")
+                });
+
+                using var content = new System.Net.Http.StringContent(lanPayload, Encoding.UTF8, "application/json");
+                await http.PutAsync($"{fbUrl}/lan_server.json", content, ct);
+
+                // 2. Kéo ảnh Timemark từ Firebase Cloud về lưu vào ổ cứng máy tính
+                var mediaRes = await http.GetAsync($"{fbUrl}/projects_media.json", ct);
+                if (mediaRes.IsSuccessStatusCode)
+                {
+                    var mediaJson = await mediaRes.Content.ReadAsStringAsync(ct);
+                    if (!string.IsNullOrWhiteSpace(mediaJson) && mediaJson.Trim() != "null")
+                    {
+                        if (JsonNode.Parse(mediaJson) is JsonObject mediaObj)
+                        {
+                            foreach (var (key, val) in mediaObj)
+                            {
+                                if (val is JsonObject itemNode && itemNode["dataBase64"] != null)
+                                {
+                                    var b64 = itemNode["dataBase64"]?.ToString();
+                                    if (!string.IsNullOrWhiteSpace(b64))
+                                    {
+                                        UploadMediaJson(itemNode.ToJsonString());
+
+                                        // Xóa dataBase64 khỏi Firebase để bảo toàn dung lượng đám mây
+                                        using var patchContent = new System.Net.Http.StringContent("{\"dataBase64\":null,\"syncedToPc\":true}", Encoding.UTF8, "application/json");
+                                        await http.PatchAsync($"{fbUrl}/projects_media/{key}.json", patchContent, ct);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            try
+            {
+                await Task.Delay(15000, ct);
+            }
+            catch { break; }
         }
     }
 
@@ -479,10 +541,12 @@ public class LanWebServer
                     }
                     else
                     {
-                        var data = GetFileContent("cloud_config.json", "{\"cloudUrl\":\"https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app\",\"lanUrl\":\"http://172.27.1.132:5055\",\"autoSync\":true,\"pollIntervalMs\":15000}");
-                        if (string.IsNullOrWhiteSpace(data) || data.Trim() == "{}")
+                        var defaultLanUrl = $"http://{GetLocalIpAddress()}:{Port}";
+                        var defaultData = $"{{\"cloudUrl\":\"https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app\",\"lanUrl\":\"{defaultLanUrl}\",\"autoSync\":true,\"pollIntervalMs\":15000}}";
+                        var data = GetFileContent("cloud_config.json", defaultData);
+                        if (string.IsNullOrWhiteSpace(data) || data.Trim() == "{}" || data.Contains("172.27.1.132"))
                         {
-                            data = "{\"cloudUrl\":\"https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app\",\"lanUrl\":\"http://172.27.1.132:5055\",\"autoSync\":true,\"pollIntervalMs\":15000}";
+                            data = defaultData;
                         }
                         await SendJsonResponseAsync(stream, data);
                         return;
