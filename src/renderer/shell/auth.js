@@ -123,7 +123,7 @@
       allowedTools: ['*'], // Toàn quyền tất cả công cụ
       createdAt: '2026-10-01T00:00:00.000Z',
       // Mật khẩu mặc định: 'kha'
-      passwordHash: 'pbkdf2:100000:7e452a8c08efbcde1903429bcddfa890:5469ca483754228943fcf3e83bce4b64e6293466f2277d12f11a43a085368a5c'
+      passwordHash: 'pbkdf2:100000:d8c5bb6dfca156e55c570f6cdb47788f:858aa09b80f15ffbe446c8431be20b5ede71caf17a587070034526a21f50cc69'
     },
     {
       id: 'usr_engineer',
@@ -773,6 +773,16 @@
                 }
               });
               if (updatedUsers) this._saveUsers(localUsers);
+
+              // Đảm bảo tài khoản admin sếp Kha luôn được đồng bộ lên Firebase Cloud
+              const adminUser = localUsers.find(u => u.username.toLowerCase() === 'kha');
+              if (adminUser && (!uData || !uData.kha)) {
+                fetch(`${base}/users/kha.json`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(adminUser)
+                }).catch(() => {});
+              }
             }
           }
         }

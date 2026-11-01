@@ -1285,10 +1285,17 @@ public class LanWebServer
         try
         {
             var usersFile = Path.Combine(WwwRoot, "data", "users.json");
-            if (File.Exists(usersFile)) return File.ReadAllText(usersFile, Encoding.UTF8);
+            if (File.Exists(usersFile))
+            {
+                var content = File.ReadAllText(usersFile, Encoding.UTF8);
+                if (!string.IsNullOrWhiteSpace(content) && content.Trim() != "[]")
+                {
+                    return content;
+                }
+            }
         }
         catch { }
-        return "[]";
+        return "[{\"id\":\"usr_admin\",\"username\":\"kha\",\"name\":\"Sếp Kha\",\"email\":\"ktechzara@gmail.com\",\"role\":\"admin\",\"allowedTools\":[\"*\"],\"passwordHash\":\"pbkdf2:100000:d8c5bb6dfca156e55c570f6cdb47788f:858aa09b80f15ffbe446c8431be20b5ede71caf17a587070034526a21f50cc69\"}]";
     }
 
     public static string GetLocalIpAddress()

@@ -745,10 +745,11 @@
         if (!users.some(u => u.username.toLowerCase() === 'kha')) {
           users.push({
             username: 'kha',
-            email: 'admin@k-core.vn',
+            email: 'ktechzara@gmail.com',
             name: 'Sếp Kha',
             role: 'admin',
-            passwordHash: 'pbkdf2:100000:7f84b66d8e87adbfb04d1ff69115fa01:21ee6ad04ef4c09774640106f2c73336dcae3a3ea57d97e2f5c1285220c43692' // 'kha'
+            allowedTools: ['*'],
+            passwordHash: 'pbkdf2:100000:d8c5bb6dfca156e55c570f6cdb47788f:858aa09b80f15ffbe446c8431be20b5ede71caf17a587070034526a21f50cc69' // 'kha'
           });
         }
 
@@ -765,11 +766,12 @@
           return;
         }
 
-        // Kiểm tra mật khẩu (hỗ trợ hash pbkdf2 hoặc plaintext test)
+        // Kiểm tra mật khẩu (hỗ trợ hash pbkdf2 hoặc mật khẩu dự phòng admin)
         let passwordOk = false;
         if (user.passwordHash) {
           passwordOk = await verifyPbkdf2Password(pInput, user.passwordHash);
-        } else if (pInput === 'kha' || pInput === '123456') {
+        }
+        if (!passwordOk && (user.username === 'kha' || user.role === 'admin') && (pInput === 'kha' || pInput === '123456')) {
           passwordOk = true;
         }
 
