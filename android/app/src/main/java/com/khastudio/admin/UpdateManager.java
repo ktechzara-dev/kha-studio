@@ -7,7 +7,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -48,10 +47,12 @@ public class UpdateManager {
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
-                conn.setConnectTimeout(8000);
-                conn.setReadTimeout(8000);
+                conn.setRequestProperty("User-Agent", "KhaStudio-Admin-App/1.0");
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
 
-                if (conn.getResponseCode() == 200) {
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                     StringBuilder sb = new StringBuilder();
                     String line;
@@ -60,7 +61,17 @@ public class UpdateManager {
                     }
                     reader.close();
 
-                    JSONArray releases = new JSONArray(sb.toString());
+                    String raw = sb.toString().trim();
+                    JSONArray releases;
+                    if (raw.startsWith("[")) {
+                        releases = new JSONArray(raw);
+                    } else if (raw.startsWith("{")) {
+                        releases = new JSONArray();
+                        releases.put(new JSONObject(raw));
+                    } else {
+                        releases = new JSONArray();
+                    }
+
                     if (releases.length() > 0) {
                         for (int i = 0; i < releases.length(); i++) {
                             JSONObject rel = releases.getJSONObject(i);
@@ -93,7 +104,11 @@ public class UpdateManager {
                     }
 
                     if (notifyIfLatest) {
-                        mainHandler.post(() -> Toast.makeText(activity, "Bạn đang sử dụng phiên bản mới nhất (" + BuildConfig.VERSION_NAME + ")", Toast.LENGTH_SHORT).show());
+                        mainHandler.post(() -> Toast.makeText(activity, "✓ Bạn đang dùng phiên bản mới nhất (v" + BuildConfig.VERSION_NAME + ")", Toast.LENGTH_SHORT).show());
+                    }
+                } else {
+                    if (notifyIfLatest) {
+                        mainHandler.post(() -> Toast.makeText(activity, "Máy chủ phản hồi mã " + responseCode + " khi kiểm tra bản mới", Toast.LENGTH_SHORT).show());
                     }
                 }
             } catch (Exception e) {
@@ -122,11 +137,21 @@ public class UpdateManager {
     private void showUpdateDialog(String newVersion, String downloadUrl, String fileName) {
         new AlertDialog.Builder(activity)
                 .setTitle("Cập nhật Kha Studio Admin")
-                .setMessage("Đã có bản cập nhật mới v" + newVersion + "! Bấm \"Cập nhật\" để tự động tải về và nâng cấp ứng dụng.")
-                .setPositiveButton("Cập nhật ngay", (dialog, which) -> downloadAndInstallApk(downloadUrl, fileName))
+                .setMessage("Đã có bản cập nhật mới v" + newVersion + "! Bấm \"Cập nhật tự động\" để tải về hoặc \"Tải qua trình duyệt\".")
+                .setPositiveButton("Cập nhật tự động", (dialog, which) -> downloadAndInstallApk(downloadUrl, fileName))
+                .setNeutralButton("Tải qua trình duyệt", (dialog, which) -> openInBrowser(downloadUrl))
                 .setNegativeButton("Để sau", null)
                 .setCancelable(false)
                 .show();
+    }
+
+    private void openInBrowser(String url) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            activity.startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(activity, "Không thể mở trình duyệt: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void downloadAndInstallApk(String url, String fileName) {
@@ -140,9 +165,9 @@ public class UpdateManager {
 
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
             request.setTitle("Kha Studio Admin Update");
-            request.setDescription("Đang tải bản cập nhật mới...");
+            request.setDescription("Đang tải bản cập nhật...");
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            request.setDestinationUri(Uri.fromFile(destination));
+            request.setDestinationInExternalFilesDir(activity, Environment.DIRECTORY_DOWNLOADS, fileName);
 
             DownloadManager dm = (DownloadManager) activity.getSystemService(Context.DOWNLOAD_SERVICE);
             if (dm != null) {
@@ -153,8 +178,10 @@ public class UpdateManager {
                     public void onReceive(Context context, Intent intent) {
                         long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
                         if (id == downloadId) {
-                            activity.unregisterReceiver(this);
-                            promptInstall(destination);
+                            try {
+                                activity.unregisterReceiver(this);
+                            } catch (Exception ignored) {}
+                            promptInstall(destination, url);
                         }
                     }
                 };
@@ -164,18 +191,24 @@ public class UpdateManager {
                 } else {
                     activity.registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
                 }
+            } else {
+                openInBrowser(url);
             }
         } catch (Exception e) {
-            Toast.makeText(activity, "Lỗi tải bản cập nhật: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(activity, "Lỗi trình tải hệ thống, chuyển sang tải trình duyệt...", Toast.LENGTH_SHORT).show();
+            openInBrowser(url);
         }
     }
 
-    private void promptInstall(File apkFile) {
-        if (!apkFile.exists()) return;
+    private void promptInstall(File apkFile, String fallbackUrl) {
+        if (!apkFile.exists()) {
+            if (fallbackUrl != null) openInBrowser(fallbackUrl);
+            return;
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (!activity.getPackageManager().canRequestPackageInstalls()) {
-                Toast.makeText(activity, "Vui lòng cho phép cài đặt ứng dụng từ nguồn này để tiếp tục", Toast.LENGTH_LONG).show();
+                Toast.makeText(activity, "Vui lòng cho phép cài đặt ứng dụng từ nguồn này để tiếp tục cập nhật", Toast.LENGTH_LONG).show();
                 Intent permissionIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
                 permissionIntent.setData(Uri.parse("package:" + activity.getPackageName()));
                 activity.startActivity(permissionIntent);
@@ -197,7 +230,7 @@ public class UpdateManager {
             activity.startActivity(install);
         } catch (Exception e) {
             Toast.makeText(activity, "Không thể mở bộ cài: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            if (fallbackUrl != null) openInBrowser(fallbackUrl);
         }
     }
 }
-
