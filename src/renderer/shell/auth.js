@@ -155,6 +155,14 @@
           const users = JSON.parse(raw);
           let changed = false;
           users.forEach(u => {
+            if (u.username === 'kha' && (!u.name || u.name.includes('?') || u.name.includes('\uFFFD'))) {
+              u.name = 'Sếp Kha';
+              changed = true;
+            }
+            if (u.name && (u.name.includes('?') || u.name.includes('\uFFFD'))) {
+              u.name = u.name.replace(/S[\?\uFFFD]p\s*Kha/gi, 'Sếp Kha');
+              changed = true;
+            }
             if (!Array.isArray(u.allowedTools)) {
               u.allowedTools = u.role === 'admin' ? ['*'] : ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'];
               changed = true;
@@ -950,11 +958,16 @@
           this.logout();
           return null;
         }
+        let displayName = user.name || user.username;
+        if (user.username === 'kha' || (displayName && (displayName.includes('?') || displayName.includes('\uFFFD')))) {
+          displayName = (displayName || '').replace(/S[\?\uFFFD]p\s*Kha/gi, 'Sếp Kha');
+          if (!displayName || user.username === 'kha') displayName = 'Sếp Kha';
+        }
         return {
           id: user.id,
           username: user.username,
           email: user.email || '',
-          name: user.name,
+          name: displayName,
           role: user.role,
           allowedTools: user.allowedTools || (user.role === 'admin' ? ['*'] : []),
           createdAt: user.createdAt,

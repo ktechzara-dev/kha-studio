@@ -1306,7 +1306,12 @@ public class LanWebServer
             s = Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
         else
             s = Encoding.UTF8.GetString(bytes);
-        return s.Trim('\uFEFF', (char)65279, ' ', '\r', '\n', '\t');
+        s = s.Trim('\uFEFF', (char)65279, ' ', '\r', '\n', '\t');
+        if (s.Contains("S?p Kha") || s.Contains("S\uFFFDp Kha"))
+        {
+            s = s.Replace("S?p Kha", "S\u1EBFp Kha").Replace("S\uFFFDp Kha", "S\u1EBFp Kha");
+        }
+        return s;
     }
 
     private string GetProjectReportsJson(string code)

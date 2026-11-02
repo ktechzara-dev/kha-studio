@@ -13,6 +13,7 @@
   <script src="shell/registry.js"></script>
   <script src="shell/i18n.js"></script>
   <script src="shell/auth.js"></script>
+  <script src="shell/chat.js"></script>
   <script src="shell/qrcode.min.js"></script>
   <script src="shell/shell.js" defer></script>
 </head>
@@ -87,6 +88,13 @@
           <span class="badge badge-approval" id="approval-badge">0</span>
         </button>
 
+        <!-- Nút Trò chuyện & Theo dõi thành viên Online -->
+        <button class="tb-btn tb-btn-chat" id="btn-open-chat" title="Trò chuyện nhóm & Theo dõi ai đang online" onclick="window.Chat?.toggle()" style="position:relative;">
+          <script>document.write(icon('messageSquare', 16));</script>
+          <span class="online-indicator-dot" id="online-indicator-dot" style="display:none;" title="Có người online"></span>
+          <span class="badge badge-chat" id="chat-badge" style="display:none; background:#ec4899;">0</span>
+        </button>
+
         <button class="tb-btn" id="btn-theme-toggle" data-i18n-title="toggleTheme">
           <script>document.write(icon('sun', 16));</script>
         </button>
@@ -146,6 +154,12 @@
 
         <!-- Sidebar Footer -->
         <div class="sb-foot">
+          <div class="nav-item" id="nav-chat" onclick="window.Chat?.toggle()" title="Trò chuyện nội bộ & Xem online" style="position:relative;">
+            <script>document.write(icon('messageSquare', 18));</script>
+            <span class="label">Trò chuyện</span>
+            <span class="online-indicator-dot" id="sb-online-dot" style="display:none; position:absolute; right:34px; top:13px;" title="Online"></span>
+            <span class="badge" id="sb-chat-badge" style="display:none; position:absolute; right:10px; top:11px; background:#ec4899; font-size:10px; padding:1px 5px;">0</span>
+          </div>
           <div class="nav-item" id="nav-settings">
             <script>document.write(icon('settings', 18));</script>
             <span class="label" data-i18n="settings">Cài đặt</span>
@@ -1150,6 +1164,83 @@
       </footer>
     </div>
   </div>
+
+  <!-- ========================================================================= -->
+  <!-- K-CORE CHAT & ONLINE PRESENCE DRAWER -->
+  <!-- ========================================================================= -->
+  <!-- Nút bong bóng chat nổi ở góc phải dưới -->
+  <button id="floating-chat-bubble" class="floating-chat-bubble" title="Trò chuyện nhóm & Xem ai đang online" onclick="window.Chat?.toggle()">
+    <script>document.write(icon('messageSquare', 20));</script>
+    <span class="floating-chat-pulse"></span>
+    <span class="floating-chat-badge" id="floating-chat-badge" style="display:none;">0</span>
+  </button>
+
+  <!-- Khung Drawer trượt ra từ bên phải -->
+  <aside id="kchat-drawer" class="kchat-drawer">
+    <!-- Header -->
+    <div class="kchat-header">
+      <div class="kchat-header-title">
+        <span class="kchat-header-icon"><script>document.write(icon('messageSquare', 18));</script></span>
+        <div style="display:flex; flex-direction:column;">
+          <span style="font-weight:700; font-size:14px; color:var(--text-1);">K-Core Team Chat</span>
+          <span id="kchat-online-count-lbl" style="font-size:11px; color:#10b981; font-weight:600;">0 Online</span>
+        </div>
+      </div>
+      <div class="kchat-header-actions">
+        <button class="kchat-tool-btn" title="Làm mới tin nhắn" onclick="window.Chat?.fetchMessages(); window.Chat?.fetchPresence();">
+          <script>document.write(icon('refresh', 14));</script>
+        </button>
+        <button class="kchat-tool-btn close-btn" title="Đóng khung chat (Esc)" onclick="window.Chat?.close()">
+          <script>document.write(icon('x', 16));</script>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs chuyển đổi giữa Tin nhắn và Hiện diện online -->
+    <div class="kchat-tabs">
+      <button id="kchat-tab-btn-chat" class="kchat-tab-btn active" onclick="window.Chat?.setTab('chat')">
+        <script>document.write(icon('messageSquare', 14));</script>
+        <span>Trò chuyện</span>
+      </button>
+      <button id="kchat-tab-btn-presence" class="kchat-tab-btn" onclick="window.Chat?.setTab('presence')">
+        <script>document.write(icon('users', 14));</script>
+        <span>Đang Online</span>
+      </button>
+    </div>
+
+    <!-- View 1: Trò chuyện (Chat Tab) -->
+    <div id="kchat-view-chat" class="kchat-view-chat">
+      <!-- Quick Chips: Gửi tin mẫu 1 chạm -->
+      <div class="kchat-quick-chips">
+        <button class="kchat-chip" onclick="window.Chat?.sendQuick('👍 Đã nhận thông tin!')">👍 Đã nhận</button>
+        <button class="kchat-chip" onclick="window.Chat?.sendQuick('🚀 Tiến độ thi công đang diễn ra bình thường')">🚀 Tiến độ OK</button>
+        <button class="kchat-chip" onclick="window.Chat?.sendQuick('⚠️ Cần hỗ trợ kỹ thuật tại hiện trường!')">⚠️ Cần hỗ trợ</button>
+        <button class="kchat-chip" onclick="window.Chat?.sendQuick('📸 Đã chụp ảnh Timemark mới gửi về dự án')">📸 Đã up ảnh</button>
+      </div>
+
+      <!-- Danh sách tin nhắn cuộn -->
+      <div id="kchat-messages-container" class="kchat-messages-container"></div>
+
+      <!-- Khung nhập tin nhắn -->
+      <form class="kchat-input-bar" onsubmit="event.preventDefault(); const inp = document.getElementById('kchat-input'); if (inp && inp.value.trim()) { window.Chat?.sendMessage(inp.value); inp.value = ''; }">
+        <input type="text" id="kchat-input" class="kchat-input" placeholder="Nhập tin nhắn… (@tag tên, link URL)" autocomplete="off">
+        <button type="submit" id="kchat-btn-send" class="kchat-btn-send" title="Gửi tin nhắn (Enter)">
+          <script>document.write(icon('send', 16));</script>
+        </button>
+      </form>
+    </div>
+
+    <!-- View 2: Danh sách thành viên Online / Offline (Presence Tab) -->
+    <div id="kchat-view-presence" class="kchat-view-presence" style="display:none;">
+      <div style="padding:10px 14px 6px; font-size:11.5px; color:var(--text-3); display:flex; justify-content:space-between; align-items:center;">
+        <span>THÀNH VIÊN TRONG HỆ THỐNG</span>
+        <button onclick="window.Chat?.fetchPresence()" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:11px; display:flex; align-items:center; gap:3px;">
+          <script>document.write(icon('refresh', 11));</script> Cập nhật
+        </button>
+      </div>
+      <div id="kchat-presence-list" class="kchat-presence-list"></div>
+    </div>
+  </aside>
 
   <!-- Nút nổi cuộn lên đầu trang -->
   <button id="btn-back-to-top" class="back-to-top" title="Cuộn lên đầu trang" aria-label="Cuộn lên đầu trang">

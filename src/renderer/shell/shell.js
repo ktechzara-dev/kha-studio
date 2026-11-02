@@ -1572,9 +1572,12 @@
     const menuManageUsers = document.getElementById('btn-menu-manage-users');
     const menuPendingApprovals = document.getElementById('btn-menu-pending-approvals');
 
-    const initial = (user.name || user.username || 'U').trim().charAt(0).toUpperCase();
+    const finalDisplayName = (user.username === 'kha' || (user.name && (user.name.includes('?') || user.name.includes('\uFFFD'))))
+      ? 'Sếp Kha'
+      : (user.name || user.username);
+    const initial = finalDisplayName.trim().charAt(0).toUpperCase();
     if (avatarEl) avatarEl.textContent = initial;
-    if (nameEl) nameEl.textContent = user.name || user.username;
+    if (nameEl) nameEl.textContent = finalDisplayName;
     if (roleEl) {
       if (user.role === 'admin') {
         roleEl.textContent = 'ADMIN';
@@ -1584,7 +1587,7 @@
         roleEl.className = 'user-role-badge';
       }
     }
-    if (menuFullName) menuFullName.textContent = user.name || user.username;
+    if (menuFullName) menuFullName.textContent = finalDisplayName;
     if (menuRoleDesc) {
       menuRoleDesc.textContent = user.role === 'admin'
         ? 'Quản trị viên hệ thống (Administrator)'

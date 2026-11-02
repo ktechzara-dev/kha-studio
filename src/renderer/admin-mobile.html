@@ -499,6 +499,57 @@
       </div>
     </section>
 
+    <!-- TAB 3b: TRÒ CHUYỆN & THEO DÕI ONLINE -->
+    <section class="tab-content" id="tab-chat">
+      <div class="sec-header" style="justify-content:space-between; align-items:center; display:flex;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="sec-title" style="margin:0;">Trò Chuyện Kỹ Thuật</span>
+          <span id="mchat-online-badge" style="font-size:11px; background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:10px; font-weight:700;">0 Online</span>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm" onclick="switchChatSubTab('messages')" id="mchat-btn-sub-msg" style="padding:4px 8px; font-size:11px; background:var(--accent); color:#fff; border:none; border-radius:6px;">💬 Chat</button>
+          <button class="btn btn-sm" onclick="switchChatSubTab('presence')" id="mchat-btn-sub-pres" style="padding:4px 8px; font-size:11px; background:rgba(255,255,255,0.08); color:var(--text); border:none; border-radius:6px;">🟢 Online</button>
+        </div>
+      </div>
+
+      <!-- Khung phụ: Danh sách Online -->
+      <div id="mchat-view-presence" style="display:none; margin-bottom:12px;">
+        <div class="card" style="padding:12px;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-dim); margin-bottom:8px; display:flex; justify-content:space-between;">
+            <span>THÀNH VIÊN TRỰC TUYẾN</span>
+            <span onclick="fetchMobilePresence()" style="color:var(--accent); cursor:pointer;">🔄 Cập nhật</span>
+          </div>
+          <div id="mchat-presence-list" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- Render presence -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Khung phụ: Tin nhắn -->
+      <div id="mchat-view-messages">
+        <!-- Quick Chips -->
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:8px; scrollbar-width:none;">
+          <button class="btn" style="padding:4px 10px; font-size:11px; border-radius:14px; white-space:nowrap; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text);" onclick="sendMobileQuick('👍 Đã nhận thông tin!')">👍 Đã nhận</button>
+          <button class="btn" style="padding:4px 10px; font-size:11px; border-radius:14px; white-space:nowrap; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text);" onclick="sendMobileQuick('🚀 Tiến độ thi công đang diễn ra bình thường')">🚀 Tiến độ OK</button>
+          <button class="btn" style="padding:4px 10px; font-size:11px; border-radius:14px; white-space:nowrap; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text);" onclick="sendMobileQuick('⚠️ Cần hỗ trợ kỹ thuật tại hiện trường!')">⚠️ Cần hỗ trợ</button>
+          <button class="btn" style="padding:4px 10px; font-size:11px; border-radius:14px; white-space:nowrap; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text);" onclick="sendMobileQuick('📸 Đã gửi ảnh Timemark mới!')">📸 Đã gửi ảnh</button>
+        </div>
+
+        <!-- Khung danh sách tin nhắn cuộn -->
+        <div id="mchat-messages-container" style="background:#0d1117; border:1px solid var(--border); border-radius:10px; height:360px; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; margin-bottom:10px;">
+          <!-- Render messages -->
+        </div>
+
+        <!-- Form nhập tin nhắn -->
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="mchat-input" class="form-input" placeholder="Nhập tin nhắn trao đổi…" style="flex:1;" onkeydown="if(event.key==='Enter') sendMobileChat()">
+          <button class="btn btn-approve" onclick="sendMobileChat()" style="width:48px; padding:0; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- TAB 4: CHỜ DUYỆT (CHỈ ADMIN THẤY) -->
     <section class="tab-content" id="tab-pending">
       <div class="sec-header">
@@ -590,6 +641,11 @@
     <button class="nav-btn" id="nav-btn-reports" onclick="switchTab('reports')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       <span>Báo cáo</span>
+    </button>
+    <button class="nav-btn" id="nav-btn-chat" onclick="switchTab('chat')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Trò chuyện</span>
+      <span class="nav-badge" id="nav-chat-badge" style="display:none; background:#ec4899;">0</span>
     </button>
     <!-- 2 nút sau CHỈ HIỆN VỚI ADMIN -->
     <button class="nav-btn" id="nav-btn-pending" onclick="switchTab('pending')" style="display:none;">
@@ -890,6 +946,12 @@
         loadProjectsIntoCameraSelect();
       } else if (tabId === 'reports') {
         loadProjectsIntoReportSelect();
+      } else if (tabId === 'chat') {
+        mobileUnreadChat = 0;
+        const navBadge = document.getElementById('nav-chat-badge');
+        if (navBadge) navBadge.style.display = 'none';
+        fetchMobileMessages();
+        fetchMobilePresence();
       }
     }
 
@@ -1589,8 +1651,260 @@
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    // ==========================================
+    // 7. REALTIME TEAM CHAT & PRESENCE (MOBILE)
+    // ==========================================
+    let mobileMessages = [];
+    let mobilePresenceMap = {};
+    let mobileUnreadChat = 0;
+    let mobileChatSubTab = 'messages';
+    let mobileLastMsgKey = null;
+
+    async function sendMobileHeartbeat() {
+      if (!currentUser || !currentUser.username) return;
+      const cfg = getConfig();
+      if (!cfg.firebaseUrl) return;
+      const base = cfg.firebaseUrl.replace(/\/+$/, '');
+      const safeKey = currentUser.username.replace(/\./g, '_');
+      const payload = {
+        username: currentUser.username,
+        name: currentUser.name || currentUser.username,
+        role: currentUser.role || 'engineer',
+        platform: 'mobile',
+        lastSeen: new Date().toISOString(),
+        isOnline: true
+      };
+      try {
+        await fetch(`${base}/presence/${safeKey}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (_) {}
+    }
+
+    async function fetchMobilePresence() {
+      const cfg = getConfig();
+      if (!cfg.firebaseUrl) return;
+      const base = cfg.firebaseUrl.replace(/\/+$/, '');
+      try {
+        const res = await fetch(`${base}/presence.json`).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json();
+          mobilePresenceMap = data || {};
+          renderMobilePresence();
+        }
+      } catch (_) {}
+    }
+
+    function renderMobilePresence() {
+      const listEl = document.getElementById('mchat-presence-list');
+      const badgeEl = document.getElementById('mchat-online-badge');
+      if (!listEl) return;
+
+      const now = Date.now();
+      const users = Object.values(mobilePresenceMap || {}).map(u => {
+        const lastSeenMs = u.lastSeen ? new Date(u.lastSeen).getTime() : 0;
+        const isOnline = (now - lastSeenMs) < 75000;
+        return { ...u, isOnline, lastSeenMs };
+      });
+
+      users.sort((a, b) => {
+        if (a.isOnline !== b.isOnline) return b.isOnline ? 1 : -1;
+        return (a.name || a.username).localeCompare(b.name || b.username);
+      });
+
+      const onlineCount = users.filter(u => u.isOnline).length;
+      if (badgeEl) badgeEl.textContent = `${onlineCount} Online`;
+
+      if (!users.length) {
+        listEl.innerHTML = '<div style="color:var(--text-dim); font-size:12px; text-align:center; padding:12px;">Chưa có dữ liệu thành viên</div>';
+        return;
+      }
+
+      listEl.innerHTML = users.map(u => {
+        const isMe = currentUser && (u.username === currentUser.username);
+        const isAdm = u.role === 'admin' || u.username === 'kha';
+        const roleLbl = isAdm ? '👑 Admin' : '👷 Kỹ sư';
+        const platLbl = u.platform === 'mobile' ? '📱 Mobile' : '💻 PC';
+        const initial = (u.name || u.username || 'U').charAt(0).toUpperCase();
+
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:8px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid ${u.isOnline ? 'rgba(16,185,129,0.3)' : 'var(--border)'};">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="position:relative; width:32px; height:32px; border-radius:50%; background:#334155; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; font-size:12px;">
+                ${initial}
+                <span style="position:absolute; bottom:0; right:0; width:9px; height:9px; border-radius:50%; background:${u.isOnline ? '#10b981' : '#64748b'}; border:2px solid #0d1117;"></span>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:var(--text);">
+                  ${escapeHtml(u.name || u.username)} ${isMe ? '<small style="color:var(--accent);">(Tôi)</small>' : ''}
+                </div>
+                <div style="font-size:11px; color:var(--text-dim);">
+                  ${roleLbl} &bull; ${platLbl}
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="tagMobileUser('${escapeHtml(u.name || u.username)}')">💬 Nhắn</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function tagMobileUser(name) {
+      switchChatSubTab('messages');
+      const inp = document.getElementById('mchat-input');
+      if (inp) {
+        inp.value = inp.value.trim() ? `${inp.value.trim()} @${name} ` : `@${name} `;
+        inp.focus();
+      }
+    }
+
+    async function fetchMobileMessages() {
+      const cfg = getConfig();
+      if (!cfg.firebaseUrl) return;
+      const base = cfg.firebaseUrl.replace(/\/+$/, '');
+      try {
+        const res = await fetch(`${base}/team_messages.json?limitToLast=50`).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json();
+          if (data && typeof data === 'object') {
+            const list = Object.entries(data).map(([key, v]) => ({ key, ...v }));
+            list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+
+            // Kiểm tra tin nhắn mới để phát chuông nếu đang ở tab khác
+            if (mobileLastMsgKey && list.length > 0) {
+              const last = list[list.length - 1];
+              if (last.key !== mobileLastMsgKey && last.username !== currentUser?.username) {
+                const navBadge = document.getElementById('nav-chat-badge');
+                if (navBadge) {
+                  mobileUnreadChat++;
+                  navBadge.textContent = mobileUnreadChat;
+                  navBadge.style.display = 'block';
+                }
+                playDing();
+                if (window.Android && window.Android.showNotification) {
+                  window.Android.showNotification(`Tin nhắn từ ${last.senderName || last.username}`, last.text || '', 1);
+                }
+              }
+            }
+
+            if (list.length > 0) {
+              mobileLastMsgKey = list[list.length - 1].key;
+            }
+
+            mobileMessages = list;
+            renderMobileMessages();
+          }
+        }
+      } catch (_) {}
+    }
+
+    function renderMobileMessages() {
+      const container = document.getElementById('mchat-messages-container');
+      if (!container) return;
+
+      if (!mobileMessages.length) {
+        container.innerHTML = '<div style="color:var(--text-dim); text-align:center; margin:auto; font-size:12px;">Chưa có tin nhắn nào. Bắt đầu trò chuyện ngay!</div>';
+        return;
+      }
+
+      const curUname = (currentUser?.username || '').toLowerCase();
+      container.innerHTML = mobileMessages.map(m => {
+        const isMe = (m.username || '').toLowerCase() === curUname;
+        const isAdm = m.role === 'admin' || (m.username || '').toLowerCase() === 'kha';
+        const roleBadge = isAdm ? '👑' : '👷';
+        const platBadge = m.platform === 'mobile' ? '📱' : '💻';
+
+        return `
+          <div style="display:flex; flex-direction:column; align-items:${isMe ? 'flex-end' : 'flex-start'}; max-width:85%; align-self:${isMe ? 'flex-end' : 'flex-start'};">
+            ${!isMe ? `
+              <div style="font-size:10.5px; color:var(--text-dim); margin-bottom:2px; display:flex; align-items:center; gap:4px;">
+                <strong style="color:var(--text);">${escapeHtml(m.senderName || m.username)}</strong>
+                <span>${roleBadge}</span>
+                <span>${platBadge}</span>
+              </div>
+            ` : ''}
+            <div style="background:${isMe ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : '#1e293b'}; color:#fff; padding:8px 12px; border-radius:12px; font-size:12.5px; border-top-${isMe ? 'right' : 'left'}-radius:2px; word-break:break-word; border:1px solid rgba(255,255,255,0.05);">
+              <div>${escapeHtml(m.text || '')}</div>
+              <div style="font-size:9px; opacity:0.75; text-align:right; margin-top:3px;">${escapeHtml(m.timestamp || '')}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendMobileChat() {
+      const inp = document.getElementById('mchat-input');
+      if (!inp || !inp.value.trim()) return;
+      const text = inp.value.trim();
+      inp.value = '';
+      await sendMobileMessageObj(text);
+    }
+
+    async function sendMobileQuick(text) {
+      await sendMobileMessageObj(text);
+    }
+
+    async function sendMobileMessageObj(text) {
+      if (!currentUser) return;
+      const cfg = getConfig();
+      if (!cfg.firebaseUrl) return;
+      const base = cfg.firebaseUrl.replace(/\/+$/, '');
+
+      const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      const msgObj = {
+        id: 'msg_' + Date.now().toString(36),
+        username: currentUser.username,
+        senderName: currentUser.name || currentUser.username,
+        role: currentUser.role || 'engineer',
+        platform: 'mobile',
+        text: text,
+        timestamp: timeStr,
+        createdAt: new Date().toISOString()
+      };
+
+      mobileMessages.push(msgObj);
+      renderMobileMessages();
+
+      try {
+        await fetch(`${base}/team_messages.json`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(msgObj)
+        });
+      } catch (_) {}
+    }
+
+    function switchChatSubTab(sub) {
+      mobileChatSubTab = sub;
+      const vMsg = document.getElementById('mchat-view-messages');
+      const vPres = document.getElementById('mchat-view-presence');
+      const btnMsg = document.getElementById('mchat-btn-sub-msg');
+      const btnPres = document.getElementById('mchat-btn-sub-pres');
+
+      if (sub === 'messages') {
+        if (vMsg) vMsg.style.display = 'block';
+        if (vPres) vPres.style.display = 'none';
+        if (btnMsg) { btnMsg.style.background = 'var(--accent)'; btnMsg.style.color = '#fff'; }
+        if (btnPres) { btnPres.style.background = 'rgba(255,255,255,0.08)'; btnPres.style.color = 'var(--text)'; }
+        renderMobileMessages();
+      } else {
+        if (vMsg) vMsg.style.display = 'none';
+        if (vPres) vPres.style.display = 'block';
+        if (btnMsg) { btnMsg.style.background = 'rgba(255,255,255,0.08)'; btnMsg.style.color = 'var(--text)'; }
+        if (btnPres) { btnPres.style.background = 'var(--accent)'; btnPres.style.color = '#fff'; }
+        fetchMobilePresence();
+      }
+    }
+
     // Polling & SSE
     setInterval(refreshData, 15000);
+    setInterval(sendMobileHeartbeat, 25000);
+    setInterval(fetchMobileMessages, 4000);
+    setInterval(fetchMobilePresence, 20000);
 
     // Init
     checkSession();
