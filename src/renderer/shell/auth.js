@@ -772,7 +772,10 @@
                   }
                 }
               });
-              if (updatedUsers) this._saveUsers(localUsers);
+              if (updatedUsers) {
+                this._saveUsers(localUsers);
+                window.dispatchEvent(new CustomEvent('ks:auth:users_synced', { detail: { users: localUsers } }));
+              }
 
               // Đảm bảo tài khoản admin sếp Kha luôn được đồng bộ lên Firebase Cloud
               const adminUser = localUsers.find(u => u.username.toLowerCase() === 'kha');
@@ -785,6 +788,51 @@
               }
             }
           }
+
+          // Kiểm tra các tài khoản đã approved trong registrations.json
+          networkList.forEach(item => {
+            if (item && item.status === 'approved' && item.username) {
+              const localUsers = this.getUsers();
+              if (!localUsers.some(u => u.username.toLowerCase() === item.username.toLowerCase())) {
+                localUsers.push({
+                  id: item.id || `usr_${item.username}`,
+                  username: item.username,
+                  name: item.name || item.username,
+                  email: item.email || '',
+                  role: item.role || 'engineer',
+                  department: item.department || '',
+                  phone: item.phone || '',
+                  allowedTools: item.allowedTools || ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
+                  passwordHash: item.passwordHash || '',
+                  createdAt: item.approvedAt || item.requestedAt || new Date().toISOString()
+                });
+                this._saveUsers(localUsers);
+                window.dispatchEvent(new CustomEvent('ks:auth:users_synced', { detail: { users: localUsers } }));
+              }
+            }
+          });
+
+          // Đồng bộ bổ sung từ LAN Server nếu có
+          try {
+            const lanRes = await fetch('/api/auth/users').catch(() => null);
+            if (lanRes && lanRes.ok) {
+              const lanUsers = await lanRes.json();
+              if (Array.isArray(lanUsers)) {
+                const localUsers = this.getUsers();
+                let hasNew = false;
+                lanUsers.forEach(lu => {
+                  if (lu && lu.username && !localUsers.some(u => u.username.toLowerCase() === lu.username.toLowerCase())) {
+                    localUsers.push(lu);
+                    hasNew = true;
+                  }
+                });
+                if (hasNew) {
+                  this._saveUsers(localUsers);
+                  window.dispatchEvent(new CustomEvent('ks:auth:users_synced', { detail: { users: localUsers } }));
+                }
+              }
+            }
+          } catch (_) {}
         }
       } catch (_) {}
 

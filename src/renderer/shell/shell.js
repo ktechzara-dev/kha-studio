@@ -1965,6 +1965,28 @@
     if (btnCloseUserModal) btnCloseUserModal.onclick = closeUserModal;
     if (btnCancelUserModal) btnCancelUserModal.onclick = closeUserModal;
     if (btnOpenAddUser) btnOpenAddUser.onclick = () => window.openUserModal();
+
+    const btnSyncCloudUsers = document.getElementById('btn-sync-cloud-users');
+    if (btnSyncCloudUsers) {
+      btnSyncCloudUsers.onclick = async () => {
+        btnSyncCloudUsers.disabled = true;
+        btnSyncCloudUsers.innerHTML = `${icon('refresh', 14, 'spin')} <span>Đang đồng bộ…</span>`;
+        try {
+          await window.Auth.fetchNetworkPendingRequests();
+          renderUserManagementTable();
+          const uCount = window.Auth.getUsers().length;
+          notify('Đã đồng bộ tài khoản', `Đã đồng bộ ${uCount} tài khoản từ Firebase Cloud thành công!`, 'success');
+        } catch (err) {
+          notify('Lỗi đồng bộ', err.message, 'error');
+        }
+        btnSyncCloudUsers.disabled = false;
+        btnSyncCloudUsers.innerHTML = `${icon('refresh', 14)} <span>Đồng bộ từ Cloud</span>`;
+      };
+    }
+
+    window.addEventListener('ks:auth:users_synced', () => {
+      renderUserManagementTable();
+    });
     if (btnMenuManageUsers) {
       btnMenuManageUsers.onclick = () => {
         if (userDropdown) userDropdown.hidden = true;

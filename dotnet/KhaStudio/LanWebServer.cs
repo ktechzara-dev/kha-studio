@@ -272,6 +272,46 @@ public class LanWebServer
                         }
                     }
                 }
+
+                // 4. Kéo danh sách Users từ Firebase Cloud về lưu bền vững
+                var usersRes = await http.GetAsync($"{fbUrl}/users.json", ct);
+                if (usersRes.IsSuccessStatusCode)
+                {
+                    var uJson = await usersRes.Content.ReadAsStringAsync(ct);
+                    if (!string.IsNullOrWhiteSpace(uJson) && uJson.Trim() != "null")
+                    {
+                        if (JsonNode.Parse(uJson) is JsonObject uObj)
+                        {
+                            var uList = new JsonArray();
+                            foreach (var (_, val) in uObj)
+                            {
+                                if (val is JsonObject uNode)
+                                {
+                                    var uName = (uNode["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
+                                    if (!string.IsNullOrWhiteSpace(uName))
+                                    {
+                                        if (uName == "kha") uNode["name"] = "S\u1EBFp Kha";
+                                        else if (uName == "duyen") uNode["name"] = "Duy\u00EAn";
+                                        else if (uName == "duyen1") uNode["name"] = "Duy\u00EAn 1";
+                                        else if (uName == "dieu") uNode["name"] = "Di\u1EC7u";
+                                        else if (uName == "kiet.dt") uNode["name"] = "\u0110\u1ED7 Tu\u1EA5n Ki\u1EC7t";
+                                        uList.Add(uNode.DeepClone());
+                                    }
+                                }
+                            }
+                            if (uList.Count > 0)
+                            {
+                                var persistentUserFile = Path.Combine(UserDataDir, "users.json");
+                                File.WriteAllText(persistentUserFile, uList.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+
+                                var wwwDataDir = Path.Combine(WwwRoot, "data");
+                                if (!Directory.Exists(wwwDataDir)) Directory.CreateDirectory(wwwDataDir);
+                                var wwwUserFile = Path.Combine(wwwDataDir, "users.json");
+                                File.WriteAllText(wwwUserFile, uList.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+                            }
+                        }
+                    }
+                }
             }
             catch { }
 
@@ -1469,8 +1509,16 @@ public class LanWebServer
     {
         try
         {
+            var pFileInPersistent = Path.Combine(UserDataDir, "pending_users.json");
+            if (File.Exists(pFileInPersistent))
+            {
+                var content = ReadTextWithoutBom(pFileInPersistent);
+                if (!string.IsNullOrWhiteSpace(content) && content.Trim() != "[]")
+                    return content;
+            }
+
             var file = Path.Combine(WwwRoot, "data", "pending_users.json");
-            if (File.Exists(file)) return File.ReadAllText(file, Encoding.UTF8);
+            if (File.Exists(file)) return ReadTextWithoutBom(file);
         }
         catch { }
         return "[]";
@@ -1672,10 +1720,18 @@ public class LanWebServer
     {
         try
         {
+            var userFileInPersistent = Path.Combine(UserDataDir, "users.json");
+            if (File.Exists(userFileInPersistent))
+            {
+                var content = ReadTextWithoutBom(userFileInPersistent);
+                if (!string.IsNullOrWhiteSpace(content) && content.Trim() != "[]")
+                    return content;
+            }
+
             var usersFile = Path.Combine(WwwRoot, "data", "users.json");
             if (File.Exists(usersFile))
             {
-                var content = File.ReadAllText(usersFile, Encoding.UTF8);
+                var content = ReadTextWithoutBom(usersFile);
                 if (!string.IsNullOrWhiteSpace(content) && content.Trim() != "[]")
                 {
                     return content;
