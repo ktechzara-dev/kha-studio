@@ -1920,12 +1920,9 @@
     // QUẢN LÝ PHIÊN LÀM VIỆC & PHÂN QUYỀN HIỆN TRƯỜNG (USER SESSION & SITE LOG RBAC)
     let currentUserSession = null;
     let isAdmin = true; // Mặc định sếp Kha là Admin
-    let selectedUserFilter = 'all'; // 'all' hoặc username: 'kha', 'duyen', 'duyen1', 'dieu'
+    let selectedUserFilter = 'all'; // 'all' hoặc username
     let registeredUsers = [
-      { username: 'kha', name: 'Sếp Kha', role: 'admin' },
-      { username: 'duyen', name: 'Duyên', role: 'engineer' },
-      { username: 'duyen1', name: 'Duyên 1', role: 'engineer' },
-      { username: 'dieu', name: 'Diệu', role: 'engineer' }
+      { username: 'kha', name: 'Sếp Kha', role: 'admin' }
     ];
 
     function initUserSession() {
@@ -1973,6 +1970,28 @@
 
     async function loadRegisteredUsers() {
       try {
+        // Lấy danh sách tài khoản đã xóa vĩnh viễn để loại trừ
+        let deletedUsers = [];
+        try {
+          const delRes = await fetch(`${FIREBASE_URL}/deleted_users.json`).catch(() => null);
+          if (delRes && delRes.ok) {
+            const delData = await delRes.json();
+            if (delData && typeof delData === 'object') {
+              deletedUsers = Object.keys(delData).map(k => k.replace(/_/g, '.').toLowerCase());
+            }
+          }
+        } catch (_) {}
+
+        try {
+          const rawDel = localStorage.getItem('ks_deleted_users');
+          if (rawDel) {
+            const localDel = JSON.parse(rawDel);
+            if (Array.isArray(localDel)) {
+              deletedUsers = Array.from(new Set([...deletedUsers, ...localDel.map(x => String(x).toLowerCase())]));
+            }
+          }
+        } catch (_) {}
+
         const res = await fetch(`${FIREBASE_URL}/users.json`).catch(() => null);
         if (res && res.ok) {
           const data = await res.json();
@@ -1980,11 +1999,14 @@
             const list = [];
             for (const [uname, u] of Object.entries(data)) {
               if (u) {
-                list.push({
-                  username: u.username || uname,
-                  name: fixViText(u.name || uname),
-                  role: u.role || 'engineer'
-                });
+                const cleanUname = (u.username || uname).toLowerCase();
+                if (!deletedUsers.includes(cleanUname)) {
+                  list.push({
+                    username: u.username || uname,
+                    name: fixViText(u.name || uname),
+                    role: u.role || 'engineer'
+                  });
+                }
               }
             }
             if (list.length > 0) {
@@ -2004,13 +2026,18 @@
       const u = (item.username || '').toLowerCase().trim();
       if (u && u === target) return true;
 
-      const reporter = (item.reporter || item.capturedBy || item.authorName || '').toLowerCase();
+      const reporter = (item.reporter || item.capturedBy || item.authorName || '').toLowerCase().trim();
       if (target === 'kha' && (reporter.includes('kha') || u === 'kha')) return true;
-      if (target === 'duyen1' && (reporter.includes('duyên 1') || reporter.includes('duyen 1') || u === 'duyen1')) return true;
-      if (target === 'duyen' && (reporter.includes('duyên') || reporter.includes('duyen')) && !reporter.includes('1') && u !== 'duyen1') return true;
-      if (target === 'dieu' && (reporter.includes('diệu') || reporter.includes('dieu') || u === 'dieu')) return true;
+      if (reporter && (reporter === target || reporter.includes(`@${target}`))) return true;
 
-      return u === target || reporter.includes(target);
+      // Tìm theo tên hiển thị
+      const regUser = registeredUsers.find(r => (r.username || '').toLowerCase() === target);
+      if (regUser && regUser.name) {
+        const targetName = regUser.name.toLowerCase().trim();
+        if (reporter === targetName || reporter.includes(targetName) || targetName.includes(reporter)) return true;
+      }
+
+      return false;
     }
 
     function updateUserFilterBar() {
@@ -2018,10 +2045,18 @@
       const pillsContainer = document.getElementById('user-filter-pills');
       if (!select || !pillsContainer) return;
 
+      let deletedUsers = [];
+      try {
+        const rawDel = localStorage.getItem('ks_deleted_users');
+        if (rawDel) deletedUsers = JSON.parse(rawDel).map(x => String(x).toLowerCase());
+      } catch (_) {}
+
       const userMap = new Map();
       registeredUsers.forEach(u => {
-        const isAdm = u.role === 'admin' || u.username === 'kha' || (u.name && u.name.toLowerCase().includes('kha'));
-        userMap.set(u.username.toLowerCase(), {
+        const uName = (u.username || '').toLowerCase();
+        if (deletedUsers.includes(uName)) return; // Bỏ qua nếu đã xóa vĩnh viễn
+        const isAdm = u.role === 'admin' || uName === 'kha' || (u.name && u.name.toLowerCase().includes('kha'));
+        userMap.set(uName, {
           username: u.username,
           name: isAdm ? 'Sếp Kha' : fixViText(u.name || u.username),
           role: isAdm ? 'admin' : (u.role || 'engineer'),
@@ -2030,11 +2065,11 @@
         });
       });
 
-      // Bổ sung user xuất hiện từ ảnh hoặc báo cáo nếu chưa có trong bảng
+      // Bổ sung user xuất hiện từ ảnh hoặc báo cáo nếu chưa có trong bảng (chỉ bổ sung nếu không bị xóa)
       currentMediaList.forEach(m => {
         const isAdm = itemMatchesUser(m, 'kha') || m.username === 'kha' || (m.capturedBy && m.capturedBy.toLowerCase().includes('kha'));
-        const u = (m.username || '').toLowerCase() || (isAdm ? 'kha' : 'engineer');
-        if (!userMap.has(u) && u) {
+        const u = (m.username || '').toLowerCase();
+        if (u && !deletedUsers.includes(u) && !userMap.has(u)) {
           userMap.set(u, {
             username: u,
             name: isAdm ? 'Sếp Kha' : fixViText(m.capturedBy || u),
@@ -2046,8 +2081,8 @@
       });
       currentReportsList.forEach(r => {
         const isAdm = itemMatchesUser(r, 'kha') || r.username === 'kha' || (r.reporter && r.reporter.toLowerCase().includes('kha'));
-        const u = (r.username || '').toLowerCase() || (isAdm ? 'kha' : 'engineer');
-        if (!userMap.has(u) && u) {
+        const u = (r.username || '').toLowerCase();
+        if (u && !deletedUsers.includes(u) && !userMap.has(u)) {
           userMap.set(u, {
             username: u,
             name: isAdm ? 'Sếp Kha' : fixViText(r.reporter || u),

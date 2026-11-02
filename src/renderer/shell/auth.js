@@ -12,6 +12,7 @@
   const STORAGE_PENDING_KEY = 'ks_pending_requests';
   const STORAGE_MY_REG_KEY = 'ks_my_registration';
   const STORAGE_CLOUD_CONFIG_KEY = 'ks_auth_cloud_config';
+  const STORAGE_DELETED_USERS_KEY = 'ks_deleted_users';
   const PBKDF2_ITERATIONS = 100000;
 
   // Âm thanh chuông thông báo (Web Audio API ding-dong)
@@ -148,12 +149,19 @@
     _init() {
       // Khởi tạo bảng users nếu chưa có
       try {
+        const deleted = this.getDeletedUsers();
         const raw = localStorage.getItem(STORAGE_USERS_KEY);
         if (!raw) {
           localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(INITIAL_USERS));
         } else {
-          const users = JSON.parse(raw);
+          let users = JSON.parse(raw);
           let changed = false;
+
+          // Lọc bỏ bất kỳ user nào trong danh sách đã xóa vĩnh viễn
+          const beforeLen = users.length;
+          users = users.filter(u => u && u.username && (u.username.toLowerCase() === 'kha' || !deleted.includes(u.username.toLowerCase().trim())));
+          if (users.length !== beforeLen) changed = true;
+
           users.forEach(u => {
             if (u.username === 'kha' && (!u.name || u.name.includes('?') || u.name.includes('\uFFFD'))) {
               u.name = 'Sếp Kha';
@@ -191,18 +199,54 @@
       this.fetchServerCloudConfig().catch(() => {});
     }
 
+    getDeletedUsers() {
+      try {
+        const raw = localStorage.getItem(STORAGE_DELETED_USERS_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    addDeletedUser(username) {
+      if (!username) return;
+      const u = username.toLowerCase().trim();
+      if (u === 'kha') return;
+      const list = this.getDeletedUsers();
+      if (!list.includes(u)) {
+        list.push(u);
+        try {
+          localStorage.setItem(STORAGE_DELETED_USERS_KEY, JSON.stringify(list));
+        } catch (_) {}
+      }
+    }
+
+    isUserDeleted(username) {
+      if (!username) return false;
+      const u = username.toLowerCase().trim();
+      if (u === 'kha') return false;
+      return this.getDeletedUsers().includes(u);
+    }
+
     getUsers() {
       try {
         const raw = localStorage.getItem(STORAGE_USERS_KEY);
         const users = raw ? JSON.parse(raw) : [...INITIAL_USERS];
+        const deleted = this.getDeletedUsers();
+        const validUsers = [];
         users.forEach(u => {
+          if (!u || !u.username) return;
+          const uname = u.username.toLowerCase().trim();
+          if (uname !== 'kha' && deleted.includes(uname)) return; // Bỏ qua tài khoản đã xóa vĩnh viễn
+
           if (!Array.isArray(u.allowedTools)) {
             u.allowedTools = u.role === 'admin' ? ['*'] : ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'];
           } else if (u.role !== 'admin' && !u.allowedTools.includes('vision-studio')) {
             u.allowedTools.push('vision-studio');
           }
+          validUsers.push(u);
         });
-        return users;
+        return validUsers;
       } catch (_) {
         return [...INITIAL_USERS];
       }
@@ -712,6 +756,26 @@
     async fetchNetworkPendingRequests() {
       let networkList = [];
       const lanBase = this.getLanBase();
+      const cfg = this.getCloudConfig();
+      const cloudBase = cfg && cfg.cloudUrl ? cfg.cloudUrl.replace(/\/+$/, '') : null;
+
+      // 0. Kéo danh sách deleted_users từ Cloud Firebase trước để đồng bộ danh sách đã xóa vĩnh viễn
+      if (cloudBase) {
+        try {
+          const delRes = await fetch(`${cloudBase}/deleted_users.json`, { method: 'GET' }).catch(() => null);
+          if (delRes && delRes.ok) {
+            const delData = await delRes.json();
+            if (delData && typeof delData === 'object') {
+              Object.keys(delData).forEach(uKey => {
+                const u = uKey.replace(/_/g, '.').toLowerCase().trim();
+                this.addDeletedUser(u);
+              });
+            }
+          }
+        } catch (_) {}
+      }
+
+      const deletedUsers = this.getDeletedUsers();
 
       // 1. Kéo từ LAN WebServer
       try {
@@ -719,7 +783,13 @@
         const res = await fetch(`${lanBase}/api/auth/pending-requests`, { method: 'GET' }).catch(() => null);
         if (res && res.ok) {
           const data = await res.json();
-          if (Array.isArray(data)) networkList.push(...data);
+          if (Array.isArray(data)) {
+            data.forEach(item => {
+              if (item && item.username && !deletedUsers.includes(item.username.toLowerCase().trim())) {
+                networkList.push(item);
+              }
+            });
+          }
         }
 
         // 1b. Lấy danh sách users đã approved từ LAN server
@@ -731,13 +801,16 @@
             let updatedUsers = false;
             approvedUsers.forEach(remoteUser => {
               if (remoteUser && remoteUser.username) {
-                const existing = localUsers.find(u => u.username.toLowerCase() === remoteUser.username.toLowerCase());
-                if (!existing) {
-                  localUsers.push(remoteUser);
-                  updatedUsers = true;
-                } else if (JSON.stringify(existing.allowedTools) !== JSON.stringify(remoteUser.allowedTools)) {
-                  existing.allowedTools = remoteUser.allowedTools;
-                  updatedUsers = true;
+                const uName = remoteUser.username.toLowerCase().trim();
+                if (!deletedUsers.includes(uName)) {
+                  const existing = localUsers.find(u => u.username.toLowerCase() === uName);
+                  if (!existing) {
+                    localUsers.push(remoteUser);
+                    updatedUsers = true;
+                  } else if (JSON.stringify(existing.allowedTools) !== JSON.stringify(remoteUser.allowedTools)) {
+                    existing.allowedTools = remoteUser.allowedTools;
+                    updatedUsers = true;
+                  }
                 }
               }
             });
@@ -748,25 +821,28 @@
 
       // 2. Kéo từ Cloud Endpoint
       try {
-        const cfg = this.getCloudConfig();
-        if (cfg && cfg.cloudUrl) {
-          const base = cfg.cloudUrl.replace(/\/+$/, '');
-          const res = await fetch(`${base}/registrations.json`, { method: 'GET' }).catch(() => null);
+        if (cloudBase) {
+          const res = await fetch(`${cloudBase}/registrations.json`, { method: 'GET' }).catch(() => null);
           if (res && res.ok) {
             const data = await res.json();
             if (data && typeof data === 'object') {
               Object.values(data).forEach(item => {
-                if (item && item.username) networkList.push(item);
+                if (item && item.username) {
+                  const uName = item.username.toLowerCase().trim();
+                  if (!deletedUsers.includes(uName)) {
+                    networkList.push(item);
+                  }
+                }
               });
             }
           }
 
           // Kéo thêm danh sách users đã duyệt trên cloud
-          const uRes = await fetch(`${base}/users.json`, { method: 'GET' }).catch(() => null);
+          const uRes = await fetch(`${cloudBase}/users.json`, { method: 'GET' }).catch(() => null);
           if (uRes && uRes.ok) {
             const uData = await uRes.json();
             if (uData && typeof uData === 'object') {
-              const remoteUsers = Object.values(uData).filter(x => x && x.username);
+              const remoteUsers = Object.values(uData).filter(x => x && x.username && !deletedUsers.includes(x.username.toLowerCase().trim()));
               const localUsers = this.getUsers();
               let updatedUsers = false;
 
@@ -789,12 +865,14 @@
                 }
               });
 
-              // Nếu tài khoản không còn trên Firebase (đã bị Admin xóa hoàn toàn), loại bỏ khỏi localUsers
+              // Nếu tài khoản không còn trên Firebase (đã bị Admin xóa hoàn toàn) hoặc nằm trong deletedUsers -> loại bỏ khỏi localUsers
               for (let i = localUsers.length - 1; i >= 0; i--) {
                 const lu = localUsers[i];
                 if (lu.role !== 'admin' && lu.username.toLowerCase() !== 'kha') {
-                  const stillOnRemote = remoteUsers.some(ru => ru.username.toLowerCase() === lu.username.toLowerCase());
-                  if (!stillOnRemote) {
+                  const uName = lu.username.toLowerCase().trim();
+                  const isDeleted = deletedUsers.includes(uName);
+                  const stillOnRemote = remoteUsers.some(ru => ru.username.toLowerCase() === uName);
+                  if (isDeleted || !stillOnRemote) {
                     localUsers.splice(i, 1);
                     updatedUsers = true;
                   }
@@ -809,7 +887,7 @@
               // Đảm bảo tài khoản admin sếp Kha luôn được đồng bộ lên Firebase Cloud
               const adminUser = localUsers.find(u => u.username.toLowerCase() === 'kha');
               if (adminUser && (!uData || !uData.kha)) {
-                fetch(`${base}/users/kha.json`, {
+                fetch(`${cloudBase}/users/kha.json`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(adminUser)
@@ -818,30 +896,7 @@
             }
           }
 
-          // Kiểm tra các tài khoản đã approved trong registrations.json
-          networkList.forEach(item => {
-            if (item && item.status === 'approved' && item.username) {
-              const localUsers = this.getUsers();
-              if (!localUsers.some(u => u.username.toLowerCase() === item.username.toLowerCase())) {
-                localUsers.push({
-                  id: item.id || `usr_${item.username}`,
-                  username: item.username,
-                  name: item.name || item.username,
-                  email: item.email || '',
-                  role: item.role || 'engineer',
-                  department: item.department || '',
-                  phone: item.phone || '',
-                  allowedTools: item.allowedTools || ['apm', 'pallet', 'calculator', 'plc-modbus', 'scada-vision', 'vision-studio', 'field-ops', 'tia-portal'],
-                  passwordHash: item.passwordHash || '',
-                  createdAt: item.approvedAt || item.requestedAt || new Date().toISOString()
-                });
-                this._saveUsers(localUsers);
-                window.dispatchEvent(new CustomEvent('ks:auth:users_synced', { detail: { users: localUsers } }));
-              }
-            }
-          });
-
-          // Đồng bộ bổ sung từ LAN Server nếu có
+          // Đồng bộ bổ sung từ LAN Server nếu có (chỉ thêm user hợp lệ, không nằm trong danh sách đã xóa)
           try {
             const lanRes = await fetch('/api/auth/users').catch(() => null);
             if (lanRes && lanRes.ok) {
@@ -850,9 +905,12 @@
                 const localUsers = this.getUsers();
                 let hasNew = false;
                 lanUsers.forEach(lu => {
-                  if (lu && lu.username && !localUsers.some(u => u.username.toLowerCase() === lu.username.toLowerCase())) {
-                    localUsers.push(lu);
-                    hasNew = true;
+                  if (lu && lu.username) {
+                    const luName = lu.username.toLowerCase().trim();
+                    if (!deletedUsers.includes(luName) && !localUsers.some(u => u.username.toLowerCase() === luName)) {
+                      localUsers.push(lu);
+                      hasNew = true;
+                    }
                   }
                 });
                 if (hasNew) {
@@ -1319,6 +1377,9 @@
       const targetUsername = (user.username || '').toLowerCase().trim();
       const targetName = (user.name || '').trim();
 
+      // Đưa vào danh sách tài khoản đã xóa vĩnh viễn (Tombstone) để không bao giờ bị khôi phục tự động
+      this.addDeletedUser(targetUsername);
+
       // Xóa trong localStorage
       users = users.filter(u => u.id !== user.id && u.username.toLowerCase() !== targetUsername);
       this._saveUsers(users);
@@ -1328,12 +1389,25 @@
       pendingList = pendingList.filter(p => p.id !== user.id && p.username.toLowerCase() !== targetUsername);
       this._savePendingRequests(pendingList);
 
-      // 1. Xóa vĩnh viễn trên Cloud Firebase (Tài khoản, Báo cáo hiện trường, Ảnh Timemark)
+      // 1. Xóa vĩnh viễn trên Cloud Firebase (Tài khoản, Báo cáo hiện trường, Ảnh Timemark & Ghi nhận Tombstone)
       try {
         const cfg = this.getCloudConfig();
         if (cfg && cfg.cloudUrl) {
           const base = cfg.cloudUrl.replace(/\/+$/, '');
           const safeKey = user.username.replace(/\./g, '_');
+
+          // Đánh dấu tombstone trên Firebase để mọi thiết bị/server khác nhận biết và loại trừ
+          await fetch(`${base}/deleted_users/${safeKey}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: targetUsername,
+              name: targetName,
+              deletedAt: new Date().toISOString(),
+              deletedBy: current?.name || 'Sếp Kha'
+            })
+          }).catch(() => {});
+
           // Xóa khỏi /users
           await fetch(`${base}/users/${safeKey}.json`, { method: 'DELETE' }).catch(() => {});
           if (safeKey !== user.username) {

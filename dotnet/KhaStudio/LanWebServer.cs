@@ -273,6 +273,32 @@ public class LanWebServer
                     }
                 }
 
+                // 3b. Kéo danh sách deleted_users từ Firebase Cloud để tự động dọn dẹp các tài khoản đã bị xóa
+                try
+                {
+                    var delRes = await http.GetAsync($"{fbUrl}/deleted_users.json", ct);
+                    if (delRes.IsSuccessStatusCode)
+                    {
+                        var delJson = await delRes.Content.ReadAsStringAsync(ct);
+                        if (!string.IsNullOrWhiteSpace(delJson) && delJson.Trim() != "null")
+                        {
+                            if (JsonNode.Parse(delJson) is JsonObject delObj)
+                            {
+                                foreach (var (delKey, delVal) in delObj)
+                                {
+                                    var uName = (delVal?["username"]?.ToString() ?? delKey).Replace('_', '.').Trim().ToLowerInvariant();
+                                    var tName = delVal?["name"]?.ToString() ?? "";
+                                    if (!string.IsNullOrWhiteSpace(uName) && uName != "kha")
+                                    {
+                                        DeleteUser(uName, tName);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+
                 // 4. Kéo danh sách Users từ Firebase Cloud về lưu bền vững
                 var usersRes = await http.GetAsync($"{fbUrl}/users.json", ct);
                 if (usersRes.IsSuccessStatusCode)
@@ -282,17 +308,16 @@ public class LanWebServer
                     {
                         if (JsonNode.Parse(uJson) is JsonObject uObj)
                         {
+                            var delSet = GetDeletedUsersSet();
                             var uList = new JsonArray();
                             foreach (var (_, val) in uObj)
                             {
                                 if (val is JsonObject uNode)
                                 {
                                     var uName = (uNode["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
-                                    if (!string.IsNullOrWhiteSpace(uName))
+                                    if (!string.IsNullOrWhiteSpace(uName) && !delSet.Contains(uName))
                                     {
                                         if (uName == "kha") uNode["name"] = "S\u1EBFp Kha";
-                                        else if (uName == "duyen") uNode["name"] = "Duy\u00EAn";
-                                        else if (uName == "duyen1") uNode["name"] = "Duy\u00EAn 1";
                                         else if (uName == "dieu") uNode["name"] = "Di\u1EC7u";
                                         else if (uName == "kiet.dt") uNode["name"] = "\u0110\u1ED7 Tu\u1EA5n Ki\u1EC7t";
                                         uList.Add(uNode.DeepClone());
@@ -1746,16 +1771,89 @@ public class LanWebServer
         return "{\"status\":\"not_found\"}";
     }
 
+    private HashSet<string> GetDeletedUsersSet()
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var delFile = Path.Combine(UserDataDir, "deleted_users.json");
+            if (File.Exists(delFile))
+            {
+                var raw = ReadTextWithoutBom(delFile);
+                if (!string.IsNullOrWhiteSpace(raw) && JsonNode.Parse(raw) is JsonArray arr)
+                {
+                    foreach (var item in arr)
+                    {
+                        var u = (item?.ToString() ?? "").Trim().ToLowerInvariant();
+                        if (!string.IsNullOrEmpty(u) && u != "kha") set.Add(u);
+                    }
+                }
+            }
+        }
+        catch { }
+        return set;
+    }
+
+    private void RecordDeletedUser(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username) || username.Equals("kha", StringComparison.OrdinalIgnoreCase)) return;
+        try
+        {
+            var delFile = Path.Combine(UserDataDir, "deleted_users.json");
+            var arr = new JsonArray();
+            if (File.Exists(delFile))
+            {
+                var raw = ReadTextWithoutBom(delFile);
+                if (!string.IsNullOrWhiteSpace(raw) && JsonNode.Parse(raw) is JsonArray existing)
+                {
+                    arr = existing;
+                }
+            }
+            var cleanU = username.Trim().ToLowerInvariant();
+            bool found = false;
+            foreach (var item in arr)
+            {
+                if (item?.ToString().Trim().ToLowerInvariant() == cleanU)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                arr.Add(cleanU);
+                File.WriteAllText(delFile, arr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+            }
+        }
+        catch { }
+    }
+
     private string GetApprovedUsersJson()
     {
         try
         {
+            var delSet = GetDeletedUsersSet();
             var userFileInPersistent = Path.Combine(UserDataDir, "users.json");
             if (File.Exists(userFileInPersistent))
             {
                 var content = ReadTextWithoutBom(userFileInPersistent);
                 if (!string.IsNullOrWhiteSpace(content) && content.Trim() != "[]")
-                    return content;
+                {
+                    if (JsonNode.Parse(content) is JsonArray arr)
+                    {
+                        var filtered = new JsonArray();
+                        foreach (var u in arr)
+                        {
+                            var uname = (u?["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
+                            if (!string.IsNullOrEmpty(uname) && !delSet.Contains(uname))
+                            {
+                                filtered.Add(u.DeepClone());
+                            }
+                        }
+                        if (filtered.Count > 0)
+                            return filtered.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+                    }
+                }
             }
 
             var usersFile = Path.Combine(WwwRoot, "data", "users.json");
@@ -1764,12 +1862,25 @@ public class LanWebServer
                 var content = ReadTextWithoutBom(usersFile);
                 if (!string.IsNullOrWhiteSpace(content) && content.Trim() != "[]")
                 {
-                    return content;
+                    if (JsonNode.Parse(content) is JsonArray arr)
+                    {
+                        var filtered = new JsonArray();
+                        foreach (var u in arr)
+                        {
+                            var uname = (u?["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
+                            if (!string.IsNullOrEmpty(uname) && !delSet.Contains(uname))
+                            {
+                                filtered.Add(u.DeepClone());
+                            }
+                        }
+                        if (filtered.Count > 0)
+                            return filtered.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+                    }
                 }
             }
         }
         catch { }
-        return "[{\"id\":\"usr_admin\",\"username\":\"kha\",\"name\":\"Sếp Kha\",\"email\":\"ktechzara@gmail.com\",\"role\":\"admin\",\"allowedTools\":[\"*\"],\"passwordHash\":\"pbkdf2:100000:d8c5bb6dfca156e55c570f6cdb47788f:858aa09b80f15ffbe446c8431be20b5ede71caf17a587070034526a21f50cc69\"}]";
+        return "[{\"id\":\"usr_admin\",\"username\":\"kha\",\"name\":\"S\u1EBFp Kha\",\"email\":\"ktechzara@gmail.com\",\"role\":\"admin\",\"allowedTools\":[\"*\"],\"passwordHash\":\"pbkdf2:100000:d8c5bb6dfca156e55c570f6cdb47788f:858aa09b80f15ffbe446c8431be20b5ede71caf17a587070034526a21f50cc69\"}]";
     }
 
     private void LockUser(string jsonBody)
@@ -1841,7 +1952,22 @@ public class LanWebServer
             var id = (node["id"]?.ToString() ?? "").Trim();
             var name = (node["name"]?.ToString() ?? "").Trim();
 
+            DeleteUser(username, name, id);
+        }
+        catch { }
+    }
+
+    public void DeleteUser(string username, string name, string id = "")
+    {
+        try
+        {
+            username = (username ?? "").Trim().ToLowerInvariant();
+            name = (name ?? "").Trim();
+            id = (id ?? "").Trim();
+
             if (username == "kha") return; // Không xóa tài khoản Admin Sếp Kha
+
+            RecordDeletedUser(username);
 
             bool MatchesUser(string u, string rep)
             {

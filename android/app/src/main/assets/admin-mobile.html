@@ -1032,11 +1032,23 @@
             }
           }
 
+          // Danh sách tài khoản đã xóa vĩnh viễn (Tombstone)
+          let deletedUsers = [];
+          const delRes = await fetch(`${base}/deleted_users.json`).catch(() => null);
+          if (delRes && delRes.ok) {
+            const delData = await delRes.json();
+            if (delData && typeof delData === 'object') {
+              deletedUsers = Object.keys(delData).map(k => k.replace(/_/g, '.').toLowerCase());
+            }
+          }
+
           // Pending registrations
           const regRes = await fetch(`${base}/registrations.json`).catch(() => null);
           if (regRes && regRes.ok) {
             const rData = await regRes.json();
-            pendingList = (rData && typeof rData === 'object') ? Object.values(rData) : [];
+            pendingList = (rData && typeof rData === 'object')
+              ? Object.values(rData).filter(r => r && r.username && !deletedUsers.includes(r.username.toLowerCase().trim()))
+              : [];
             loaded = true;
           }
 
@@ -1044,7 +1056,9 @@
           const uRes = await fetch(`${base}/users.json`).catch(() => null);
           if (uRes && uRes.ok) {
             const uData = await uRes.json();
-            usersList = (uData && typeof uData === 'object') ? Object.values(uData) : [];
+            usersList = (uData && typeof uData === 'object')
+              ? Object.values(uData).filter(u => u && u.username && !deletedUsers.includes(u.username.toLowerCase().trim()))
+              : [];
           }
         } catch (_) {}
       }
@@ -1645,6 +1659,19 @@
       try {
         const base = cfg.firebaseUrl.replace(/\/+$/, '');
         const safeKey = username.replace(/\./g, '_');
+
+        // 0. Ghi tombstone vào /deleted_users để ngăn mọi thiết bị và máy tính khôi phục lại
+        await fetch(`${base}/deleted_users/${safeKey}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: targetUsername,
+            name: targetName,
+            deletedAt: new Date().toISOString(),
+            deletedBy: 'Sếp Kha (Mobile)'
+          })
+        }).catch(() => {});
+
         await fetch(`${base}/users/${safeKey}.json`, { method: 'DELETE' });
         if (safeKey !== username) {
           await fetch(`${base}/users/${encodeURIComponent(username)}.json`, { method: 'DELETE' }).catch(() => {});
