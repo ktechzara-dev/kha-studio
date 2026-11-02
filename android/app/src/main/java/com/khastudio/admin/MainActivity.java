@@ -285,14 +285,6 @@ public class MainActivity extends AppCompatActivity {
         updateManager.checkForUpdates(false);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (updateManager != null) {
-            updateManager.onResume();
-        }
-    }
-
     private File createImageFile() {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
         String imageFileName = "IMG_" + timeStamp + "_";
@@ -406,6 +398,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (webView != null) webView.onResume();
+        if (updateManager != null) updateManager.onResume();
     }
 
     @Override
