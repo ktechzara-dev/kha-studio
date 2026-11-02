@@ -186,15 +186,31 @@
         return;
       }
 
-      container.innerHTML = users.map(u => {
+      const onlineCount = users.filter(u => u.isOnline).length;
+      const totalCount = users.length;
+
+      let html = `
+        <div class="kchat-presence-summary">
+          <div class="presence-stat-pill online">
+            <span class="presence-radar-pulse"></span>
+            <strong>${onlineCount}</strong> Đang Trực Tuyến
+          </div>
+          <div class="presence-stat-pill total">
+            👥 <strong>${totalCount}</strong> Thành Viên
+          </div>
+        </div>
+      `;
+
+      html += users.map(u => {
         const isAdm = u.role === 'admin' || u.username === 'kha';
         const roleText = isAdm ? '👑 Quản trị viên' : '👷 Kỹ sư';
-        const platformIcon = u.platform === 'mobile' ? '📱 Mobile' : '💻 Máy tính';
+        const platformIcon = u.platform === 'mobile' ? '📱 Mobile App' : '💻 PC Desktop';
         const statusBadge = u.isOnline
           ? `<span class="presence-badge online"><span class="presence-dot-pulse"></span> Đang Online</span>`
           : `<span class="presence-badge offline">⚪ ${this.formatRelativeTime(u.lastSeenDate)}</span>`;
 
         const initial = (u.name || u.username || 'U').charAt(0).toUpperCase();
+        const displayName = this.escapeHtml(u.name || u.username);
 
         return `
           <div class="presence-card ${u.isOnline ? 'is-online' : ''}">
@@ -204,21 +220,24 @@
             </div>
             <div class="presence-info">
               <div class="presence-name-row">
-                <span class="presence-name">${this.escapeHtml(u.name || u.username)}</span>
+                <span class="presence-name">${displayName}</span>
                 ${statusBadge}
               </div>
               <div class="presence-meta">
-                <span>@${this.escapeHtml(u.username)}</span> &bull; 
-                <span style="color:var(--accent); font-weight:600;">${roleText}</span> &bull; 
-                <span>${platformIcon}</span>
+                <span class="presence-role-pill ${isAdm ? 'adm' : ''}">${roleText}</span> &bull; 
+                <span class="presence-plat-pill">${platformIcon}</span>
               </div>
             </div>
-            <button class="presence-action-btn" onclick="window.Chat.tagUser('${this.escapeHtml(u.name || u.username)}')" title="Nhắn tin cho ${this.escapeHtml(u.name || u.username)}">
-              💬
-            </button>
+            <div class="presence-actions">
+              <button class="presence-btn-chat" onclick="window.Chat.tagUser('${displayName}')" title="Nhắn tin cho ${displayName}">
+                💬 Nhắn tin
+              </button>
+            </div>
           </div>
         `;
       }).join('');
+
+      container.innerHTML = html;
     }
 
     // =========================================================================
@@ -282,6 +301,9 @@
         createdAt: new Date().toISOString()
       };
 
+      // Âm thanh gửi tin nhắn nhẹ nhàng
+      this.playSendSound();
+
       // Đẩy lạc quan (Optimistic UI) vào danh sách hiển thị ngay lập tức
       this.messages.push(msgObj);
       this.renderMessages();
@@ -296,6 +318,41 @@
       } catch (e) {
         console.warn('Lỗi gửi tin nhắn:', e);
       }
+    }
+
+    playSendSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1040, ctx.currentTime + 0.07);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+      } catch (_) {}
+    }
+
+    toggleEmojiPicker() {
+      const picker = document.getElementById('kchat-emoji-picker');
+      if (picker) {
+        const isHidden = picker.style.display === 'none' || !picker.style.display;
+        picker.style.display = isHidden ? 'flex' : 'none';
+      }
+    }
+
+    insertEmoji(emoji) {
+      const input = document.getElementById('kchat-input');
+      if (input) {
+        input.value = (input.value || '') + emoji;
+        input.focus();
+      }
+      const picker = document.getElementById('kchat-emoji-picker');
+      if (picker) picker.style.display = 'none';
     }
 
     renderMessages() {
@@ -333,26 +390,44 @@
           html += `<div class="kchat-date-divider"><span>${msgDate}</span></div>`;
         }
 
+        const senderName = this.escapeHtml(m.senderName || m.username);
+        const safeUname = this.escapeHtml(m.username || '');
+
         html += `
           <div class="kchat-msg-row ${isMe ? 'is-me' : 'is-other'}">
             ${!isMe ? `
-              <div class="kchat-msg-avatar ${isAdm ? 'adm' : ''}">
-                ${(m.senderName || m.username || 'U').charAt(0).toUpperCase()}
+              <div class="kchat-msg-avatar ${isAdm ? 'adm' : ''}" title="${senderName} (${roleBadge})">
+                <span>${(m.senderName || m.username || 'U').charAt(0).toUpperCase()}</span>
+                <span class="kchat-msg-plat-ico">${m.platform === 'mobile' ? '📱' : '💻'}</span>
               </div>
             ` : ''}
             <div class="kchat-bubble-wrap">
               ${!isMe ? `
                 <div class="kchat-sender-info">
-                  <strong class="kchat-sender-name">${this.escapeHtml(m.senderName || m.username)}</strong>
+                  <strong class="kchat-sender-name">${senderName}</strong>
                   <span class="kchat-role-tag ${isAdm ? 'adm' : ''}">${roleBadge}</span>
-                  <span class="kchat-plat-tag">${platformBadge}</span>
                 </div>
               ` : ''}
               <div class="kchat-bubble ${isMe ? 'me' : 'other'}">
                 <div class="kchat-text">${this.formatMessageText(m.text)}</div>
-                <div class="kchat-time">${this.escapeHtml(m.timestamp || '')}</div>
+                <div class="kchat-time">
+                  <span>${this.escapeHtml(m.timestamp || '')}</span>
+                  ${isMe ? `<span class="kchat-ticks" title="Đã gửi lên Cloud">✓✓</span>` : ''}
+                </div>
+              </div>
+              <!-- Thanh tương tác nhanh khi hover -->
+              <div class="kchat-hover-actions">
+                <button type="button" class="kchat-react-btn" onclick="window.Chat.sendQuick('👍 @${senderName}')" title="Thích">👍</button>
+                <button type="button" class="kchat-react-btn" onclick="window.Chat.sendQuick('❤️ @${senderName}')" title="Thả tim">❤️</button>
+                <button type="button" class="kchat-react-btn" onclick="window.Chat.sendQuick('⚡ @${senderName}')" title="Xử lý ngay">⚡</button>
+                <button type="button" class="kchat-react-btn reply" onclick="window.Chat.tagUser('${senderName}')" title="Trả lời">💬 Trả lời</button>
               </div>
             </div>
+            ${isMe ? `
+              <div class="kchat-msg-avatar is-me ${isAdm ? 'adm' : ''}" title="Bạn (${senderName})">
+                <span>${(m.senderName || m.username || 'U').charAt(0).toUpperCase()}</span>
+              </div>
+            ` : ''}
           </div>
         `;
       });
@@ -520,3 +595,4 @@
   }
 
 })(typeof window !== 'undefined' ? window : global);
+

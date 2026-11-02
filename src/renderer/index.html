@@ -1216,13 +1216,32 @@
         <button class="kchat-chip" onclick="window.Chat?.sendQuick('🚀 Tiến độ thi công đang diễn ra bình thường')">🚀 Tiến độ OK</button>
         <button class="kchat-chip" onclick="window.Chat?.sendQuick('⚠️ Cần hỗ trợ kỹ thuật tại hiện trường!')">⚠️ Cần hỗ trợ</button>
         <button class="kchat-chip" onclick="window.Chat?.sendQuick('📸 Đã chụp ảnh Timemark mới gửi về dự án')">📸 Đã up ảnh</button>
+        <button class="kchat-chip" onclick="window.Chat?.sendQuick('⚡ Test I/O và chạy thử PLC thành công!')">⚡ Test PLC OK</button>
+        <button class="kchat-chip" onclick="window.Chat?.sendQuick('📝 Đã lập biên bản nghiệm thu kỹ thuật')">📝 Đã lập BB</button>
       </div>
 
       <!-- Danh sách tin nhắn cuộn -->
       <div id="kchat-messages-container" class="kchat-messages-container"></div>
 
+      <!-- Khung chọn Emoji nhanh -->
+      <div id="kchat-emoji-picker" class="kchat-emoji-picker" style="display:none;">
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('👍')">👍</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('❤️')">❤️</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('🚀')">🚀</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('🔥')">🔥</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('⚠️')">⚠️</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('🛠️')">🛠️</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('📸')">📸</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('⚡')">⚡</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('✅')">✅</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('🎯')">🎯</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('💡')">💡</button>
+        <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('🤝')">🤝</button>
+      </div>
+
       <!-- Khung nhập tin nhắn -->
       <form class="kchat-input-bar" onsubmit="event.preventDefault(); const inp = document.getElementById('kchat-input'); if (inp && inp.value.trim()) { window.Chat?.sendMessage(inp.value); inp.value = ''; }">
+        <button type="button" class="kchat-btn-emoji" onclick="window.Chat?.toggleEmojiPicker()" title="Chèn biểu tượng cảm xúc">😊</button>
         <input type="text" id="kchat-input" class="kchat-input" placeholder="Nhập tin nhắn… (@tag tên, link URL)" autocomplete="off">
         <button type="submit" id="kchat-btn-send" class="kchat-btn-send" title="Gửi tin nhắn (Enter)">
           <script>document.write(icon('send', 16));</script>
