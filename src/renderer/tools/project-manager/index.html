@@ -366,6 +366,127 @@
       gap: 16px;
     }
 
+    /* FIELD USER CONTROL BAR (Bộ lọc người dùng hiện trường) */
+    .site-user-control-bar {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .user-control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .user-role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .user-role-badge.admin {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+    }
+    .user-role-badge.engineer {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    .user-filter-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .user-filter-select {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
+    }
+    .user-filter-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .user-pill-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .user-pill-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .user-pill-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+    .user-pill-badge {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 1px 6px;
+      font-size: 10.5px;
+    }
+    .user-pill-btn.active .user-pill-badge {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+    }
+
+    /* USER BADGE ON MEDIA & REPORT CARDS */
+    .user-badge-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+    .user-badge-card.admin {
+      background: rgba(168, 85, 247, 0.2);
+      color: #d8b4fe;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+    }
+    .user-badge-card.engineer {
+      background: rgba(56, 189, 248, 0.15);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
     .detail-tabs {
       display: flex;
       gap: 8px;
@@ -695,6 +816,30 @@
 
       <div class="detail-header" id="detail-header-card"></div>
 
+      <!-- FIELD USER CONTROL BAR (Bộ lọc người dùng hiện trường) -->
+      <div class="site-user-control-bar" id="site-user-control-bar">
+        <div class="user-control-header">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span id="badge-current-auth" class="user-role-badge admin">👑 Quản trị viên: Sếp Kha</span>
+            <span id="site-log-perm-hint" style="font-size:12px; color:var(--text-muted);">
+              Toàn quyền xem nhật ký và lọc chi tiết theo từng kỹ sư hiện trường
+            </span>
+          </div>
+          <div class="user-filter-actions">
+            <label for="sel-user-filter" style="font-size:12px; font-weight:600; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Xem nhật ký của:
+            </label>
+            <select id="sel-user-filter" class="user-filter-select" onchange="setUserFilter(this.value)">
+              <option value="all">👥 Tất cả kỹ sư / nhân sự</option>
+            </select>
+          </div>
+        </div>
+        <div class="user-filter-pills" id="user-filter-pills">
+          <!-- Dynamic pill buttons injected here -->
+        </div>
+      </div>
+
       <!-- TABS -->
       <div class="detail-tabs">
         <button class="detail-tab-btn active" id="btn-tab-media" onclick="switchDetailTab('media')">
@@ -825,14 +970,7 @@
 
     function fixViText(str) {
       if (!str) return '';
-      let res = String(str);
-      if (/[\u00C0-\u00FF]/.test(res)) {
-        try {
-          const decoded = decodeURIComponent(escape(res));
-          if (decoded) res = decoded;
-        } catch (_) {}
-      }
-      return res
+      return String(str)
         .replace(/S[\?\uFFFD]p\s*Kha|Sp\s*Kha|S\?p Kha|Sp Kha/gi, 'S\u1EBFp Kha')
         .replace(/B[\?\uFFFD]nh\s*thu[\?\uFFFD]ng|Bnh\s*th[\?\uFFFD]ng|B\?nh thu\?ng/gi, 'B\u00ECnh th\u01B0\u1EDDng')
         .replace(/Ch[\?\uFFFD]y\s*th[\?\uFFFD]\s*&\s*Tinh\s*ch[\?\uFFFD]nh|Chy\s*th-?\s*&\s*Tinh\s*ch%?nh/gi, 'Ch\u1EA1y th\u1EED & Tinh ch\u1EC9nh')
@@ -1121,9 +1259,228 @@
       }).join('');
     }
 
+    // QUẢN LÝ PHIÊN LÀM VIỆC & PHÂN QUYỀN HIỆN TRƯỜNG (USER SESSION & SITE LOG RBAC)
+    let currentUserSession = null;
+    let isAdmin = true; // Mặc định sếp Kha là Admin
+    let selectedUserFilter = 'all'; // 'all' hoặc username: 'kha', 'duyen', 'duyen1', 'dieu'
+    let registeredUsers = [
+      { username: 'kha', name: 'Sếp Kha', role: 'admin' },
+      { username: 'duyen', name: 'Duyên', role: 'engineer' },
+      { username: 'duyen1', name: 'Duyên 1', role: 'engineer' },
+      { username: 'dieu', name: 'Diệu', role: 'engineer' }
+    ];
+
+    function initUserSession() {
+      try {
+        const raw = sessionStorage.getItem('ks_session') || localStorage.getItem('ks_session');
+        if (raw) currentUserSession = JSON.parse(raw);
+      } catch (_) {}
+
+      if (!currentUserSession && window.parent && window.parent.KhaAuth) {
+        try { currentUserSession = window.parent.KhaAuth.getCurrentUser(); } catch (_) {}
+      }
+
+      if (!currentUserSession) {
+        currentUserSession = { username: 'kha', name: 'Sếp Kha', role: 'admin' };
+      }
+
+      isAdmin = (currentUserSession.role === 'admin' || currentUserSession.username === 'kha');
+
+      const badge = document.getElementById('badge-current-auth');
+      const hint = document.getElementById('site-log-perm-hint');
+      const displayName = fixViText(currentUserSession.name || currentUserSession.username || 'Sếp Kha');
+
+      if (badge) {
+        if (isAdmin) {
+          badge.className = 'user-role-badge admin';
+          badge.innerHTML = `👑 Quản trị viên: ${escapeHtml(displayName)}`;
+        } else {
+          badge.className = 'user-role-badge engineer';
+          badge.innerHTML = `👷 Kỹ sư hiện trường: ${escapeHtml(displayName)}`;
+        }
+      }
+
+      if (hint) {
+        if (isAdmin) {
+          hint.innerHTML = 'Toàn quyền xem nhật ký công trường &amp; lọc chi tiết theo từng kỹ sư';
+        } else {
+          hint.innerHTML = 'Đang xem nhật ký công tác hiện trường cá nhân';
+        }
+      }
+
+      if (!isAdmin) {
+        selectedUserFilter = currentUserSession.username || 'engineer';
+      }
+    }
+
+    async function loadRegisteredUsers() {
+      try {
+        const res = await fetch(`${FIREBASE_URL}/users.json`).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json();
+          if (data && typeof data === 'object') {
+            const list = [];
+            for (const [uname, u] of Object.entries(data)) {
+              if (u) {
+                list.push({
+                  username: u.username || uname,
+                  name: fixViText(u.name || uname),
+                  role: u.role || 'engineer'
+                });
+              }
+            }
+            if (list.length > 0) {
+              list.sort((a, b) => (a.username === 'kha' ? -1 : (b.username === 'kha' ? 1 : a.name.localeCompare(b.name))));
+              registeredUsers = list;
+              updateUserFilterBar();
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    function itemMatchesUser(item, username) {
+      if (!item) return false;
+      if (username === 'all') return true;
+      const target = (username || '').toLowerCase().trim();
+      const u = (item.username || '').toLowerCase().trim();
+      if (u && u === target) return true;
+
+      const reporter = (item.reporter || item.capturedBy || item.authorName || '').toLowerCase();
+      if (target === 'kha' && (reporter.includes('kha') || u === 'kha')) return true;
+      if (target === 'duyen1' && (reporter.includes('duyên 1') || reporter.includes('duyen 1') || u === 'duyen1')) return true;
+      if (target === 'duyen' && (reporter.includes('duyên') || reporter.includes('duyen')) && !reporter.includes('1') && u !== 'duyen1') return true;
+      if (target === 'dieu' && (reporter.includes('diệu') || reporter.includes('dieu') || u === 'dieu')) return true;
+
+      return u === target || reporter.includes(target);
+    }
+
+    function updateUserFilterBar() {
+      const select = document.getElementById('sel-user-filter');
+      const pillsContainer = document.getElementById('user-filter-pills');
+      if (!select || !pillsContainer) return;
+
+      const userMap = new Map();
+      registeredUsers.forEach(u => {
+        userMap.set(u.username.toLowerCase(), {
+          username: u.username,
+          name: fixViText(u.name || u.username),
+          role: u.role || 'engineer',
+          mediaCount: 0,
+          reportCount: 0
+        });
+      });
+
+      // Bổ sung user xuất hiện từ ảnh hoặc báo cáo nếu chưa có trong bảng
+      currentMediaList.forEach(m => {
+        const u = (m.username || '').toLowerCase() || (itemMatchesUser(m, 'kha') ? 'kha' : 'engineer');
+        if (!userMap.has(u) && u) {
+          userMap.set(u, {
+            username: u,
+            name: fixViText(m.capturedBy || u),
+            role: m.role || 'engineer',
+            mediaCount: 0,
+            reportCount: 0
+          });
+        }
+      });
+      currentReportsList.forEach(r => {
+        const u = (r.username || '').toLowerCase() || (itemMatchesUser(r, 'kha') ? 'kha' : 'engineer');
+        if (!userMap.has(u) && u) {
+          userMap.set(u, {
+            username: u,
+            name: fixViText(r.reporter || u),
+            role: r.role || 'engineer',
+            mediaCount: 0,
+            reportCount: 0
+          });
+        }
+      });
+
+      // Đếm số lượng ảnh và báo cáo từng user
+      userMap.forEach((uObj, key) => {
+        uObj.mediaCount = currentMediaList.filter(m => itemMatchesUser(m, key)).length;
+        uObj.reportCount = currentReportsList.filter(r => itemMatchesUser(r, key)).length;
+      });
+
+      const totalMedia = currentMediaList.length;
+      const totalReports = currentReportsList.length;
+      const totalAll = totalMedia + totalReports;
+
+      // Cập nhật Dropdown
+      let selectHtml = `<option value="all" ${selectedUserFilter === 'all' ? 'selected' : ''}>👥 Tất cả kỹ sư / nhân sự (${totalMedia} ảnh • ${totalReports} báo cáo)</option>`;
+      userMap.forEach(u => {
+        const isAdm = u.role === 'admin' || u.username === 'kha';
+        const icon = isAdm ? '👑' : '👷';
+        selectHtml += `<option value="${escapeHtml(u.username)}" ${selectedUserFilter === u.username ? 'selected' : ''}>
+          ${icon} ${escapeHtml(u.name)} (@${escapeHtml(u.username)}) — ${u.mediaCount} ảnh • ${u.reportCount} báo cáo
+        </option>`;
+      });
+      select.innerHTML = selectHtml;
+
+      if (!isAdmin) {
+        select.disabled = true;
+        select.title = 'Chỉ Quản trị viên (Admin) mới có quyền lọc xem nhật ký của kỹ sư khác.';
+      } else {
+        select.disabled = false;
+        select.title = 'Chọn nhân sự để lọc nhật ký';
+      }
+
+      // Cập nhật Quick Pills
+      let pillsHtml = `
+        <button class="user-pill-btn ${selectedUserFilter === 'all' ? 'active' : ''}" onclick="setUserFilter('all')">
+          👥 Tất cả <span class="user-pill-badge">${totalAll}</span>
+        </button>
+      `;
+
+      userMap.forEach(u => {
+        const isAdm = u.role === 'admin' || u.username === 'kha';
+        const icon = isAdm ? '👑' : '👷';
+        const uTotal = u.mediaCount + u.reportCount;
+        const isActive = selectedUserFilter === u.username;
+        const isDisabled = (!isAdmin && currentUserSession.username !== u.username);
+
+        pillsHtml += `
+          <button class="user-pill-btn ${isActive ? 'active' : ''}" 
+                  ${isDisabled ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} 
+                  onclick="${isDisabled ? '' : `setUserFilter('${escapeHtml(u.username)}')`}"
+                  title="${isDisabled ? 'Chỉ Admin mới có quyền xem của kỹ sư khác' : `Xem nhật ký của ${escapeHtml(u.name)}`}">
+            ${icon} ${escapeHtml(u.name)} 
+            <span style="font-size:10px; opacity:0.75;">@${escapeHtml(u.username)}</span>
+            <span class="user-pill-badge">${uTotal}</span>
+          </button>
+        `;
+      });
+
+      pillsContainer.innerHTML = pillsHtml;
+    }
+
+    function setUserFilter(username) {
+      if (!isAdmin && username !== 'all' && username !== currentUserSession.username) {
+        showToast('Chỉ Quản trị viên (Admin) mới có quyền xem nhật ký của nhân sự khác.');
+        return;
+      }
+      selectedUserFilter = username;
+      const select = document.getElementById('sel-user-filter');
+      if (select) select.value = username;
+
+      document.querySelectorAll('.user-pill-btn').forEach(btn => btn.classList.remove('active'));
+      const allBtns = Array.from(document.querySelectorAll('.user-pill-btn'));
+      const activeBtn = allBtns.find(b => {
+        const oc = b.getAttribute('onclick') || '';
+        return oc.includes(`'${username}'`);
+      });
+      if (activeBtn) activeBtn.classList.add('active');
+
+      renderMediaGrid();
+      renderReports();
+    }
+
     async function viewProjectDetail(code) {
       currentProject = projects.find(p => p.code === code);
       if (!currentProject) return;
+
+      initUserSession();
 
       const header = document.getElementById('detail-header-card');
       header.innerHTML = `
@@ -1143,8 +1500,11 @@
       `;
 
       document.getElementById('detail-overlay').classList.add('active');
-      fetchProjectMedia(code);
-      fetchProjectReports(code);
+      await Promise.all([
+        fetchProjectMedia(code),
+        fetchProjectReports(code)
+      ]);
+      updateUserFilterBar();
     }
 
     function closeDetailView() {
@@ -1179,6 +1539,8 @@
                     fileName: cm.fileName || `${cm.id}.jpg`,
                     url: cm.dataBase64 || '',
                     capturedBy: cm.capturedBy || 'Kỹ sư',
+                    username: cm.username || '',
+                    role: cm.role || 'engineer',
                     capturedAt: cm.capturedAt || '',
                     stage: cm.stage || 'Hiện trường',
                     note: cm.note || '',
@@ -1197,37 +1559,49 @@
     function renderMediaGrid() {
       const container = document.getElementById('media-grid-container');
       const badge = document.getElementById('tab-media-count');
-      if (badge) badge.textContent = currentMediaList.length;
 
-      if (currentMediaList.length === 0) {
+      const filteredMedia = currentMediaList.filter(m => itemMatchesUser(m, selectedUserFilter));
+      if (badge) badge.textContent = filteredMedia.length;
+
+      if (filteredMedia.length === 0) {
+        const filterName = selectedUserFilter === 'all' ? 'toàn bộ dự án' : `kỹ sư @${selectedUserFilter}`;
         container.innerHTML = `
           <div style="grid-column: 1/-1; text-align:center; padding:48px; background:var(--bg-panel); border:1px solid var(--border); border-radius:12px;">
             <div style="font-size:32px; margin-bottom:8px;">📸</div>
-            <h4 style="font-size:14px; margin-bottom:4px;">Chưa có ảnh nào được gửi từ công trường</h4>
+            <h4 style="font-size:14px; margin-bottom:4px;">Chưa có ảnh nào của ${escapeHtml(filterName)}</h4>
             <p style="font-size:12px; color:var(--text-muted);">
-              Kỹ sư mở app điện thoại Android &bull; Chọn dự án <strong>${escapeHtml(currentProject ? currentProject.code : '')}</strong> &bull; Chụp ảnh có Timemark để tự động đồng bộ về đây!
+              Kỹ sư mở app điện thoại &bull; Chọn dự án <strong>${escapeHtml(currentProject ? currentProject.code : '')}</strong> &bull; Chụp ảnh có Timemark để tự động đồng bộ về đây!
             </p>
           </div>
         `;
         return;
       }
 
-      container.innerHTML = currentMediaList.map(m => {
+      container.innerHTML = filteredMedia.map(m => {
         const fullUrl = m.url ? (m.url.startsWith('http') || m.url.startsWith('data:') ? m.url : `${API_BASE}${m.url}`) : '';
         const timeStr = m.capturedAt ? new Date(m.capturedAt).toLocaleString('vi-VN') : '';
+        const isAdm = (m.username === 'kha' || (m.capturedBy && m.capturedBy.includes('Kha')) || m.role === 'admin');
+        const badgeClass = isAdm ? 'user-badge-card admin' : 'user-badge-card engineer';
+        const badgeIcon = isAdm ? '👑' : '👷';
+        const authorName = fixViText(m.capturedBy || (isAdm ? 'Sếp Kha' : 'Kỹ sư'));
+        const userTag = m.username ? `@${m.username}` : (isAdm ? '@kha' : '');
+
         return `
-          <div class="media-card" onclick="${fullUrl ? `openLightbox('${fullUrl}', '${escapeHtml(m.stage || 'Hiện trường')}', '${escapeHtml(timeStr)} - ${escapeHtml(m.capturedBy || 'Kỹ sư')}')` : ''}">
+          <div class="media-card" onclick="${fullUrl ? `openLightbox('${fullUrl}', '${escapeHtml(fixViText(m.stage || 'Hiện trường'))}', '${escapeHtml(timeStr)} - ${escapeHtml(authorName)}')` : ''}">
             <div class="media-thumb-wrap" style="${!fullUrl ? 'display:flex; align-items:center; justify-content:center; background:#18181b; min-height:160px;' : ''}">
               ${fullUrl 
                 ? `<img src="${fullUrl}" alt="${escapeHtml(m.stage || 'Ảnh site')}" loading="lazy">` 
                 : `<div style="text-align:center; padding:12px; color:var(--text-muted);"><div style="font-size:28px;">📱</div><div style="font-size:11px; margin-top:4px;">Ghi nhận từ Mobile cũ<br>(Cần update APK v1.5.0 để truyền ảnh)</div></div>`}
-              <span class="media-badge-stage">${escapeHtml(m.stage || 'Thi công')}</span>
+              <span class="media-badge-stage">${escapeHtml(fixViText(m.stage || 'Thi công'))}</span>
             </div>
             <div class="media-meta-box">
-              <div class="media-title">${escapeHtml(fixViText(m.stage || 'Hiện trường'))}</div>
-              <div class="media-time">🕒 ${escapeHtml(timeStr)} &bull; 👷 ${escapeHtml(fixViText(m.capturedBy || 'Kỹ sư'))}</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                <div class="media-title">${escapeHtml(fixViText(m.stage || 'Hiện trường'))}</div>
+                <span class="${badgeClass}">${badgeIcon} ${escapeHtml(authorName)} <span style="opacity:0.75; font-size:10px;">${escapeHtml(userTag)}</span></span>
+              </div>
+              <div class="media-time">🕒 ${escapeHtml(timeStr)}</div>
               ${m.note ? `<div class="media-note">“${escapeHtml(m.note)}”</div>` : ''}
-              ${m.gps ? `<div style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">📍 ${escapeHtml(m.gps)}</div>` : ''}
+              ${m.gps ? `<div style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">📍 ${escapeHtml(fixViText(m.gps))}</div>` : ''}
             </div>
           </div>
         `;
@@ -1274,24 +1648,31 @@
     function renderReports() {
       const container = document.getElementById('reports-grid-container');
       const badgeCount = document.getElementById('tab-reports-count');
-      if (badgeCount) badgeCount.textContent = currentReportsList.length;
 
-      if (!currentReportsList || currentReportsList.length === 0) {
+      const filteredReports = currentReportsList.filter(r => itemMatchesUser(r, selectedUserFilter));
+      if (badgeCount) badgeCount.textContent = filteredReports.length;
+
+      if (!filteredReports || filteredReports.length === 0) {
+        const filterName = selectedUserFilter === 'all' ? 'toàn bộ dự án' : `kỹ sư @${selectedUserFilter}`;
         container.innerHTML = `
           <div style="grid-column: 1/-1; text-align:center; padding:48px; background:var(--bg-panel); border:1px solid var(--border); border-radius:12px;">
             <div style="font-size:32px; margin-bottom:8px;">📝</div>
-            <h4 style="font-size:14px; margin-bottom:4px;">Chưa có phiếu báo cáo nào</h4>
+            <h4 style="font-size:14px; margin-bottom:4px;">Chưa có phiếu báo cáo nào của ${escapeHtml(filterName)}</h4>
             <p style="font-size:12px; color:var(--text-muted);">
-              Kỹ sư mở app điện thoại Android &bull; Vào mục <strong>Gửi Báo Cáo Hiện Trường</strong> để gửi phiếu nghiệm thu/tiến độ về máy tính!
+              Kỹ sư mở app điện thoại &bull; Vào mục <strong>Gửi Báo Cáo Hiện Trường</strong> để gửi phiếu nghiệm thu/tiến độ về máy tính!
             </p>
           </div>
         `;
         return;
       }
 
-      container.innerHTML = currentReportsList.map(r => {
+      container.innerHTML = filteredReports.map(r => {
         const timeStr = r.timestamp || (r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : 'Vừa xong');
-        const reporterName = fixViText(r.reporter || r.authorName || r.engineer || 'Kỹ sư');
+        const isAdm = (r.username === 'kha' || (r.reporter && r.reporter.includes('Kha')) || r.role === 'admin');
+        const badgeClass = isAdm ? 'user-badge-card admin' : 'user-badge-card engineer';
+        const badgeIcon = isAdm ? '👑' : '👷';
+        const reporterName = fixViText(r.reporter || r.authorName || r.engineer || (isAdm ? 'Sếp Kha' : 'Kỹ sư'));
+        const userTag = r.username ? `@${r.username}` : (isAdm ? '@kha' : '');
         const conditionText = fixViText(r.condition || 'Bình thường');
         const progressVal = r.progress !== undefined ? r.progress : (currentProject ? currentProject.progress : 0);
         const textContent = fixViText(r.findings || r.content || r.title || 'Đã ghi nhận công việc tại site.');
@@ -1301,15 +1682,16 @@
           <div class="report-card">
             <div class="report-header">
               <span class="report-badge-ok">✓ ${escapeHtml(conditionText)}</span>
-              <span style="font-size:11.5px; color:var(--accent); font-weight:600;">Tiến độ: ${progressVal}%</span>
+              <span class="${badgeClass}">${badgeIcon} ${escapeHtml(reporterName)} <span style="opacity:0.75; font-size:10px;">${escapeHtml(userTag)}</span></span>
             </div>
-            <div style="font-size:12px; font-weight:600; color:var(--text-muted);">
-              Công đoạn: <strong style="color:var(--text);">${escapeHtml(stageName)}</strong>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:600; color:var(--text-muted);">
+              <div>Công đoạn: <strong style="color:var(--text);">${escapeHtml(stageName)}</strong></div>
+              <div style="color:var(--accent);">Tiến độ: ${progressVal}%</div>
             </div>
             <div class="report-content">${escapeHtml(textContent)}</div>
             <div class="report-footer">
               <span>🕒 ${escapeHtml(timeStr)}</span>
-              <span>👷 ${escapeHtml(reporterName)}</span>
+              <span>Định danh: <strong>${escapeHtml(reporterName)}</strong></span>
             </div>
           </div>
         `;
@@ -1338,17 +1720,14 @@
 
     function sendNative(cmd, payload = {}) {
       const msg = { cmd, ...payload };
-      if (window.parent && window.parent !== window) {
-        try {
-          window.parent.postMessage(msg, '*');
-          return true;
-        } catch (_) {}
-      }
       if (window.chrome && window.chrome.webview) {
-        try {
-          window.chrome.webview.postMessage(msg);
-          return true;
-        } catch (_) {}
+        try { window.chrome.webview.postMessage(msg); return true; } catch (_) {}
+      }
+      if (window.parent && window.parent.chrome && window.parent.chrome.webview) {
+        try { window.parent.chrome.webview.postMessage(msg); return true; } catch (_) {}
+      }
+      if (window.parent && window.parent !== window) {
+        try { window.parent.postMessage(msg, '*'); return true; } catch (_) {}
       }
       return false;
     }
@@ -1472,8 +1851,29 @@
         .replace(/'/g, '&#39;');
     }
 
-    // Initial load
+    // Khởi tạo phiên đăng nhập, nạp danh sách nhân sự và tải dự án
+    initUserSession();
+    loadRegisteredUsers();
     fetchProjects();
+
+    window.addEventListener('message', e => {
+      if (e.data && e.data.type === 'ks:auth:user' && e.data.user) {
+        currentUserSession = e.data.user;
+        initUserSession();
+        updateUserFilterBar();
+        renderMediaGrid();
+        renderReports();
+      }
+    });
+
+    window.addEventListener('storage', e => {
+      if (e.key === 'ks_session') {
+        initUserSession();
+        updateUserFilterBar();
+        renderMediaGrid();
+        renderReports();
+      }
+    });
   </script>
 </body>
 </html>

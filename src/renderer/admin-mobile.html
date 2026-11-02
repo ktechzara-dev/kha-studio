@@ -1258,7 +1258,9 @@
         dataBase64: currentProcessedBase64,
         capturedAt: new Date().toISOString(),
         capturedBy: currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư',
-        username: currentUser ? currentUser.username : '',
+        username: currentUser ? (currentUser.username || '') : '',
+        userId: currentUser ? (currentUser.id || '') : '',
+        role: currentUser ? (currentUser.role || 'engineer') : 'engineer',
         stage: stage,
         note: note,
         gps: 'Hiện trường'
@@ -1347,6 +1349,9 @@
         condition: condition,
         findings: content,
         reporter: currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư',
+        username: currentUser ? (currentUser.username || '') : '',
+        userId: currentUser ? (currentUser.id || '') : '',
+        role: currentUser ? (currentUser.role || 'engineer') : 'engineer',
         timestamp: new Date().toLocaleString('vi-VN'),
         createdAt: new Date().toISOString()
       };

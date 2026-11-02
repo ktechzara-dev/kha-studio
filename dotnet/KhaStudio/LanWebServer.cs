@@ -220,8 +220,10 @@ public class LanWebServer
                             {
                                 if (val is JsonObject repNode)
                                 {
+                                    NormalizeReportNode(repNode);
                                     var repProjCode = repNode["projectCode"]?.ToString() ?? "";
                                     var repId = repNode["id"]?.ToString() ?? key;
+
                                     if (!string.IsNullOrWhiteSpace(repProjCode))
                                     {
                                         var safe = CleanFileName(repProjCode);
@@ -241,9 +243,22 @@ public class LanWebServer
                                                 var allList = new JsonArray();
                                                 if (File.Exists(allReportsFile))
                                                 {
-                                                    if (JsonNode.Parse(File.ReadAllText(allReportsFile, Encoding.UTF8)) is JsonArray arr) allList = arr;
+                                                    try
+                                                    {
+                                                        var rawContent = File.ReadAllText(allReportsFile, Encoding.UTF8);
+                                                        if (rawContent.StartsWith("\uFEFF")) rawContent = rawContent.Substring(1);
+                                                        using var doc = JsonDocument.Parse(rawContent);
+                                                        if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                                                        {
+                                                            foreach (var el in doc.RootElement.EnumerateArray())
+                                                            {
+                                                                if (JsonNode.Parse(el.ToString()) is JsonObject o) allList.Add(o);
+                                                            }
+                                                        }
+                                                    }
+                                                    catch { }
                                                 }
-                                                if (!allList.Any(item => item?["id"]?.ToString() == repId))
+                                                if (!allList.Any(item => (item?["id"]?.ToString() ?? "").Trim('"', ' ') == repId))
                                                 {
                                                     allList.Insert(0, repNode.DeepClone());
                                                     File.WriteAllText(allReportsFile, allList.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
@@ -993,6 +1008,8 @@ public class LanWebServer
                 ["note"] = note,
                 ["gps"] = gps
             };
+            NormalizeMediaNode(itemObj);
+
             list.Insert(0, itemObj);
             File.WriteAllText(indexPath, list.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
 
@@ -1009,6 +1026,98 @@ public class LanWebServer
         }
     }
 
+    private static void NormalizeReportNode(JsonObject rNode)
+    {
+        if (rNode == null) return;
+        var rName = (rNode["reporter"]?.ToString() ?? "").Trim('"', ' ');
+        var uName = (rNode["username"]?.ToString() ?? "").Trim('"', ' ');
+
+        if (rName.Contains("Kha", StringComparison.OrdinalIgnoreCase) || rName.Contains("?") || uName.Equals("kha", StringComparison.OrdinalIgnoreCase))
+        {
+            rNode["reporter"] = "S\u1EBFp Kha";
+            rNode["username"] = "kha";
+            rNode["role"] = "admin";
+        }
+        else if (rName.Contains("Duy\u00EAn 1", StringComparison.OrdinalIgnoreCase) || rName.Contains("Duyen 1", StringComparison.OrdinalIgnoreCase) || uName.Equals("duyen1", StringComparison.OrdinalIgnoreCase))
+        {
+            rNode["reporter"] = "Duy\u00EAn 1";
+            rNode["username"] = "duyen1";
+            rNode["role"] = "engineer";
+        }
+        else if (rName.Contains("Duy\u00EAn", StringComparison.OrdinalIgnoreCase) || rName.Contains("Duyn", StringComparison.OrdinalIgnoreCase) || rName.Contains("Duyen", StringComparison.OrdinalIgnoreCase) || uName.Equals("duyen", StringComparison.OrdinalIgnoreCase))
+        {
+            rNode["reporter"] = "Duy\u00EAn";
+            rNode["username"] = "duyen";
+            rNode["role"] = "engineer";
+        }
+        else if (rName.Contains("Di\u1EC7u", StringComparison.OrdinalIgnoreCase) || rName.Contains("Di?u", StringComparison.OrdinalIgnoreCase) || rName.Contains("Dieu", StringComparison.OrdinalIgnoreCase) || uName.Equals("dieu", StringComparison.OrdinalIgnoreCase))
+        {
+            rNode["reporter"] = "Di\u1EC7u";
+            rNode["username"] = "dieu";
+            rNode["role"] = "engineer";
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(uName))
+            {
+                rNode["username"] = "engineer";
+            }
+        }
+
+        var cText = (rNode["condition"]?.ToString() ?? "").Trim('"', ' ');
+        if (cText.Contains("?") || string.IsNullOrWhiteSpace(cText))
+        {
+            rNode["condition"] = "B\u00ECnh th\u01B0\u1EDDng";
+        }
+    }
+
+    private static void NormalizeMediaNode(JsonObject mNode)
+    {
+        if (mNode == null) return;
+        var cap = (mNode["capturedBy"]?.ToString() ?? "").Trim('"', ' ');
+        var uName = (mNode["username"]?.ToString() ?? "").Trim('"', ' ');
+
+        if (cap.Contains("Kha", StringComparison.OrdinalIgnoreCase) || cap.Contains("?") || uName.Equals("kha", StringComparison.OrdinalIgnoreCase))
+        {
+            mNode["capturedBy"] = "S\u1EBFp Kha";
+            mNode["username"] = "kha";
+            mNode["role"] = "admin";
+        }
+        else if (cap.Contains("Duy\u00EAn 1", StringComparison.OrdinalIgnoreCase) || cap.Contains("Duyen 1", StringComparison.OrdinalIgnoreCase) || uName.Equals("duyen1", StringComparison.OrdinalIgnoreCase))
+        {
+            mNode["capturedBy"] = "Duy\u00EAn 1";
+            mNode["username"] = "duyen1";
+            mNode["role"] = "engineer";
+        }
+        else if (cap.Contains("Duy\u00EAn", StringComparison.OrdinalIgnoreCase) || cap.Contains("Duyn", StringComparison.OrdinalIgnoreCase) || cap.Contains("Duyen", StringComparison.OrdinalIgnoreCase) || uName.Equals("duyen", StringComparison.OrdinalIgnoreCase))
+        {
+            mNode["capturedBy"] = "Duy\u00EAn";
+            mNode["username"] = "duyen";
+            mNode["role"] = "engineer";
+        }
+        else if (cap.Contains("Di\u1EC7u", StringComparison.OrdinalIgnoreCase) || cap.Contains("Di?u", StringComparison.OrdinalIgnoreCase) || cap.Contains("Dieu", StringComparison.OrdinalIgnoreCase) || uName.Equals("dieu", StringComparison.OrdinalIgnoreCase))
+        {
+            mNode["capturedBy"] = "Di\u1EC7u";
+            mNode["username"] = "dieu";
+            mNode["role"] = "engineer";
+        }
+        else if (string.IsNullOrWhiteSpace(uName))
+        {
+            mNode["username"] = "engineer";
+        }
+
+        var stage = (mNode["stage"]?.ToString() ?? "").Trim('"', ' ');
+        if (stage.Contains("?") || stage.Contains("Chy") || stage.Contains("ch%?nh") || stage.Contains("Chay thu"))
+        {
+            mNode["stage"] = "Ch\u1EA1y th\u1EED & Tinh ch\u1EC9nh";
+        }
+        var gps = (mNode["gps"]?.ToString() ?? "").Trim('"', ' ');
+        if (gps.Contains("?"))
+        {
+            mNode["gps"] = "Hi\u1EC7n tr\u01B0\u1EDDng";
+        }
+    }
+
     private string GetProjectMediaJson(string code)
     {
         try
@@ -1016,38 +1125,60 @@ public class LanWebServer
             var safe = CleanFileName(code);
             var projDir = Path.Combine(UserDataDir, "projects", safe);
             var indexPath = Path.Combine(projDir, "media_index.json");
+            var list = new JsonArray();
+            var seenFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             if (File.Exists(indexPath))
             {
-                return File.ReadAllText(indexPath, Encoding.UTF8);
+                var existing = File.ReadAllText(indexPath, Encoding.UTF8);
+                if (JsonNode.Parse(existing) is JsonArray arr)
+                {
+                    foreach (var item in arr)
+                    {
+                        if (item is JsonObject mNode)
+                        {
+                            var fName = mNode["fileName"]?.ToString() ?? "";
+                            if (!string.IsNullOrWhiteSpace(fName)) seenFiles.Add(fName);
+                            NormalizeMediaNode(mNode);
+                            list.Add(mNode.DeepClone());
+                        }
+                    }
+                }
             }
 
-            var list = new JsonArray();
             var photoDir = Path.Combine(projDir, "photos");
             if (Directory.Exists(photoDir))
             {
                 foreach (var f in Directory.GetFiles(photoDir))
                 {
                     var fi = new FileInfo(f);
-                    list.Add(new JsonObject
+                    if (!seenFiles.Contains(fi.Name))
                     {
-                        ["id"] = "med_" + fi.Name.GetHashCode().ToString("X"),
-                        ["projectCode"] = code,
-                        ["fileName"] = fi.Name,
-                        ["originalName"] = fi.Name,
-                        ["fileType"] = "image",
-                        ["url"] = $"/data/projects/{safe}/photos/{fi.Name}",
-                        ["size"] = fi.Length,
-                        ["capturedAt"] = fi.LastWriteTimeUtc.ToString("o"),
-                        ["capturedBy"] = "Hiện trường",
-                        ["stage"] = "Thi công site"
-                    });
+                        var mNode = new JsonObject
+                        {
+                            ["id"] = "med_" + fi.Name.GetHashCode().ToString("X"),
+                            ["projectCode"] = code,
+                            ["fileName"] = fi.Name,
+                            ["originalName"] = fi.Name,
+                            ["fileType"] = "image",
+                            ["url"] = $"/data/projects/{safe}/photos/{fi.Name}",
+                            ["size"] = fi.Length,
+                            ["capturedAt"] = fi.LastWriteTimeUtc.ToString("o"),
+                            ["capturedBy"] = "S\u1EBFp Kha",
+                            ["username"] = "kha",
+                            ["role"] = "admin",
+                            ["stage"] = "Ch\u1EA1y th\u1EED & Tinh ch\u1EC9nh"
+                        };
+                        NormalizeMediaNode(mNode);
+                        list.Add(mNode);
+                    }
                 }
             }
             return list.ToJsonString();
         }
-        catch
+        catch (Exception ex)
         {
-            return "[]";
+            return $"{{\"error\":\"{ex.Message.Replace('"', '\'')}\",\"stack\":\"{ex.StackTrace?.Replace('"', '\'').Replace('\r', ' ').Replace('\n', ' ')}\"}}";
         }
     }
 
@@ -1057,6 +1188,8 @@ public class LanWebServer
         {
             var node = JsonNode.Parse(body) as JsonObject;
             if (node == null) return "{\"status\":\"error\",\"message\":\"Payload trống\"}";
+
+            NormalizeReportNode(node);
 
             var projectCode = node["projectCode"]?.ToString()?.Trim() ?? "";
             var safe = CleanFileName(projectCode);
@@ -1073,10 +1206,26 @@ public class LanWebServer
             var allList = new JsonArray();
             if (File.Exists(allReportsFile))
             {
-                if (JsonNode.Parse(File.ReadAllText(allReportsFile, Encoding.UTF8)) is JsonArray arr) allList = arr;
+                try
+                {
+                    var rawContent = File.ReadAllText(allReportsFile, Encoding.UTF8);
+                    if (rawContent.StartsWith("\uFEFF")) rawContent = rawContent.Substring(1);
+                    using var doc = JsonDocument.Parse(rawContent);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var el in doc.RootElement.EnumerateArray())
+                        {
+                            if (JsonNode.Parse(el.ToString()) is JsonObject o) allList.Add(o);
+                        }
+                    }
+                }
+                catch { }
             }
-            allList.Insert(0, node.DeepClone());
-            File.WriteAllText(allReportsFile, allList.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+            if (!allList.Any(item => (item?["id"]?.ToString() ?? "").Trim('"', ' ') == reportId))
+            {
+                allList.Insert(0, node.DeepClone());
+                File.WriteAllText(allReportsFile, allList.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), Encoding.UTF8);
+            }
 
             return $"{{\"status\":\"ok\",\"id\":\"{reportId}\"}}";
         }
@@ -1086,6 +1235,18 @@ public class LanWebServer
         }
     }
 
+    public static string ReadTextWithoutBom(string path)
+    {
+        if (!File.Exists(path)) return "";
+        var bytes = File.ReadAllBytes(path);
+        string s;
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+            s = Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
+        else
+            s = Encoding.UTF8.GetString(bytes);
+        return s.Trim('\uFEFF', (char)65279, ' ', '\r', '\n', '\t');
+    }
+
     private string GetProjectReportsJson(string code)
     {
         try
@@ -1093,35 +1254,26 @@ public class LanWebServer
             var list = new JsonArray();
             var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var safe = CleanFileName(code);
-            var repDir = Path.Combine(UserDataDir, "projects", safe, "reports");
 
+            // 1. Quét từ thư mục reports của dự án: projects/{safe}/reports/*.json
+            var projDir = Path.Combine(UserDataDir, "projects", safe);
+            var repDir = Path.Combine(projDir, "reports");
             if (Directory.Exists(repDir))
             {
-                var files = Directory.GetFiles(repDir, "*.json")
-                    .OrderByDescending(f => File.GetLastWriteTimeUtc(f));
-
+                var files = Directory.GetFiles(repDir, "*.json");
+                Array.Sort(files, (a, b) => File.GetLastWriteTimeUtc(b).CompareTo(File.GetLastWriteTimeUtc(a)));
                 foreach (var f in files)
                 {
                     try
                     {
-                        var raw = File.ReadAllText(f, Encoding.UTF8).Trim();
-                        while (raw.Length > 0 && (raw[0] == '\uFEFF' || raw[0] == 65279))
+                        var raw = ReadTextWithoutBom(f);
+                        if (!string.IsNullOrWhiteSpace(raw) && JsonNode.Parse(raw) is JsonObject rNode)
                         {
-                            raw = raw.Substring(1).Trim();
-                        }
-                        if (JsonNode.Parse(raw) is JsonObject parsedObj)
-                        {
-                            var clone = parsedObj.DeepClone() as JsonObject ?? parsedObj;
-                            var rId = (clone["id"]?.ToString() ?? Path.GetFileNameWithoutExtension(f)).Trim('"', ' ');
-                            if (seenIds.Add(rId))
+                            var rId = (rNode["id"]?.ToString() ?? Path.GetFileNameWithoutExtension(f)).Trim('"', ' ');
+                            if (!string.IsNullOrWhiteSpace(rId) && seenIds.Add(rId))
                             {
-                                var rName = (clone["reporter"]?.ToString() ?? "").Trim('"', ' ');
-                                if (string.IsNullOrWhiteSpace(rName) || rName.Contains("Kha", StringComparison.OrdinalIgnoreCase) || rName.Contains("?"))
-                                    clone["reporter"] = "S\u1EBFp Kha";
-                                var cText = (clone["condition"]?.ToString() ?? "").Trim('"', ' ');
-                                if (string.IsNullOrWhiteSpace(cText) || cText.Contains("?"))
-                                    clone["condition"] = "B\u00ECnh th\u01B0\u1EDDng";
-                                list.Add(clone);
+                                NormalizeReportNode(rNode);
+                                list.Add(rNode.DeepClone());
                             }
                         }
                     }
@@ -1129,38 +1281,33 @@ public class LanWebServer
                 }
             }
 
-            // Kiểm tra thêm trong field_reports.json nếu có báo cáo chưa lưu vào thư mục
-            var allReportsFile = Path.Combine(UserDataDir, "field_reports.json");
-            if (File.Exists(allReportsFile))
+            // 2. Quét thêm từ field_reports.json tổng
+            var allRepFile = Path.Combine(UserDataDir, "field_reports.json");
+            if (File.Exists(allRepFile))
             {
                 try
                 {
-                    var allRaw = File.ReadAllText(allReportsFile, Encoding.UTF8).Trim();
-                    while (allRaw.Length > 0 && (allRaw[0] == '\uFEFF' || allRaw[0] == 65279))
+                    var allRaw = ReadTextWithoutBom(allRepFile);
+                    if (!string.IsNullOrWhiteSpace(allRaw))
                     {
-                        allRaw = allRaw.Substring(1).Trim();
-                    }
-                    if (JsonNode.Parse(allRaw) is JsonArray arr)
-                    {
-                        var cleanFilterCode = (code ?? "").Trim('"', ' ');
-                        foreach (var item in arr)
+                        using var doc = JsonDocument.Parse(allRaw);
+                        if (doc.RootElement.ValueKind == JsonValueKind.Array)
                         {
-                            if (item is JsonObject rNode)
+                            var cleanFilterCode = (code ?? "").Trim('"', ' ');
+                            foreach (var elem in doc.RootElement.EnumerateArray())
                             {
-                                var pCode = (rNode["projectCode"]?.ToString() ?? "").Trim('"', ' ');
-                                var rId = (rNode["id"]?.ToString() ?? "").Trim('"', ' ');
+                                var pCode = elem.TryGetProperty("projectCode", out var pc) ? pc.GetString() ?? "" : "";
+                                pCode = pCode.Trim('"', ' ');
                                 if (string.IsNullOrWhiteSpace(cleanFilterCode) || pCode.Equals(cleanFilterCode, StringComparison.OrdinalIgnoreCase))
                                 {
-                                    if (!string.IsNullOrWhiteSpace(rId) && seenIds.Add(rId))
+                                    if (JsonNode.Parse(elem.ToString()) is JsonObject rNode)
                                     {
-                                        var clone = rNode.DeepClone() as JsonObject ?? rNode;
-                                        var rName = (clone["reporter"]?.ToString() ?? "").Trim('"', ' ');
-                                        if (string.IsNullOrWhiteSpace(rName) || rName.Contains("Kha", StringComparison.OrdinalIgnoreCase) || rName.Contains("?"))
-                                            clone["reporter"] = "S\u1EBFp Kha";
-                                        var cText = (clone["condition"]?.ToString() ?? "").Trim('"', ' ');
-                                        if (string.IsNullOrWhiteSpace(cText) || cText.Contains("?"))
-                                            clone["condition"] = "B\u00ECnh th\u01B0\u1EDDng";
-                                        list.Add(clone);
+                                        var rId = (rNode["id"]?.ToString() ?? "").Trim('"', ' ');
+                                        if (string.IsNullOrWhiteSpace(rId) || seenIds.Add(rId))
+                                        {
+                                            NormalizeReportNode(rNode);
+                                            list.Add(rNode.DeepClone());
+                                        }
                                     }
                                 }
                             }
@@ -1172,9 +1319,9 @@ public class LanWebServer
 
             return list.ToJsonString();
         }
-        catch
+        catch (Exception ex)
         {
-            return "[]";
+            return $"[{{\"error\":\"{ex.Message.Replace('"', '\'')}\",\"stack\":\"{ex.StackTrace?.Replace('"', '\'').Replace('\r', ' ').Replace('\n', ' ')}\"}}]";
         }
     }
 
