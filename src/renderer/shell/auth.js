@@ -758,20 +758,41 @@
           if (uRes && uRes.ok) {
             const uData = await uRes.json();
             if (uData && typeof uData === 'object') {
+              const remoteUsers = Object.values(uData).filter(x => x && x.username);
               const localUsers = this.getUsers();
               let updatedUsers = false;
-              Object.values(uData).forEach(remoteUser => {
-                if (remoteUser && remoteUser.username) {
-                  const existing = localUsers.find(u => u.username.toLowerCase() === remoteUser.username.toLowerCase());
-                  if (!existing) {
-                    localUsers.push(remoteUser);
+
+              remoteUsers.forEach(remoteUser => {
+                const existing = localUsers.find(u => u.username.toLowerCase() === remoteUser.username.toLowerCase());
+                if (!existing) {
+                  localUsers.push(remoteUser);
+                  updatedUsers = true;
+                } else {
+                  if (existing.isLocked !== !!remoteUser.isLocked) {
+                    existing.isLocked = !!remoteUser.isLocked;
+                    existing.lockedAt = remoteUser.lockedAt || null;
+                    existing.lockedBy = remoteUser.lockedBy || null;
                     updatedUsers = true;
-                  } else if (JSON.stringify(existing.allowedTools) !== JSON.stringify(remoteUser.allowedTools)) {
+                  }
+                  if (JSON.stringify(existing.allowedTools) !== JSON.stringify(remoteUser.allowedTools)) {
                     existing.allowedTools = remoteUser.allowedTools;
                     updatedUsers = true;
                   }
                 }
               });
+
+              // Nếu tài khoản không còn trên Firebase (đã bị Admin xóa hoàn toàn), loại bỏ khỏi localUsers
+              for (let i = localUsers.length - 1; i >= 0; i--) {
+                const lu = localUsers[i];
+                if (lu.role !== 'admin' && lu.username.toLowerCase() !== 'kha') {
+                  const stillOnRemote = remoteUsers.some(ru => ru.username.toLowerCase() === lu.username.toLowerCase());
+                  if (!stillOnRemote) {
+                    localUsers.splice(i, 1);
+                    updatedUsers = true;
+                  }
+                }
+              }
+
               if (updatedUsers) {
                 this._saveUsers(localUsers);
                 window.dispatchEvent(new CustomEvent('ks:auth:users_synced', { detail: { users: localUsers } }));
@@ -871,6 +892,16 @@
 
       this._pollTimer = setInterval(async () => {
         const currentUser = this.getCurrentUser();
+        // Nếu user hiện tại không phải admin và bị khóa tài khoản -> đăng xuất ngay
+        if (currentUser && currentUser.role !== 'admin') {
+          const freshUser = this.getUsers().find(u => (u.id && u.id === currentUser.id) || (u.username && u.username.toLowerCase() === currentUser.username.toLowerCase()));
+          if (freshUser && freshUser.isLocked) {
+            this.logout();
+            alert('Tài khoản của bạn đã bị Quản trị viên Sếp Kha tạm khóa. Phiên làm việc đã kết thúc!');
+            window.location.reload();
+            return;
+          }
+        }
         // Chỉ kéo & phát âm thanh khi đã đăng nhập Admin hoặc có đăng ký chờ
         const myReg = this.getMyRegistration();
         if ((currentUser && currentUser.role === 'admin') || (myReg && myReg.status === 'pending')) {
@@ -962,6 +993,10 @@
           }
         }
         throw new Error('Tài khoản hoặc Email không tồn tại trên hệ thống');
+      }
+
+      if (user.isLocked) {
+        throw new Error(`Tài khoản "@${user.username}" (${user.name}) đã bị tạm khóa bởi Quản trị viên Sếp Kha. Vui lòng liên hệ để mở khóa!`);
       }
 
       const match = await verifyPassword(password, user.passwordHash);
@@ -1184,7 +1219,63 @@
       return await res.json();
     }
 
-    deleteUser(id) {
+    async toggleLockUser(id, lock = null) {
+      if (!this.hasRole('admin')) throw new Error('Chỉ Administrator mới có quyền khóa/mở khóa tài khoản');
+      const current = this.getCurrentUser();
+      if (current && current.id === id) {
+        throw new Error('Không thể tự khóa tài khoản đang đăng nhập');
+      }
+
+      let users = this.getUsers();
+      const user = users.find(u => u.id === id || (u.username && u.username.toLowerCase() === String(id).toLowerCase()));
+      if (!user) throw new Error('Không tìm thấy người dùng');
+      if (user.role === 'admin' || (user.username && user.username.toLowerCase() === 'kha')) {
+        throw new Error('Không thể khóa tài khoản Quản trị viên Sếp Kha');
+      }
+
+      const newLockState = (lock !== null) ? !!lock : !user.isLocked;
+      user.isLocked = newLockState;
+      user.lockedAt = newLockState ? new Date().toISOString() : null;
+      user.lockedBy = newLockState ? (current?.name || 'Sếp Kha') : null;
+
+      this._saveUsers(users);
+
+      // 1. Đồng bộ trạng thái khóa lên Firebase Realtime Database
+      try {
+        const cfg = this.getCloudConfig();
+        if (cfg && cfg.cloudUrl) {
+          const base = cfg.cloudUrl.replace(/\/+$/, '');
+          const safeKey = user.username.replace(/\./g, '_');
+          await fetch(`${base}/users/${safeKey}.json`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isLocked: newLockState, lockedAt: user.lockedAt, lockedBy: user.lockedBy })
+          }).catch(() => {});
+
+          if (user.id && user.id.startsWith('req_')) {
+            await fetch(`${base}/registrations/${user.id}.json`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ isLocked: newLockState, lockedAt: user.lockedAt, lockedBy: user.lockedBy })
+            }).catch(() => {});
+          }
+        }
+      } catch (_) {}
+
+      // 2. Gửi lệnh tới LAN Server
+      try {
+        await fetch('/api/auth/user/lock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user.username, isLocked: newLockState, id: user.id })
+        }).catch(() => {});
+      } catch (_) {}
+
+      window.dispatchEvent(new CustomEvent('ks:auth:users_synced', { detail: { users } }));
+      return user;
+    }
+
+    async deleteUserPermanently(id) {
       if (!this.hasRole('admin')) throw new Error('Chỉ Administrator mới có quyền xóa người dùng');
       const current = this.getCurrentUser();
       if (current && current.id === id) {
@@ -1192,16 +1283,66 @@
       }
 
       let users = this.getUsers();
-      const user = users.find(u => u.id === id);
+      const user = users.find(u => u.id === id || (u.username && u.username.toLowerCase() === String(id).toLowerCase()));
       if (!user) throw new Error('Không tìm thấy người dùng');
-      if (user.role === 'admin') {
-        const adminCount = users.filter(u => u.role === 'admin').length;
-        if (adminCount <= 1) throw new Error('Không thể xóa Administrator cuối cùng');
+      if (user.role === 'admin' || (user.username && user.username.toLowerCase() === 'kha')) {
+        throw new Error('Không thể xóa tài khoản Quản trị viên Sếp Kha');
       }
 
-      users = users.filter(u => u.id !== id);
+      // Xóa trong localStorage
+      users = users.filter(u => u.id !== user.id && u.username.toLowerCase() !== user.username.toLowerCase());
       this._saveUsers(users);
+
+      // Xóa khỏi pending requests nếu còn
+      let pendingList = this.getPendingRequests();
+      pendingList = pendingList.filter(p => p.id !== user.id && p.username.toLowerCase() !== user.username.toLowerCase());
+      this._savePendingRequests(pendingList);
+
+      // 1. Xóa vĩnh viễn trên Cloud Firebase
+      try {
+        const cfg = this.getCloudConfig();
+        if (cfg && cfg.cloudUrl) {
+          const base = cfg.cloudUrl.replace(/\/+$/, '');
+          const safeKey = user.username.replace(/\./g, '_');
+          // Xóa khỏi /users
+          await fetch(`${base}/users/${safeKey}.json`, { method: 'DELETE' }).catch(() => {});
+          if (safeKey !== user.username) {
+            await fetch(`${base}/users/${encodeURIComponent(user.username)}.json`, { method: 'DELETE' }).catch(() => {});
+          }
+          // Xóa khỏi /registrations nếu có
+          if (user.id) {
+            await fetch(`${base}/registrations/${user.id}.json`, { method: 'DELETE' }).catch(() => {});
+          }
+          // Xóa bất kỳ yêu cầu nào trùng username
+          const regsRes = await fetch(`${base}/registrations.json`).catch(() => null);
+          if (regsRes && regsRes.ok) {
+            const regsData = await regsRes.json();
+            if (regsData && typeof regsData === 'object') {
+              for (const [rId, rVal] of Object.entries(regsData)) {
+                if (rVal && rVal.username && rVal.username.toLowerCase() === user.username.toLowerCase()) {
+                  await fetch(`${base}/registrations/${rId}.json`, { method: 'DELETE' }).catch(() => {});
+                }
+              }
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 2. Gửi lệnh tới LAN Server để xóa trên ổ đĩa máy tính
+      try {
+        await fetch('/api/auth/user/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user.username, id: user.id })
+        }).catch(() => {});
+      } catch (_) {}
+
+      window.dispatchEvent(new CustomEvent('ks:auth:users_synced', { detail: { users } }));
       return true;
+    }
+
+    deleteUser(id) {
+      return this.deleteUserPermanently(id);
     }
   }
 

@@ -627,6 +627,28 @@ public class LanWebServer
                     return;
                 }
 
+                // 9b. API: /api/auth/user/lock (Khóa hoặc mở khóa tài khoản)
+                if (cleanPath == "/api/auth/user/lock" && method == "POST")
+                {
+                    if (!string.IsNullOrWhiteSpace(body))
+                    {
+                        LockUser(body);
+                    }
+                    await SendJsonResponseAsync(stream, "{\"status\":\"ok\"}");
+                    return;
+                }
+
+                // 9c. API: /api/auth/user/delete (Xóa hoàn toàn tài khoản khỏi máy tính)
+                if (cleanPath == "/api/auth/user/delete" && method == "POST")
+                {
+                    if (!string.IsNullOrWhiteSpace(body))
+                    {
+                        DeleteUser(body);
+                    }
+                    await SendJsonResponseAsync(stream, "{\"status\":\"ok\"}");
+                    return;
+                }
+
                 // 10. API: /api/email/config (Cấu hình SMTP Email)
                 if (cleanPath == "/api/email/config")
                 {
@@ -1740,6 +1762,112 @@ public class LanWebServer
         }
         catch { }
         return "[{\"id\":\"usr_admin\",\"username\":\"kha\",\"name\":\"Sếp Kha\",\"email\":\"ktechzara@gmail.com\",\"role\":\"admin\",\"allowedTools\":[\"*\"],\"passwordHash\":\"pbkdf2:100000:d8c5bb6dfca156e55c570f6cdb47788f:858aa09b80f15ffbe446c8431be20b5ede71caf17a587070034526a21f50cc69\"}]";
+    }
+
+    private void LockUser(string jsonBody)
+    {
+        try
+        {
+            var node = JsonNode.Parse(jsonBody) as JsonObject;
+            if (node == null) return;
+            var username = (node["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
+            var id = (node["id"]?.ToString() ?? "").Trim();
+            var isLocked = false;
+            var lStr = node["isLocked"]?.ToString() ?? "";
+            if (bool.TryParse(lStr, out var bVal)) isLocked = bVal;
+            else if (lStr == "1") isLocked = true;
+
+            if (username == "kha") return; // Không khóa tài khoản Admin Sếp Kha
+
+            void UpdateFile(string filePath)
+            {
+                if (!File.Exists(filePath)) return;
+                var raw = ReadTextWithoutBom(filePath);
+                if (string.IsNullOrWhiteSpace(raw)) return;
+                if (JsonNode.Parse(raw) is JsonArray arr)
+                {
+                    bool changed = false;
+                    foreach (var item in arr)
+                    {
+                        if (item is JsonObject uObj)
+                        {
+                            var u = (uObj["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
+                            var uid = (uObj["id"]?.ToString() ?? "").Trim();
+                            if ((!string.IsNullOrEmpty(username) && u == username) || (!string.IsNullOrEmpty(id) && uid == id))
+                            {
+                                uObj["isLocked"] = isLocked;
+                                if (isLocked)
+                                {
+                                    uObj["lockedAt"] = DateTime.UtcNow.ToString("o");
+                                    uObj["lockedBy"] = "S\u1EBFp Kha";
+                                }
+                                else
+                                {
+                                    uObj.Remove("lockedAt");
+                                    uObj.Remove("lockedBy");
+                                }
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (changed)
+                    {
+                        File.WriteAllText(filePath, arr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+                    }
+                }
+            }
+
+            UpdateFile(Path.Combine(UserDataDir, "users.json"));
+            UpdateFile(Path.Combine(WwwRoot, "data", "users.json"));
+        }
+        catch { }
+    }
+
+    private void DeleteUser(string jsonBody)
+    {
+        try
+        {
+            var node = JsonNode.Parse(jsonBody) as JsonObject;
+            if (node == null) return;
+            var username = (node["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
+            var id = (node["id"]?.ToString() ?? "").Trim();
+
+            if (username == "kha") return; // Không xóa tài khoản Admin Sếp Kha
+
+            void RemoveFromFile(string filePath)
+            {
+                if (!File.Exists(filePath)) return;
+                var raw = ReadTextWithoutBom(filePath);
+                if (string.IsNullOrWhiteSpace(raw)) return;
+                if (JsonNode.Parse(raw) is JsonArray arr)
+                {
+                    bool changed = false;
+                    for (int i = arr.Count - 1; i >= 0; i--)
+                    {
+                        if (arr[i] is JsonObject uObj)
+                        {
+                            var u = (uObj["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
+                            var uid = (uObj["id"]?.ToString() ?? "").Trim();
+                            if ((!string.IsNullOrEmpty(username) && u == username) || (!string.IsNullOrEmpty(id) && uid == id))
+                            {
+                                arr.RemoveAt(i);
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (changed)
+                    {
+                        File.WriteAllText(filePath, arr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+                    }
+                }
+            }
+
+            RemoveFromFile(Path.Combine(UserDataDir, "users.json"));
+            RemoveFromFile(Path.Combine(WwwRoot, "data", "users.json"));
+            RemoveFromFile(Path.Combine(UserDataDir, "pending_users.json"));
+            RemoveFromFile(Path.Combine(WwwRoot, "data", "pending_users.json"));
+        }
+        catch { }
     }
 
     public static string GetLocalIpAddress()

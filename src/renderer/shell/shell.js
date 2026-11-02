@@ -1662,6 +1662,7 @@
           <th>Tên đăng nhập</th>
           <th>Họ tên</th>
           <th>Vai trò</th>
+          <th>Trạng thái</th>
           <th>Quyền công cụ</th>
           <th>Ngày tạo</th>
           <th style="text-align:right;">Thao tác</th>
@@ -1671,10 +1672,15 @@
 
     users.forEach(u => {
       const isCur = currentUser && currentUser.id === u.id;
-      const roleBadge = u.role === 'admin'
+      const isAdm = u.username === 'kha' || u.role === 'admin';
+      const roleBadge = isAdm
         ? '<span class="user-role-badge admin">ADMIN</span>'
         : '<span class="user-role-badge">KỸ SƯ</span>';
       const dateStr = u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : '—';
+
+      const statusBadge = u.isLocked
+        ? '<span style="background:rgba(239,68,68,0.18); color:#f87171; border:1px solid rgba(239,68,68,0.35); padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700;">🔒 ĐÃ KHÓA</span>'
+        : '<span style="background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3); padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;">🟢 Hoạt động</span>';
 
       let permBadge = '';
       if (u.role === 'admin') {
@@ -1695,12 +1701,18 @@
         </td>
         <td>${escapeHtml(u.name)}</td>
         <td>${roleBadge}</td>
+        <td>${statusBadge}</td>
         <td>${permBadge}</td>
         <td><small style="color:var(--text-3);">${dateStr}</small></td>
         <td style="text-align:right;">
-          <div class="actions" style="justify-content:flex-end;">
+          <div class="actions" style="justify-content:flex-end; gap:6px;">
             <button class="btn sm" data-action="edit-user" data-id="${u.id}" title="Chỉnh sửa / Phân quyền công cụ">Sửa & Phân quyền</button>
-            ${!isCur ? `<button class="btn sm danger" data-action="del-user" data-id="${u.id}" title="Xóa tài khoản">Xóa</button>` : ''}
+            ${!isAdm ? `
+              <button class="btn sm ${u.isLocked ? '' : 'btn-warn'}" data-action="lock-user" data-id="${u.id}" data-locked="${u.isLocked ? '1' : '0'}" title="${u.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}">
+                ${u.isLocked ? '🔓 Mở khóa' : '🔒 Khóa'}
+              </button>
+              <button class="btn sm danger" data-action="del-permanent-user" data-id="${u.id}" data-username="${escapeHtml(u.username)}" title="Xóa hoàn toàn tài khoản khỏi máy tính và Cloud Firebase">Xóa hoàn toàn</button>
+            ` : ''}
           </div>
         </td>
       </tr>`;
@@ -1709,22 +1721,55 @@
     html += `</tbody></table>`;
     container.innerHTML = html;
 
-    // Gắn sự kiện sửa / xóa
+    // Gắn sự kiện sửa / khóa / xóa hoàn toàn
     container.querySelectorAll('[data-action="edit-user"]').forEach(btn => {
       btn.onclick = () => openUserModal(btn.getAttribute('data-id'));
     });
-    container.querySelectorAll('[data-action="del-user"]').forEach(btn => {
-      btn.onclick = () => {
+
+    container.querySelectorAll('[data-action="lock-user"]').forEach(btn => {
+      btn.onclick = async () => {
         const id = btn.getAttribute('data-id');
+        const isLocked = btn.getAttribute('data-locked') === '1';
         const u = window.Auth.getUsers().find(x => x.id === id);
         if (!u) return;
-        if (confirm(`Sếp có chắc chắn muốn xóa tài khoản "@${u.username}" (${u.name}) không?`)) {
+
+        const actionText = isLocked ? 'MỞ KHÓA' : 'TẠM KHÓA';
+        const promptMsg = isLocked
+          ? `Sếp có chắc chắn muốn MỞ KHÓA cho tài khoản "@${u.username}" (${u.name}) để tiếp tục đăng nhập không?`
+          : `Sếp có chắc chắn muốn TẠM KHÓA tài khoản "@${u.username}" (${u.name})?\n\n• Sau khi khóa, nhân viên này sẽ không thể đăng nhập trên máy tính và app điện thoại.\n• Dữ liệu công việc trước đó của nhân sự vẫn được bảo toàn.`;
+
+        if (confirm(promptMsg)) {
+          btn.disabled = true;
           try {
-            window.Auth.deleteUser(id);
+            await window.Auth.toggleLockUser(id, !isLocked);
             renderUserManagementTable();
-            notify('Đã xóa tài khoản', `Đã xóa người dùng @${u.username}`, 'info');
+            notify('Cập nhật tài khoản', `Đã ${actionText.toLowerCase()} thành công tài khoản @${u.username}`, 'success');
+          } catch (err) {
+            notify('Lỗi thao tác', err.message, 'error');
+            btn.disabled = false;
+          }
+        }
+      };
+    });
+
+    container.querySelectorAll('[data-action="del-permanent-user"]').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.getAttribute('data-id');
+        const username = btn.getAttribute('data-username');
+        const u = window.Auth.getUsers().find(x => x.id === id || x.username === username);
+        if (!u) return;
+
+        const confirmMsg = `⚠️ CẢNH BÁO XÓA VĨNH VIỄN!\n\nSếp có chắc chắn muốn XÓA HOÀN TOÀN tài khoản "@${u.username}" (${u.name})?\n\n• Tài khoản sẽ bị xóa sạch khỏi máy tính này.\n• Tài khoản sẽ bị xóa vĩnh viễn trên Cloud Firebase (không tự kéo về lại khi đồng bộ).\n• Thao tác này không thể hoàn tác!\n\nNhấn OK để xóa vĩnh viễn.`;
+
+        if (confirm(confirmMsg)) {
+          btn.disabled = true;
+          try {
+            await window.Auth.deleteUserPermanently(id);
+            renderUserManagementTable();
+            notify('Đã xóa vĩnh viễn', `Đã xóa hoàn toàn tài khoản @${u.username} khỏi máy tính và Firebase Cloud!`, 'info');
           } catch (err) {
             notify('Lỗi xóa tài khoản', err.message, 'error');
+            btn.disabled = false;
           }
         }
       };
