@@ -562,7 +562,7 @@
       <div class="req-card">
         <h3 style="font-size:13.5px; margin-bottom:8px;">📦 Cập nhật ứng dụng</h3>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
-          Phiên bản cài đặt: <strong id="app-version-badge" style="color:var(--accent);">v1.5.0</strong>
+          Phiên bản cài đặt: <strong id="app-version-badge" style="color:var(--accent);">v1.5.1</strong>
         </p>
         <div style="display:flex; flex-direction:column; gap:8px;">
           <button class="btn btn-outline" onclick="checkRemoteUpdate()" style="height:38px; width:100%;">
@@ -1258,7 +1258,9 @@
         dataBase64: currentProcessedBase64,
         capturedAt: new Date().toISOString(),
         capturedBy: currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư',
-        username: currentUser ? currentUser.username : '',
+        username: currentUser ? (currentUser.username || '') : '',
+        userId: currentUser ? (currentUser.id || '') : '',
+        role: currentUser ? (currentUser.role || 'engineer') : 'engineer',
         stage: stage,
         note: note,
         gps: 'Hiện trường'
@@ -1347,6 +1349,9 @@
         condition: condition,
         findings: content,
         reporter: currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư',
+        username: currentUser ? (currentUser.username || '') : '',
+        userId: currentUser ? (currentUser.id || '') : '',
+        role: currentUser ? (currentUser.role || 'engineer') : 'engineer',
         timestamp: new Date().toLocaleString('vi-VN'),
         createdAt: new Date().toISOString()
       };
