@@ -26,6 +26,18 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
+    public void downloadUpdateDirect(String url) {
+        if (updateManager != null) {
+            updateManager.openBrowserDownload(url);
+        } else {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url != null ? url : "https://github.com/ktechzara-dev/kha-studio/releases/latest/download/KhaStudio-Admin.apk"));
+                activity.startActivity(intent);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    @JavascriptInterface
     public void openCamera() {
         activity.runOnUiThread(() -> {
             if (activity instanceof MainActivity) {

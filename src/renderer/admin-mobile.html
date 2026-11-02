@@ -619,7 +619,7 @@
           <button class="btn btn-outline" onclick="checkRemoteUpdate()" style="height:38px; width:100%;">
             <span>🔄 Tự động kiểm tra bản cập nhật</span>
           </button>
-          <a class="btn btn-approve" href="https://github.com/ktechzara-dev/kha-studio/releases/latest/download/KhaStudio-Admin.apk" target="_blank" style="height:38px; width:100%; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <a class="btn btn-approve" href="https://github.com/ktechzara-dev/kha-studio/releases/latest/download/KhaStudio-Admin.apk" onclick="downloadDirectApk(event)" style="height:38px; width:100%; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px;">
             <span>⬇️ Tải file APK mới nhất trực tiếp</span>
           </a>
         </div>
@@ -1665,6 +1665,16 @@
       } else {
         showToast('Đang mở trang tải bản cập nhật...');
         window.open('https://github.com/ktechzara-dev/kha-studio/releases/latest/download/KhaStudio-Admin.apk', '_blank');
+      }
+    }
+
+    function downloadDirectApk(e) {
+      if (e) e.preventDefault();
+      const url = 'https://github.com/ktechzara-dev/kha-studio/releases/latest/download/KhaStudio-Admin.apk';
+      if (window.Android && typeof window.Android.downloadUpdateDirect === 'function') {
+        window.Android.downloadUpdateDirect(url);
+      } else {
+        window.open(url, '_blank');
       }
     }
 

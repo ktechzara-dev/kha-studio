@@ -34,10 +34,27 @@ public class UpdateManager {
     private final Activity activity;
     private final Handler mainHandler;
     private long downloadId = -1;
+    private File pendingApkFile = null;
 
     public UpdateManager(Activity activity) {
         this.activity = activity;
         this.mainHandler = new Handler(Looper.getMainLooper());
+    }
+
+    public void onResume() {
+        if (pendingApkFile != null && pendingApkFile.exists()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (activity.getPackageManager().canRequestPackageInstalls()) {
+                    File toInstall = pendingApkFile;
+                    pendingApkFile = null;
+                    promptInstall(toInstall, null);
+                }
+            }
+        }
+    }
+
+    public void openBrowserDownload(String url) {
+        openInBrowser(url != null ? url : "https://github.com/ktechzara-dev/kha-studio/releases/latest/download/KhaStudio-Admin.apk");
     }
 
     public void checkForUpdates(boolean notifyIfLatest) {
@@ -208,6 +225,7 @@ public class UpdateManager {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (!activity.getPackageManager().canRequestPackageInstalls()) {
+                pendingApkFile = apkFile;
                 Toast.makeText(activity, "Vui lòng cho phép cài đặt ứng dụng từ nguồn này để tiếp tục cập nhật", Toast.LENGTH_LONG).show();
                 Intent permissionIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
                 permissionIntent.setData(Uri.parse("package:" + activity.getPackageName()));
@@ -215,6 +233,7 @@ public class UpdateManager {
                 return;
             }
         }
+        pendingApkFile = null;
 
         try {
             Uri contentUri = FileProvider.getUriForFile(

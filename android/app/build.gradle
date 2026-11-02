@@ -16,12 +16,24 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        release {
+            storeFile file("release.keystore")
+            storePassword "khastudio123"
+            keyAlias "khastudio"
+            keyPassword "khastudio123"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.release
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Dùng debug signing key cho release apk để sếp có thể cài đặt trực tiếp mà không cần cấu hình chứng chỉ cá nhân
-            signingConfig signingConfigs.debug
+            // Sử dụng khóa ký release cố định vĩnh viễn để mọi bản cập nhật không bị lỗi chữ ký xung đột
+            signingConfig signingConfigs.release
         }
     }
 
