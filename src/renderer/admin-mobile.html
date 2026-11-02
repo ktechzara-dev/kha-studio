@@ -507,6 +507,7 @@
           <span id="mchat-online-badge" style="font-size:11px; background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:10px; font-weight:700;">0 Online</span>
         </div>
         <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm" onclick="promptMobileSos()" style="padding:4px 8px; font-size:11px; background:#dc2626; color:#fff; border:none; border-radius:6px; font-weight:700;">🚨 SOS</button>
           <button class="btn btn-sm" onclick="switchChatSubTab('messages')" id="mchat-btn-sub-msg" style="padding:4px 8px; font-size:11px; background:var(--accent); color:#fff; border:none; border-radius:6px;">💬 Chat</button>
           <button class="btn btn-sm" onclick="switchChatSubTab('presence')" id="mchat-btn-sub-pres" style="padding:4px 8px; font-size:11px; background:rgba(255,255,255,0.08); color:var(--text); border:none; border-radius:6px;">🟢 Online</button>
         </div>
@@ -540,10 +541,24 @@
           <!-- Render messages -->
         </div>
 
+        <!-- Thanh Ghi Âm Bộ Đàm Mobile -->
+        <div id="mchat-recording-bar" style="display:none; align-items:center; gap:8px; padding:8px 12px; background:rgba(239,68,68,0.15); border-radius:8px; margin-bottom:8px; border:1px solid rgba(239,68,68,0.4);">
+          <span style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block; animation:blipPulse 1s infinite;"></span>
+          <span id="mchat-rec-timer" style="font-weight:700; color:#ef4444; font-family:monospace; font-size:12px;">00:00</span>
+          <span style="font-size:11px; color:#cbd5e1;">Đang thu âm bộ đàm…</span>
+          <div style="margin-left:auto; display:flex; gap:6px;">
+            <button type="button" class="btn btn-sm" style="background:#10b981; color:#fff; padding:3px 8px; font-size:11px; border:none; border-radius:4px;" onclick="stopMobileVoiceRecording(true)">✓ Gửi</button>
+            <button type="button" class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:#fff; padding:3px 8px; font-size:11px; border:none; border-radius:4px;" onclick="stopMobileVoiceRecording(false)">✕ Hủy</button>
+          </div>
+        </div>
+
         <!-- Form nhập tin nhắn -->
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="file" id="mchat-photo-input" accept="image/*" style="display:none;" onchange="handleMobilePhotoSelect(event)">
+          <button class="btn" style="width:38px; height:38px; padding:0; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:rgba(255,255,255,0.08); border:1px solid var(--border); font-size:16px;" onclick="document.getElementById('mchat-photo-input').click()" title="Gửi ảnh">📸</button>
+          <button class="btn" id="mchat-btn-mic" style="width:38px; height:38px; padding:0; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:rgba(255,255,255,0.08); border:1px solid var(--border); font-size:16px;" onclick="toggleMobileVoiceRecording()" title="Thu âm bộ đàm">🎙️</button>
           <input type="text" id="mchat-input" class="form-input" placeholder="Nhập tin nhắn trao đổi…" style="flex:1;" onkeydown="if(event.key==='Enter') sendMobileChat()">
-          <button class="btn btn-approve" onclick="sendMobileChat()" style="width:48px; padding:0; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <button class="btn btn-approve" onclick="sendMobileChat()" style="width:42px; height:38px; padding:0; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
@@ -1862,6 +1877,14 @@
       } catch (_) {}
     }
 
+    let mobileActiveAudio = null;
+    let mobileActiveAudioBtn = null;
+    let mobileMediaRecorder = null;
+    let mobileAudioChunks = [];
+    let isMobileRecording = false;
+    let mobileRecTimer = null;
+    let mobileRecSeconds = 0;
+
     function renderMobileMessages() {
       const container = document.getElementById('mchat-messages-container');
       if (!container) return;
@@ -1879,6 +1902,33 @@
         const platBadge = m.platform === 'mobile' ? '📱' : '💻';
         const senderName = isAdm ? 'Sếp Kha' : fixViText(m.senderName || m.username);
 
+        let bgStyle = isMe ? 'background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);' : 'background:#1e293b;';
+        let alertHtml = '';
+        if (m.isAlert) {
+          bgStyle = 'background:linear-gradient(135deg, rgba(220,38,38,0.35) 0%, rgba(185,28,28,0.2) 100%); border:1.5px solid #ef4444; box-shadow:0 0 14px rgba(239,68,68,0.4);';
+          alertHtml = '<div style="color:#fca5a5; font-size:11px; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:4px;"><span>🚨 BÁO ĐỘNG SỰ CỐ HIỆN TRƯỜNG</span></div>';
+        }
+
+        let photoHtml = '';
+        if (m.photoUrl) {
+          photoHtml = `
+            <div style="margin-top:6px; border-radius:8px; overflow:hidden; max-width:200px; cursor:pointer;" onclick="openMobilePhotoModal('${m.photoUrl}')">
+              <img src="${m.photoUrl}" alt="Ảnh hiện trường" style="width:100%; max-height:160px; object-fit:cover; display:block; border-radius:6px; border:1px solid rgba(255,255,255,0.15);">
+            </div>
+          `;
+        }
+
+        let audioHtml = '';
+        if (m.audioUrl) {
+          audioHtml = `
+            <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.1); border-radius:18px; padding:4px 10px 4px 6px; margin-top:6px; cursor:pointer;" onclick="toggleMobilePlayAudio(this, '${m.audioUrl}')">
+              <button type="button" class="m-voice-btn" style="width:24px; height:24px; border-radius:50%; background:#0284c7; color:#fff; border:none; display:flex; align-items:center; justify-content:center; font-size:10px;">▶️</button>
+              <span style="font-size:11px; font-family:monospace; color:#cbd5e1;">${m.audioDuration ? m.audioDuration + 's' : '00:03'}</span>
+              <span style="font-size:10px; color:#38bdf8;">🎙️ Bộ đàm</span>
+            </div>
+          `;
+        }
+
         return `
           <div style="display:flex; flex-direction:column; align-items:${isMe ? 'flex-end' : 'flex-start'}; max-width:85%; align-self:${isMe ? 'flex-end' : 'flex-start'};">
             ${!isMe ? `
@@ -1888,8 +1938,11 @@
                 <span>${platBadge}</span>
               </div>
             ` : ''}
-            <div style="background:${isMe ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : '#1e293b'}; color:#fff; padding:8px 12px; border-radius:12px; font-size:12.5px; border-top-${isMe ? 'right' : 'left'}-radius:2px; word-break:break-word; border:1px solid rgba(255,255,255,0.05);">
+            <div style="${bgStyle} color:#fff; padding:8px 12px; border-radius:12px; font-size:12.5px; border-top-${isMe ? 'right' : 'left'}-radius:2px; word-break:break-word; border:1px solid rgba(255,255,255,0.05);">
+              ${alertHtml}
               <div>${escapeHtml(m.text || '')}</div>
+              ${photoHtml}
+              ${audioHtml}
               <div style="font-size:9px; opacity:0.75; text-align:right; margin-top:3px;">${escapeHtml(m.timestamp || '')}</div>
             </div>
           </div>
@@ -1911,7 +1964,7 @@
       await sendMobileMessageObj(text);
     }
 
-    async function sendMobileMessageObj(text) {
+    async function sendMobileMessageObj(text, options = {}) {
       if (!currentUser) return;
       const cfg = getConfig();
       if (!cfg.firebaseUrl) return;
@@ -1926,10 +1979,19 @@
         senderName: senderDisplayName,
         role: isAdmUser ? 'admin' : (currentUser.role || 'engineer'),
         platform: 'mobile',
-        text: text,
+        text: text || (options.photoUrl ? '📸 Ảnh hiện trường' : (options.audioUrl ? '🎙️ Tin nhắn bộ đàm' : '')),
+        photoUrl: options.photoUrl || null,
+        audioUrl: options.audioUrl || null,
+        audioDuration: options.audioDuration || null,
+        isAlert: options.isAlert || false,
+        alertType: options.alertType || null,
         timestamp: timeStr,
         createdAt: new Date().toISOString()
       };
+
+      if (options.isAlert) {
+        playMobileSiren();
+      }
 
       mobileMessages.push(msgObj);
       renderMobileMessages();
@@ -1941,6 +2003,202 @@
           body: JSON.stringify(msgObj)
         });
       } catch (_) {}
+    }
+
+    function handleMobilePhotoSelect(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      event.target.value = '';
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width;
+          let h = img.height;
+          const maxDim = 640;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.72);
+          const note = prompt('Nhập ghi chú cho ảnh hiện trường:', '');
+          sendMobileMessageObj(note || '📸 Đã gửi ảnh hiện trường', { photoUrl: compressed });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function toggleMobileVoiceRecording() {
+      if (isMobileRecording) {
+        stopMobileVoiceRecording(true);
+      } else {
+        await startMobileVoiceRecording();
+      }
+    }
+
+    async function startMobileVoiceRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mobileAudioChunks = [];
+        mobileMediaRecorder = new MediaRecorder(stream);
+        mobileMediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) mobileAudioChunks.push(e.data);
+        };
+        mobileMediaRecorder.start();
+        isMobileRecording = true;
+        mobileRecSeconds = 0;
+
+        const micBtn = document.getElementById('mchat-btn-mic');
+        if (micBtn) micBtn.style.background = '#ef4444';
+        const bar = document.getElementById('mchat-recording-bar');
+        if (bar) bar.style.display = 'flex';
+        const timer = document.getElementById('mchat-rec-timer');
+        if (timer) timer.textContent = '00:00';
+
+        mobileRecTimer = setInterval(() => {
+          mobileRecSeconds++;
+          const m = String(Math.floor(mobileRecSeconds / 60)).padStart(2, '0');
+          const s = String(mobileRecSeconds % 60).padStart(2, '0');
+          if (timer) timer.textContent = `${m}:${s}`;
+          if (mobileRecSeconds >= 60) {
+            stopMobileVoiceRecording(true);
+          }
+        }, 1000);
+      } catch (err) {
+        alert('Không thể mở Microphone: ' + err.message);
+      }
+    }
+
+    function stopMobileVoiceRecording(shouldSend = true) {
+      if (!isMobileRecording || !mobileMediaRecorder) return;
+      isMobileRecording = false;
+      if (mobileRecTimer) clearInterval(mobileRecTimer);
+
+      const micBtn = document.getElementById('mchat-btn-mic');
+      if (micBtn) micBtn.style.background = 'rgba(255,255,255,0.08)';
+      const bar = document.getElementById('mchat-recording-bar');
+      if (bar) bar.style.display = 'none';
+
+      const dur = mobileRecSeconds;
+
+      mobileMediaRecorder.onstop = () => {
+        if (shouldSend && mobileAudioChunks.length > 0) {
+          const blob = new Blob(mobileAudioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            sendMobileMessageObj('🎙️ Tin nhắn bộ đàm thoại', {
+              audioUrl: reader.result,
+              audioDuration: Math.max(1, dur)
+            });
+          };
+          reader.readAsDataURL(blob);
+        }
+        try {
+          mobileMediaRecorder.stream.getTracks().forEach(t => t.stop());
+        } catch (_) {}
+      };
+
+      try {
+        mobileMediaRecorder.stop();
+      } catch (_) {}
+    }
+
+    function toggleMobilePlayAudio(el, audioUrl) {
+      if (mobileActiveAudio && mobileActiveAudioBtn === el) {
+        if (!mobileActiveAudio.paused) {
+          mobileActiveAudio.pause();
+          const btn = el.querySelector('.m-voice-btn');
+          if (btn) btn.textContent = '▶️';
+          return;
+        } else {
+          mobileActiveAudio.play();
+          const btn = el.querySelector('.m-voice-btn');
+          if (btn) btn.textContent = '⏸️';
+          return;
+        }
+      }
+
+      if (mobileActiveAudio) {
+        mobileActiveAudio.pause();
+        if (mobileActiveAudioBtn) {
+          const prevBtn = mobileActiveAudioBtn.querySelector('.m-voice-btn');
+          if (prevBtn) prevBtn.textContent = '▶️';
+        }
+      }
+
+      const audio = new Audio(audioUrl);
+      mobileActiveAudio = audio;
+      mobileActiveAudioBtn = el;
+      const btn = el.querySelector('.m-voice-btn');
+      if (btn) btn.textContent = '⏸️';
+
+      audio.onended = () => {
+        if (btn) btn.textContent = '▶️';
+        mobileActiveAudio = null;
+        mobileActiveAudioBtn = null;
+      };
+      audio.onerror = () => {
+        if (btn) btn.textContent = '▶️';
+        mobileActiveAudio = null;
+        mobileActiveAudioBtn = null;
+      };
+      audio.play().catch(() => {});
+    }
+
+    function promptMobileSos() {
+      const reason = prompt('🚨 BÁO ĐỘNG SỰ CỐ KHẨN CẤP HIỆN TRƯỜNG\n\nNhập nội dung sự cố:', 'Dừng khẩn cấp E-Stop / Sự cố dây chuyền');
+      if (!reason) return;
+      sendMobileMessageObj(reason.trim(), {
+        isAlert: true,
+        alertType: 'SOS'
+      });
+      playMobileSiren();
+    }
+
+    function playMobileSiren() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(750, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(1250, ctx.currentTime + 0.3);
+        osc.frequency.linearRampToValueAtTime(750, ctx.currentTime + 0.6);
+        osc.frequency.linearRampToValueAtTime(1250, ctx.currentTime + 0.9);
+        osc.frequency.linearRampToValueAtTime(750, ctx.currentTime + 1.2);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 1.5);
+      } catch (_) {}
+    }
+
+    function openMobilePhotoModal(url) {
+      let m = document.getElementById('m-photo-lightbox');
+      if (!m) {
+        m = document.createElement('div');
+        m.id = 'm-photo-lightbox';
+        m.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px;';
+        m.onclick = () => { m.style.display = 'none'; };
+        m.innerHTML = '<img id="m-photo-lightbox-img" style="max-width:100%; max-height:85vh; border-radius:8px; object-fit:contain;">';
+        document.body.appendChild(m);
+      }
+      document.getElementById('m-photo-lightbox-img').src = url;
+      m.style.display = 'flex';
     }
 
     function switchChatSubTab(sub) {

@@ -2023,3 +2023,200 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
   transform: scale(1.04);
 }
+
+/* =========================================================================
+   VIP 2: MULTIMEDIA CHAT - SOS, PHOTO, VOICE WALKIE-TALKIE
+   ========================================================================= */
+
+/* SOS Emergency Button in Header */
+.kchat-btn-sos {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  border: 1px solid #fca5a5;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  animation: sosPulse 1.8s infinite;
+  transition: all 0.15s ease;
+}
+@keyframes sosPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 18px rgba(239, 68, 68, 0.85); transform: scale(1.03); }
+}
+.kchat-btn-sos:hover {
+  background: #b91c1c;
+  transform: scale(1.06);
+}
+
+/* Media buttons in input bar */
+.kchat-btn-media {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.kchat-btn-media:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  transform: scale(1.06);
+}
+.kchat-btn-media.recording {
+  background: #ef4444;
+  border-color: #fca5a5;
+  color: #fff;
+  animation: sosPulse 1s infinite;
+}
+
+/* Walkie-talkie recording banner */
+.kchat-recording-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.12);
+  border-top: 1px solid rgba(239, 68, 68, 0.35);
+  animation: slideUp 0.15s ease-out;
+}
+.rec-dot-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+  animation: blipPulse 1s infinite;
+}
+.btn-rec-action {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+.btn-rec-action.send {
+  background: #10b981;
+  color: #fff;
+}
+.btn-rec-action.send:hover { background: #059669; }
+.btn-rec-action.cancel {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+}
+.btn-rec-action.cancel:hover { background: rgba(255, 255, 255, 0.25); }
+
+/* Photo thumbnail in message */
+.kchat-photo-thumb {
+  margin-top: 6px;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 240px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kchat-photo-thumb:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.kchat-photo-thumb img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Voice Walkie-Talkie Audio Player Card */
+.kchat-voice-memo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 6px 14px 6px 8px;
+  margin-top: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  max-width: 220px;
+}
+.kchat-voice-memo:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+.kchat-voice-play-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+}
+.kchat-voice-waves {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 18px;
+  flex: 1;
+}
+.vbar {
+  width: 3px;
+  height: 8px;
+  background: #94a3b8;
+  border-radius: 2px;
+  transition: height 0.15s;
+}
+.kchat-voice-memo.playing .vbar:nth-child(1) { animation: wavePulse 0.6s infinite 0.1s; background: #38bdf8; }
+.kchat-voice-memo.playing .vbar:nth-child(2) { animation: wavePulse 0.5s infinite 0.2s; background: #38bdf8; }
+.kchat-voice-memo.playing .vbar:nth-child(3) { animation: wavePulse 0.7s infinite 0.05s; background: #38bdf8; }
+.kchat-voice-memo.playing .vbar:nth-child(4) { animation: wavePulse 0.4s infinite 0.15s; background: #38bdf8; }
+.kchat-voice-memo.playing .vbar:nth-child(5) { animation: wavePulse 0.6s infinite 0.25s; background: #38bdf8; }
+@keyframes wavePulse {
+  0%, 100% { height: 6px; }
+  50% { height: 18px; }
+}
+.kchat-voice-duration {
+  font-size: 11px;
+  font-family: monospace;
+  color: #cbd5e1;
+}
+
+/* SOS Emergency Alert Message Card */
+.kchat-alert-card {
+  background: linear-gradient(135deg, rgba(185, 28, 28, 0.35) 0%, rgba(220, 38, 38, 0.2) 100%) !important;
+  border: 1.5px solid #ef4444 !important;
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.35) !important;
+  animation: sosPulse 1.6s infinite;
+}
+.kchat-alert-title {
+  color: #fca5a5;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}

@@ -23,6 +23,13 @@
       this._pollTimer = null;
       this._lastSeenMsgKey = null;
       this._isInit = false;
+      this._activeAudio = null;
+      this._activeAudioBtn = null;
+      this._mediaRecorder = null;
+      this._audioChunks = [];
+      this._isRecording = false;
+      this._recTimer = null;
+      this._recSeconds = 0;
     }
 
     fixViText(str) {
@@ -279,11 +286,14 @@
               if (lastMsg.key !== this._lastSeenMsgKey && lastMsg.username !== currentUser.username) {
                 // Có tin nhắn mới từ người khác
                 this._lastSeenMsgKey = lastMsg.key;
-                if (!this.isOpen) {
+                if (lastMsg.isAlert) {
+                  this.playEmergencySiren();
+                  this.showChatToast(lastMsg, true);
+                } else if (!this.isOpen) {
                   this.unreadCount++;
                   this.updateUnreadBadge();
                   this.playChime();
-                  this.showChatToast(lastMsg);
+                  this.showChatToast(lastMsg, false);
                 }
               }
             }
@@ -299,9 +309,9 @@
       } catch (_) {}
     }
 
-    async sendMessage(text) {
+    async sendMessage(text, options = {}) {
       text = String(text || '').trim();
-      if (!text) return;
+      if (!text && !options.photoUrl && !options.audioUrl) return;
 
       const user = this.getCurrentUser();
       const base = this.getFirebaseBase();
@@ -315,13 +325,22 @@
         senderName: senderDisplayName,
         role: isAdmUser ? 'admin' : (user.role || 'engineer'),
         platform: 'desktop',
-        text: text,
+        text: text || (options.photoUrl ? '📸 Ảnh hiện trường' : (options.audioUrl ? '🎙️ Tin nhắn bộ đàm' : '')),
+        photoUrl: options.photoUrl || null,
+        audioUrl: options.audioUrl || null,
+        audioDuration: options.audioDuration || null,
+        isAlert: options.isAlert || false,
+        alertType: options.alertType || null,
         timestamp: timeStr,
         createdAt: new Date().toISOString()
       };
 
-      // Âm thanh gửi tin nhắn nhẹ nhàng
-      this.playSendSound();
+      // Âm thanh
+      if (options.isAlert) {
+        this.playEmergencySiren();
+      } else {
+        this.playSendSound();
+      }
 
       // Đẩy lạc quan (Optimistic UI) vào danh sách hiển thị ngay lập tức
       this.messages.push(msgObj);
@@ -337,6 +356,243 @@
       } catch (e) {
         console.warn('Lỗi gửi tin nhắn:', e);
       }
+    }
+
+    // =========================================================================
+    // MULTIMEDIA: ẢNH HIỆN TRƯỜNG, BỘ ĐÀM THOẠI & CẢNH BÁO SOS
+    // =========================================================================
+    handlePhotoSelect(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      event.target.value = ''; // Reset file input
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width;
+          let h = img.height;
+          const maxDim = 720;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+
+          const caption = prompt('Nhập ghi chú cho ảnh hiện trường (hoặc bấm OK để gửi ngay):', '');
+          this.sendMessage(caption || '📸 Ảnh hiện trường gửi về', { photoUrl: compressedDataUrl });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async toggleVoiceRecording() {
+      if (this._isRecording) {
+        this.stopVoiceRecording(true);
+      } else {
+        await this.startVoiceRecording();
+      }
+    }
+
+    async startVoiceRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this._audioChunks = [];
+        this._mediaRecorder = new MediaRecorder(stream);
+        this._mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) this._audioChunks.push(e.data);
+        };
+        this._mediaRecorder.start();
+        this._isRecording = true;
+        this._recSeconds = 0;
+
+        const micBtn = document.getElementById('kchat-btn-mic');
+        if (micBtn) micBtn.classList.add('recording');
+        const recBar = document.getElementById('kchat-recording-bar');
+        if (recBar) recBar.style.display = 'flex';
+        const timerEl = document.getElementById('kchat-rec-timer');
+        if (timerEl) timerEl.textContent = '00:00';
+
+        this._recTimer = setInterval(() => {
+          this._recSeconds++;
+          const m = String(Math.floor(this._recSeconds / 60)).padStart(2, '0');
+          const s = String(this._recSeconds % 60).padStart(2, '0');
+          if (timerEl) timerEl.textContent = `${m}:${s}`;
+          if (this._recSeconds >= 60) {
+            this.stopVoiceRecording(true);
+          }
+        }, 1000);
+
+        this.playBeep(640, 0.08);
+      } catch (err) {
+        alert('Không thể truy cập Microphone để ghi âm bộ đàm: ' + err.message);
+      }
+    }
+
+    stopVoiceRecording(shouldSend = true) {
+      if (!this._isRecording || !this._mediaRecorder) return;
+      this._isRecording = false;
+      if (this._recTimer) clearInterval(this._recTimer);
+
+      const micBtn = document.getElementById('kchat-btn-mic');
+      if (micBtn) micBtn.classList.remove('recording');
+      const recBar = document.getElementById('kchat-recording-bar');
+      if (recBar) recBar.style.display = 'none';
+
+      const duration = this._recSeconds;
+
+      this._mediaRecorder.onstop = () => {
+        if (shouldSend && this._audioChunks.length > 0) {
+          const blob = new Blob(this._audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64Audio = reader.result;
+            this.sendMessage('🎙️ Tin nhắn bộ đàm thoại', {
+              audioUrl: base64Audio,
+              audioDuration: Math.max(1, duration)
+            });
+          };
+          reader.readAsDataURL(blob);
+        }
+        try {
+          this._mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        } catch (_) {}
+      };
+
+      try {
+        this._mediaRecorder.stop();
+      } catch (_) {}
+    }
+
+    togglePlayAudio(el, audioUrl) {
+      if (this._activeAudio && this._activeAudioBtn === el) {
+        if (!this._activeAudio.paused) {
+          this._activeAudio.pause();
+          el.classList.remove('playing');
+          const btn = el.querySelector('.kchat-voice-play-btn');
+          if (btn) btn.textContent = '▶️';
+          return;
+        } else {
+          this._activeAudio.play();
+          el.classList.add('playing');
+          const btn = el.querySelector('.kchat-voice-play-btn');
+          if (btn) btn.textContent = '⏸️';
+          return;
+        }
+      }
+
+      if (this._activeAudio) {
+        this._activeAudio.pause();
+        if (this._activeAudioBtn) {
+          this._activeAudioBtn.classList.remove('playing');
+          const prevBtn = this._activeAudioBtn.querySelector('.kchat-voice-play-btn');
+          if (prevBtn) prevBtn.textContent = '▶️';
+        }
+      }
+
+      const audio = new Audio(audioUrl);
+      this._activeAudio = audio;
+      this._activeAudioBtn = el;
+
+      el.classList.add('playing');
+      const btn = el.querySelector('.kchat-voice-play-btn');
+      if (btn) btn.textContent = '⏸️';
+
+      audio.onended = () => {
+        el.classList.remove('playing');
+        if (btn) btn.textContent = '▶️';
+        this._activeAudio = null;
+        this._activeAudioBtn = null;
+      };
+
+      audio.onerror = () => {
+        el.classList.remove('playing');
+        if (btn) btn.textContent = '▶️';
+        this._activeAudio = null;
+        this._activeAudioBtn = null;
+      };
+
+      audio.play().catch(() => {});
+    }
+
+    playEmergencySiren() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(750, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(1250, ctx.currentTime + 0.3);
+        osc.frequency.linearRampToValueAtTime(750, ctx.currentTime + 0.6);
+        osc.frequency.linearRampToValueAtTime(1250, ctx.currentTime + 0.9);
+        osc.frequency.linearRampToValueAtTime(750, ctx.currentTime + 1.2);
+        gain.gain.setValueAtTime(0.28, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 1.5);
+      } catch (_) {}
+    }
+
+    promptSosAlert() {
+      const reason = prompt('🚨 BÁO ĐỘNG SỰ CỐ KHẨN CẤP HIỆN TRƯỜNG\n\nNhập nội dung sự cố (Ví dụ: Dừng máy E-Stop, Lỗi Robot va chạm, Chập điện tủ điều khiển):', 'Dừng khẩn cấp E-Stop / Sự cố dây chuyền');
+      if (!reason) return;
+
+      this.sendMessage(reason.trim(), {
+        isAlert: true,
+        alertType: 'SOS'
+      });
+      this.playEmergencySiren();
+    }
+
+    openPhotoLightbox(url) {
+      let lb = document.getElementById('kchat-lightbox');
+      if (!lb) {
+        lb = document.createElement('div');
+        lb.id = 'kchat-lightbox';
+        lb.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:99999; display:flex; align-items:center; justify-content:center; cursor:pointer;';
+        lb.onclick = () => { lb.style.display = 'none'; };
+        lb.innerHTML = `
+          <div style="position:relative; max-width:90vw; max-height:90vh;" onclick="event.stopPropagation()">
+            <img id="kchat-lightbox-img" style="max-width:90vw; max-height:85vh; object-fit:contain; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+              <a id="kchat-lightbox-dl" class="btn" href="" download target="_blank" style="padding:6px 14px; background:#0284c7; color:#fff; border-radius:6px; text-decoration:none; font-size:12px;">Tải Về</a>
+              <button class="btn" onclick="document.getElementById('kchat-lightbox').style.display='none'" style="padding:6px 14px; background:#334155; color:#fff; border-radius:6px; border:none; cursor:pointer; font-size:12px;">Đóng</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(lb);
+      }
+      document.getElementById('kchat-lightbox-img').src = url;
+      document.getElementById('kchat-lightbox-dl').href = url;
+      lb.style.display = 'flex';
+    }
+
+    playBeep(freq = 520, duration = 0.08) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (_) {}
     }
 
     playSendSound() {
@@ -427,8 +683,27 @@
                   <span class="kchat-role-tag ${isAdm ? 'adm' : ''}">${roleBadge}</span>
                 </div>
               ` : ''}
-              <div class="kchat-bubble ${isMe ? 'me' : 'other'}">
+              <div class="kchat-bubble ${isMe ? 'me' : 'other'} ${m.isAlert ? 'kchat-alert-card' : ''}">
+                ${m.isAlert ? `
+                  <div class="kchat-alert-title">
+                    <span>🚨 BÁO ĐỘNG SỰ CỐ HIỆN TRƯỜNG</span>
+                  </div>
+                ` : ''}
                 <div class="kchat-text">${this.formatMessageText(m.text)}</div>
+                ${m.photoUrl ? `
+                  <div class="kchat-photo-thumb" onclick="window.Chat.openPhotoLightbox('${m.photoUrl}')" title="Bấm để xem ảnh lớn">
+                    <img src="${m.photoUrl}" alt="Ảnh hiện trường">
+                  </div>
+                ` : ''}
+                ${m.audioUrl ? `
+                  <div class="kchat-voice-memo" onclick="window.Chat.togglePlayAudio(this, '${m.audioUrl}')" title="Bấm để nghe tin nhắn bộ đàm">
+                    <button type="button" class="kchat-voice-play-btn">▶️</button>
+                    <div class="kchat-voice-waves">
+                      <span class="vbar"></span><span class="vbar"></span><span class="vbar"></span><span class="vbar"></span><span class="vbar"></span>
+                    </div>
+                    <span class="kchat-voice-duration">${m.audioDuration ? m.audioDuration + 's' : '00:03'}</span>
+                  </div>
+                ` : ''}
                 <div class="kchat-time">
                   <span>${this.escapeHtml(m.timestamp || '')}</span>
                   ${isMe ? `<span class="kchat-ticks" title="Đã gửi lên Cloud">✓✓</span>` : ''}

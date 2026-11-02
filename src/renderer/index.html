@@ -1187,6 +1187,9 @@
         </div>
       </div>
       <div class="kchat-header-actions">
+        <button class="kchat-btn-sos" title="🚨 Phát Cảnh Báo Khẩn Cấp Hiện Trường (SOS)" onclick="window.Chat?.promptSosAlert()">
+          🚨 SOS
+        </button>
         <button class="kchat-tool-btn" title="Làm mới tin nhắn" onclick="window.Chat?.fetchMessages(); window.Chat?.fetchPresence();">
           <script>document.write(icon('refresh', 14));</script>
         </button>
@@ -1239,8 +1242,22 @@
         <button type="button" class="kchat-emoji-btn" onclick="window.Chat?.insertEmoji('🤝')">🤝</button>
       </div>
 
+      <!-- Thanh Ghi Âm Bộ Đàm (Hiển thị khi đang thu âm) -->
+      <div id="kchat-recording-bar" class="kchat-recording-bar" style="display:none;">
+        <span class="rec-dot-pulse"></span>
+        <span id="kchat-rec-timer" style="font-weight:700; color:#ef4444; font-family:monospace; font-size:12px;">00:00</span>
+        <span style="font-size:11.5px; color:#cbd5e1; margin-left:4px;">Đang thu âm bộ đàm…</span>
+        <div style="margin-left:auto; display:flex; gap:6px;">
+          <button type="button" class="btn-rec-action send" onclick="window.Chat?.stopVoiceRecording(true)" title="Gửi ghi âm">✓ Gửi</button>
+          <button type="button" class="btn-rec-action cancel" onclick="window.Chat?.stopVoiceRecording(false)" title="Hủy">✕ Hủy</button>
+        </div>
+      </div>
+
       <!-- Khung nhập tin nhắn -->
-      <form class="kchat-input-bar" onsubmit="event.preventDefault(); const inp = document.getElementById('kchat-input'); if (inp && inp.value.trim()) { window.Chat?.sendMessage(inp.value); inp.value = ''; }">
+      <form class="kchat-input-bar" id="kchat-input-bar" onsubmit="event.preventDefault(); const inp = document.getElementById('kchat-input'); if (inp && inp.value.trim()) { window.Chat?.sendMessage(inp.value); inp.value = ''; }">
+        <input type="file" id="kchat-file-input" accept="image/*" style="display:none;" onchange="window.Chat?.handlePhotoSelect(event)">
+        <button type="button" class="kchat-btn-media" onclick="document.getElementById('kchat-file-input').click()" title="Gửi ảnh hiện trường (Camera / Thư viện)">📸</button>
+        <button type="button" class="kchat-btn-media" id="kchat-btn-mic" onclick="window.Chat?.toggleVoiceRecording()" title="Thu âm bộ đàm (Walkie-Talkie)">🎙️</button>
         <button type="button" class="kchat-btn-emoji" onclick="window.Chat?.toggleEmojiPicker()" title="Chèn biểu tượng cảm xúc">😊</button>
         <input type="text" id="kchat-input" class="kchat-input" placeholder="Nhập tin nhắn… (@tag tên, link URL)" autocomplete="off">
         <button type="submit" id="kchat-btn-send" class="kchat-btn-send" title="Gửi tin nhắn (Enter)">

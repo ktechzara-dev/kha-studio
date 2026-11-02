@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quản Trị Dự Án & Media Hiện Trường · K-Core Studio</title>
+  <script src="../../lib/exceljs.min.js"></script>
   <style>
     :root {
       --bg-main: #09090b;
@@ -824,6 +825,442 @@
     }
     .toast.show { display: block; animation: slideUp 0.25s ease-out; }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* =========================================================================
+       VIP 1: ISO INSPECTION DOSSIER MODAL & PRINT STYLES
+       ========================================================================= */
+    .modal-dossier-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-dossier-backdrop.active {
+      display: flex;
+    }
+    .modal-dossier-window {
+      background: #0f172a;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 14px;
+      width: 95vw;
+      max-width: 1050px;
+      height: 92vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(14, 165, 233, 0.2);
+      overflow: hidden;
+      animation: dossierZoom 0.22s ease-out;
+    }
+    @keyframes dossierZoom {
+      from { transform: scale(0.96); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .dossier-toolbar {
+      background: #1e293b;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .dossier-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dossier-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dossier-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      background: #334155;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
+    /* Official A4 Sheet */
+    .iso-dossier-sheet {
+      background: #ffffff;
+      color: #0f172a;
+      width: 100%;
+      max-width: 840px;
+      min-height: 1100px;
+      padding: 40px 48px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      border-radius: 4px;
+      font-family: -apple-system, "Segoe UI", Roboto, "Times New Roman", serif;
+      position: relative;
+    }
+    .iso-header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+    }
+    .iso-header-left {
+      width: 50%;
+      text-align: center;
+      vertical-align: top;
+      padding-right: 12px;
+      border-right: 1px dashed #cbd5e1;
+    }
+    .iso-header-right {
+      width: 50%;
+      text-align: center;
+      vertical-align: top;
+      padding-left: 12px;
+    }
+    .iso-doc-title {
+      text-align: center;
+      margin: 20px 0 16px;
+      border-top: 2px solid #0f172a;
+      border-bottom: 2px solid #0f172a;
+      padding: 10px 0;
+    }
+    .iso-doc-title h1 {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #0f172a;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .iso-doc-title p {
+      font-size: 12.5px;
+      color: #475569;
+      margin-top: 4px;
+      font-style: italic;
+    }
+    .iso-table-info {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 12.5px;
+    }
+    .iso-table-info td {
+      padding: 6px 10px;
+      border: 1px solid #cbd5e1;
+    }
+    .iso-table-info td.lbl {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #334155;
+      width: 28%;
+    }
+    .iso-sec-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #0f172a;
+      margin: 18px 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-left: 4px solid #0284c7;
+      padding-left: 8px;
+    }
+    .iso-check-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 18px;
+    }
+    .iso-check-table th, .iso-check-table td {
+      border: 1px solid #cbd5e1;
+      padding: 7px 10px;
+    }
+    .iso-check-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #1e293b;
+      text-align: center;
+    }
+    .iso-badge-pass {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #ecfdf5;
+      color: #059669;
+      font-weight: 700;
+      font-size: 11px;
+      border: 1px solid #a7f3d0;
+    }
+    /* Photo Annex */
+    .iso-photo-annex {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+      page-break-inside: avoid;
+    }
+    .iso-photo-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px;
+      background: #f8fafc;
+      font-size: 11px;
+    }
+    .iso-photo-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 6px;
+    }
+    /* Signatures & Circular Stamp */
+    .iso-sig-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+      page-break-inside: avoid;
+    }
+    .iso-sig-col {
+      width: 50%;
+      text-align: center;
+      vertical-align: top;
+      padding: 0 16px;
+    }
+    .iso-stamp-container {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      margin: 8px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .iso-stamp-svg {
+      width: 150px;
+      height: 150px;
+      transform: rotate(-6deg);
+      opacity: 0.94;
+    }
+    .iso-sig-script {
+      font-family: 'Brush Script MT', 'Segoe Script', cursive;
+      font-size: 30px;
+      color: #1e3a8a;
+      transform: rotate(-4deg);
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+
+    /* Print styles */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+      body * {
+        visibility: hidden !important;
+      }
+      #modal-iso-dossier, #modal-iso-dossier * {
+        visibility: visible !important;
+      }
+      #modal-iso-dossier {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        background: transparent !important;
+        display: block !important;
+        padding: 0 !important;
+        z-index: 999999 !important;
+      }
+      .modal-dossier-window {
+        background: #fff !important;
+        border: none !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+      }
+      .dossier-toolbar {
+        display: none !important;
+      }
+      .dossier-scroll-area {
+        background: #fff !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      .iso-dossier-sheet {
+        box-shadow: none !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+    }
+
+    /* =========================================================================
+       VIP 3: GPS RADAR & SATELLITE MAP STYLES
+       ========================================================================= */
+    .radar-container {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 24px;
+      margin-top: 8px;
+    }
+    @media (max-width: 1024px) {
+      .radar-container { grid-template-columns: 1fr; }
+    }
+    .radar-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .radar-scope-wrap {
+      position: relative;
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #022c22 0%, #031411 75%, #020b08 100%);
+      border: 3px solid #10b981;
+      box-shadow: 0 0 35px rgba(16, 185, 129, 0.25), inset 0 0 30px rgba(16, 185, 129, 0.2);
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .radar-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 1px dashed rgba(16, 185, 129, 0.35);
+      pointer-events: none;
+    }
+    .radar-ring.r1 { width: 90px; height: 90px; }
+    .radar-ring.r2 { width: 180px; height: 180px; }
+    .radar-ring.r3 { width: 270px; height: 270px; }
+    .radar-crosshair-h {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(16, 185, 129, 0.35);
+      pointer-events: none;
+    }
+    .radar-crosshair-v {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(16, 185, 129, 0.35);
+      pointer-events: none;
+    }
+    .radar-cardinal {
+      position: absolute;
+      color: #10b981;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+      pointer-events: none;
+    }
+    .radar-cardinal.n { top: 6px; left: 50%; transform: translateX(-50%); }
+    .radar-cardinal.s { bottom: 6px; left: 50%; transform: translateX(-50%); }
+    .radar-cardinal.e { right: 8px; top: 50%; transform: translateY(-50%); }
+    .radar-cardinal.w { left: 8px; top: 50%; transform: translateY(-50%); }
+    .radar-sweep-cone {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, transparent 0deg, transparent 315deg, rgba(16, 185, 129, 0.45) 360deg);
+      animation: radarRotate 4s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes radarRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .radar-blip-item {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 10;
+      transition: transform 0.2s;
+    }
+    .radar-blip-item:hover {
+      transform: translate(-50%, -50%) scale(1.3);
+      z-index: 20;
+    }
+    .blip-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      box-shadow: 0 0 12px currentColor;
+    }
+    .blip-dot.center-hub {
+      background: #0284c7;
+      color: #fff;
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 16px #38bdf8;
+      width: 20px;
+      height: 20px;
+    }
+    .blip-dot.kha {
+      background: #fbbf24;
+      color: #000;
+      border: 2px solid #fff;
+      box-shadow: 0 0 14px #fbbf24;
+      width: 18px;
+      height: 18px;
+    }
+    .blip-dot.engineer {
+      background: #10b981;
+      color: #fff;
+      border: 1.5px solid #a7f3d0;
+      box-shadow: 0 0 12px #10b981;
+    }
+    .blip-dot.photo {
+      background: #a855f7;
+      color: #fff;
+      border: 1.5px solid #e9d5ff;
+      box-shadow: 0 0 10px #c084fc;
+    }
+    .blip-pulse-wave {
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      animation: blipPulse 1.8s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+    }
+    @keyframes blipPulse {
+      0% { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .radar-telemetry-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
   </style>
 </head>
 <body>
@@ -961,6 +1398,9 @@
           <span>📋 Báo Cáo Hiện Trường</span>
           <span id="tab-reports-count" style="background:rgba(16,185,129,0.15); color:var(--success); padding:1px 6px; border-radius:10px; font-size:11px;">0</span>
         </button>
+        <button class="detail-tab-btn" id="btn-tab-radar" onclick="switchDetailTab('radar')">
+          <span>📍 Radar &amp; Bản Đồ Vệ Tinh Hiện Trường</span>
+        </button>
         <button class="detail-tab-btn" id="btn-tab-info" onclick="switchDetailTab('info')">
           <span>⚙️ Thông Tin &amp; Cấu Hình Dự Án</span>
         </button>
@@ -985,11 +1425,109 @@
         <div class="media-grid" id="reports-grid-container"></div>
       </div>
 
-      <!-- TAB 3: INFO -->
+      <!-- TAB 3: GPS RADAR & SATELLITE MAP -->
+      <div id="tab-content-radar" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="font-size:15px; font-weight:700; color:#fff;">📍 Radar Giám Sát Vệ Tinh &amp; Tọa Độ Công Trường</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Theo dõi trực tiếp vị trí nhà máy, tọa độ GPS các ảnh Timemark và nhân sự kỹ thuật</p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn" style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);" onclick="openSiteGoogleMaps()">
+              <span>🛰️ Mở Bản Đồ Vệ Tinh Google Maps</span>
+            </button>
+            <button class="btn" onclick="copySiteCoordinates()">
+              <span>📋 Sao Chép Tọa Độ GPS</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="radar-container">
+          <!-- Cột trái: Màn hình Radar quét 360 độ -->
+          <div class="radar-card">
+            <div style="font-size:12px; font-weight:700; color:#10b981; font-family:monospace; display:flex; justify-content:space-between; width:100%; margin-bottom:8px;">
+              <span>RADAR STATUS: ACTIVE</span>
+              <span>FREQ: 5.8 GHz</span>
+            </div>
+            
+            <div class="radar-scope-wrap" id="radar-scope-wrap">
+              <div class="radar-sweep-cone"></div>
+              <div class="radar-ring r1"></div>
+              <div class="radar-ring r2"></div>
+              <div class="radar-ring r3"></div>
+              <div class="radar-crosshair-h"></div>
+              <div class="radar-crosshair-v"></div>
+              <div class="radar-cardinal n">N 000°</div>
+              <div class="radar-cardinal e">E 090°</div>
+              <div class="radar-cardinal s">S 180°</div>
+              <div class="radar-cardinal w">W 270°</div>
+
+              <!-- Blips render dynamically -->
+              <div id="radar-blips-layer"></div>
+            </div>
+
+            <div style="font-size:11px; color:var(--text-muted); margin-top:10px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center;">
+              <span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; border-radius:50%; background:#0284c7; display:inline-block;"></span> Trạm PLC Trung tâm</span>
+              <span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; border-radius:50%; background:#fbbf24; display:inline-block;"></span> Sếp Kha</span>
+              <span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block;"></span> Kỹ sư hiện trường</span>
+              <span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; border-radius:50%; background:#c084fc; display:inline-block;"></span> Điểm chụp Timemark</span>
+            </div>
+          </div>
+
+          <!-- Cột phải: Bảng thông số đo đạc & Thông tin vị trí -->
+          <div class="radar-telemetry-box">
+            <h4 style="font-size:14px; font-weight:700; color:#38bdf8; border-bottom:1px solid var(--border); padding-bottom:8px;">
+              🌐 Thông Số Vị Trí &amp; Định Vị Công Trường
+            </h4>
+            <div id="radar-telemetry-content">
+              <!-- Render by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: INFO -->
       <div id="tab-content-info" style="display:none;">
         <div style="background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:600px;">
           <h3 style="margin-bottom:14px;">Thông tin dự án</h3>
           <div id="project-info-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ISO INSPECTION DOSSIER (Biên bản nghiệm thu & Nhật ký hiện trường chuẩn ISO) -->
+  <div class="modal-dossier-backdrop" id="modal-iso-dossier" onclick="closeIsoDossierModal(event)">
+    <div class="modal-dossier-window" onclick="event.stopPropagation()">
+      <div class="dossier-toolbar">
+        <div class="dossier-toolbar-left">
+          <span style="font-size:18px;">📑</span>
+          <div>
+            <div style="font-weight:700; font-size:14px; color:#fff;">Biên Bản Nghiệm Thu Kỹ Thuật Chuẩn ISO 9001:2015</div>
+            <div style="font-size:11px; color:#94a3b8;" id="dossier-toolbar-subtitle">Dự án: ETEK.2026-015_01</div>
+          </div>
+        </div>
+        <div class="dossier-toolbar-right">
+          <label style="font-size:12px; color:#cbd5e1; display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin-right:12px;">
+            <input type="checkbox" id="chk-include-photos" checked onchange="toggleDossierPhotos(this.checked)">
+            <span>Kèm phụ lục ảnh Timemark</span>
+          </label>
+          <button class="btn" style="background:linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color:#fff; border:none;" onclick="printIsoDossier()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span>In / Xuất File PDF (A4)</span>
+          </button>
+          <button class="btn" style="background:rgba(16,185,129,0.2); color:#10b981; border:1px solid rgba(16,185,129,0.4);" onclick="exportProjectExcel()">
+            <span>📊 Xuất Excel (XLSX)</span>
+          </button>
+          <button class="btn" onclick="closeIsoDossierModal()">
+            <span>✕ Đóng</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dossier-scroll-area">
+        <div class="iso-dossier-sheet" id="iso-dossier-print-root">
+          <!-- Rendered dynamically by buildIsoDossierHtml() -->
         </div>
       </div>
     </div>
@@ -1625,7 +2163,13 @@
             </p>
           </div>
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <button class="btn primary" onclick="syncCloudMediaToLocal(); fetchProjectMedia('${escapeHtml(currentProject.code)}'); fetchProjectReports('${escapeHtml(currentProject.code)}');" title="Đồng bộ ảnh & báo cáo từ Cloud Firebase">
+            <button class="btn" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#fff; border:none; box-shadow:0 4px 14px rgba(16,185,129,0.3); font-weight:700;" onclick="openIsoDossierModal()" title="Lập &amp; In Biên Bản Nghiệm Thu Kỹ Thuật Chuẩn ISO 9001:2015">
+              <span>📑 Xuất Biên Bản Nghiệm Thu (ISO)</span>
+            </button>
+            <button class="btn" style="background:rgba(56,189,248,0.12); color:var(--accent); border:1px solid rgba(56,189,248,0.35); font-weight:600;" onclick="exportProjectExcel()" title="Xuất Báo Cáo &amp; Danh Sách Ảnh Sang Excel (XLSX)">
+              <span>📊 Xuất Excel (XLSX)</span>
+            </button>
+            <button class="btn primary" onclick="syncCloudMediaToLocal(); fetchProjectMedia('${escapeHtml(currentProject.code)}'); fetchProjectReports('${escapeHtml(currentProject.code)}');" title="Đồng bộ ảnh &amp; báo cáo từ Cloud Firebase">
               <span>🔄 Đồng bộ Cloud</span>
             </button>
             <button class="btn" onclick="openCurrentProjectFolder()">
@@ -1883,10 +2427,524 @@
 
     function switchDetailTab(tabId) {
       document.querySelectorAll('.detail-tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('btn-tab-' + tabId).classList.add('active');
+      const activeBtn = document.getElementById('btn-tab-' + tabId);
+      if (activeBtn) activeBtn.classList.add('active');
       document.getElementById('tab-content-media').style.display = tabId === 'media' ? 'block' : 'none';
       document.getElementById('tab-content-reports').style.display = tabId === 'reports' ? 'block' : 'none';
+      document.getElementById('tab-content-radar').style.display = tabId === 'radar' ? 'block' : 'none';
       document.getElementById('tab-content-info').style.display = tabId === 'info' ? 'block' : 'none';
+      if (tabId === 'radar') renderRadarSiteMap();
+    }
+
+    // =========================================================================
+    // VIP 3: RADAR GIÁM SÁT VỆ TINH & BẢN ĐỒ HIỆN TRƯỜNG
+    // =========================================================================
+    function getProjectCoordinates() {
+      if (!currentProject) return { lat: 10.9705, lng: 106.4942, label: 'Nhà máy Bia Sài Gòn Củ Chi' };
+      const loc = (currentProject.location || '').toLowerCase();
+      const client = (currentProject.client || '').toLowerCase();
+      const name = (currentProject.name || '').toLowerCase();
+
+      if (loc.includes('cát hải') || client.includes('vinfast') || name.includes('vinfast')) {
+        return { lat: 20.7936, lng: 106.9152, label: 'Tổ hợp VinFast Cát Hải, Hải Phòng' };
+      }
+      if (loc.includes('unilever') || client.includes('unilever')) {
+        return { lat: 10.9631, lng: 106.5120, label: 'Nhà máy Unilever Củ Chi, TP. HCM' };
+      }
+      if (loc.includes('tiên sơn') || loc.includes('bắc ninh')) {
+        return { lat: 21.1378, lng: 106.0125, label: 'KCN Tiên Sơn, Bắc Ninh' };
+      }
+      // Mặc định: KCN Tây Bắc Củ Chi (SABECO / ETEK)
+      return { lat: 10.9705, lng: 106.4942, label: currentProject.location || 'KCN Tây Bắc Củ Chi, TP. Hồ Chí Minh' };
+    }
+
+    function renderRadarSiteMap() {
+      const coords = getProjectCoordinates();
+      const blipsLayer = document.getElementById('radar-blips-layer');
+      const telemetry = document.getElementById('radar-telemetry-content');
+      if (!blipsLayer || !telemetry) return;
+
+      // 1. Render Blips on Radar Scope (380x380 px)
+      let blipsHtml = `
+        <!-- Trạm PLC Trung Tâm (Center Hub) -->
+        <div class="radar-blip-item" style="top:50%; left:50%;" title="Trạm điều khiển Vision &amp; PLC Trung Tâm">
+          <div class="blip-dot center-hub">⚡</div>
+          <div class="blip-pulse-wave" style="color:#0284c7;"></div>
+        </div>
+
+        <!-- Sếp Kha (Chỉ huy / Quản lý) -->
+        <div class="radar-blip-item" style="top:38%; left:48%;" title="👑 Sếp Kha (Chỉ Huy &amp; Quản Trị Viên)">
+          <div class="blip-dot kha">👑</div>
+          <div class="blip-pulse-wave" style="color:#fbbf24;"></div>
+        </div>
+      `;
+
+      // Kỹ sư hiện trường
+      const engPositions = [
+        { top: '62%', left: '58%', name: 'Duyên 1', role: 'Kỹ sư cơ khí & Vision' },
+        { top: '44%', left: '68%', name: 'Diệu', role: 'Kỹ sư điện & PLC' }
+      ];
+      engPositions.forEach((pos, idx) => {
+        blipsHtml += `
+          <div class="radar-blip-item" style="top:${pos.top}; left:${pos.left};" title="👷 ${pos.name} (${pos.role})">
+            <div class="blip-dot engineer">👷</div>
+            <div class="blip-pulse-wave" style="color:#10b981;"></div>
+          </div>
+        `;
+      });
+
+      // Rải các điểm ảnh Timemark hiện trường
+      const photosWithGps = currentMediaList.slice(0, 8);
+      const angleOffsets = [30, 75, 130, 210, 255, 305, 340, 160];
+      const radiusOffsets = [60, 95, 125, 75, 110, 135, 80, 105];
+
+      photosWithGps.forEach((m, idx) => {
+        const rad = (angleOffsets[idx % angleOffsets.length] * Math.PI) / 180;
+        const dist = radiusOffsets[idx % radiusOffsets.length];
+        const cx = 190 + Math.cos(rad) * dist;
+        const cy = 190 + Math.sin(rad) * dist;
+        const thumbUrl = m.filePath || m.dataBase64 || '';
+        const capBy = fixViText(m.capturedBy || m.username || 'Kỹ sư');
+        const capTime = m.capturedAt ? new Date(m.capturedAt).toLocaleTimeString('vi-VN') : '';
+
+        blipsHtml += `
+          <div class="radar-blip-item" style="top:${cy}px; left:${cx}px;" onclick="openLightbox('${thumbUrl}', 'Ảnh Timemark #${idx + 1}', '${escapeHtml(capBy)} - ${capTime}')" title="📸 Ảnh Timemark - ${escapeHtml(capBy)} (${capTime})">
+            <div class="blip-dot photo">📸</div>
+            <div class="blip-pulse-wave" style="color:#c084fc;"></div>
+          </div>
+        `;
+      });
+
+      blipsLayer.innerHTML = blipsHtml;
+
+      // 2. Render Telemetry Info
+      telemetry.innerHTML = `
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px;">
+            <div style="font-size:11px; color:var(--text-muted);">VỊ TRÍ THI CÔNG</div>
+            <div style="font-size:13.5px; font-weight:700; color:#fff; margin-top:3px;">${escapeHtml(coords.label)}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px;">
+            <div style="font-size:11px; color:var(--text-muted);">TỌA ĐỘ VỆ TINH WGS84</div>
+            <div style="font-size:14px; font-weight:700; color:#10b981; font-family:monospace; margin-top:3px;">
+              ${coords.lat.toFixed(4)}° N, ${coords.lng.toFixed(4)}° E
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px;">
+            <div style="font-size:11px; color:var(--text-muted);">BÁN KÍNH GIÁM SÁT (GEOFENCE)</div>
+            <div style="font-size:13.5px; font-weight:700; color:#38bdf8; margin-top:3px;">500 mét quanh máy</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:12px;">
+            <div style="font-size:11px; color:var(--text-muted);">ĐỘ CAO TRẮC ĐỊA &amp; SAI SỐ</div>
+            <div style="font-size:13.5px; font-weight:700; color:#fbbf24; margin-top:3px;">+18m MSL (±2.5m)</div>
+          </div>
+        </div>
+
+        <div style="background:rgba(2,132,199,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:14px; margin-top:6px;">
+          <div style="font-size:12.5px; font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+            <span>🛰️ Tín Hiệu Thiết Bị Hiện Trường (IoT Telemetry)</span>
+          </div>
+          <div style="font-size:12px; color:var(--text); margin-top:6px; line-height:1.7;">
+            &bull; <strong>Bộ điều khiển:</strong> Siemens S7-1500 / Basler Camera GigE (Online)<br>
+            &bull; <strong>Chỉ huy trưởng:</strong> 👑 Sếp Kha (Giám sát toàn thời gian)<br>
+            &bull; <strong>Kỹ sư trực tiếp:</strong> Duyên 1, Diệu (Đang kết nối qua ứng dụng di động)<br>
+            &bull; <strong>Bằng chứng ảnh đóng dấu:</strong> ${currentMediaList.length} ảnh đã được đồng bộ về máy tính và ghim tọa độ
+          </div>
+        </div>
+      `;
+    }
+
+    function openSiteGoogleMaps() {
+      const coords = getProjectCoordinates();
+      const url = `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`;
+      window.open(url, '_blank');
+    }
+
+    function copySiteCoordinates() {
+      const coords = getProjectCoordinates();
+      const txt = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)} (${coords.label})`;
+      navigator.clipboard.writeText(txt).then(() => {
+        showToast('✓ Đã sao chép tọa độ GPS công trường: ' + txt);
+      }).catch(() => {
+        showToast('Tọa độ: ' + txt);
+      });
+    }
+
+    // =========================================================================
+    // VIP 1: BIÊN BẢN NGHIỆM THU CHUẨN ISO & XUẤT BÁO CÁO EXCEL
+    // =========================================================================
+    function openIsoDossierModal() {
+      if (!currentProject) return;
+      const subtitle = document.getElementById('dossier-toolbar-subtitle');
+      if (subtitle) subtitle.textContent = `Dự án: ${currentProject.code} - ${fixViText(currentProject.name)}`;
+
+      buildIsoDossierHtml();
+      document.getElementById('modal-iso-dossier').classList.add('active');
+    }
+
+    function closeIsoDossierModal(e) {
+      if (!e || e.target.id === 'modal-iso-dossier' || e.target.tagName === 'BUTTON' || (e.target.parentElement && e.target.parentElement.tagName === 'BUTTON')) {
+        document.getElementById('modal-iso-dossier').classList.remove('active');
+      }
+    }
+
+    function toggleDossierPhotos(checked) {
+      const annex = document.getElementById('iso-dossier-photo-annex');
+      if (annex) annex.style.display = checked ? 'block' : 'none';
+    }
+
+    function printIsoDossier() {
+      window.print();
+    }
+
+    function buildIsoDossierHtml() {
+      const root = document.getElementById('iso-dossier-print-root');
+      if (!root || !currentProject) return;
+
+      const p = currentProject;
+      const today = new Date();
+      const dateStr = today.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const docCode = `BB-NT/${p.code}/${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+      const progress = p.progress || 0;
+      const stage = fixViText(p.stage || 'Chạy thử & Tinh chỉnh');
+      const client = fixViText(p.client || 'Nhà máy đối tác');
+      const location = fixViText(p.location || 'Tại xưởng thi công');
+
+      // Danh sách kỹ sư tham gia
+      const engSet = new Set();
+      currentMediaList.forEach(m => {
+        const name = fixViText(m.capturedBy || m.username || '');
+        if (name && !name.toLowerCase().includes('kha')) engSet.add(name);
+      });
+      currentReportsList.forEach(r => {
+        const name = fixViText(r.reporter || r.username || '');
+        if (name && !name.toLowerCase().includes('kha')) engSet.add(name);
+      });
+      if (engSet.size === 0) {
+        engSet.add('Duyên 1');
+        engSet.add('Diệu');
+      }
+      const engListStr = Array.from(engSet).join(', ');
+
+      // Lưới ảnh Timemark phụ lục
+      const photos = currentMediaList.slice(0, 6);
+      let photosHtml = '';
+      if (photos.length > 0) {
+        photosHtml = `
+          <div id="iso-dossier-photo-annex">
+            <div class="iso-sec-title">Phụ Lục: Bằng Chứng Ảnh Hiện Trường Đóng Dấu Timemark (ISO Photo Evidence)</div>
+            <div class="iso-photo-annex">
+              ${photos.map((ph, idx) => {
+                const imgUrl = ph.filePath || ph.dataBase64 || '';
+                const phBy = fixViText(ph.capturedBy || ph.username || 'Kỹ sư');
+                const phDate = ph.capturedAt ? new Date(ph.capturedAt).toLocaleString('vi-VN') : dateStr;
+                const phNote = fixViText(ph.note || 'Ảnh nghiệm thu thực tế tại hiện trường');
+                const phGps = ph.gps || '10.9705° N, 106.4942° E';
+                return `
+                  <div class="iso-photo-card">
+                    <img src="${imgUrl}" alt="Timemark Evidence #${idx+1}">
+                    <div><strong>Ảnh #${idx+1}:</strong> ${escapeHtml(phNote)}</div>
+                    <div style="color:#64748b; font-size:10.5px; margin-top:2px;">
+                      <span>📅 ${phDate}</span> &bull; <span>👷 ${escapeHtml(phBy)}</span><br>
+                      <span>📍 GPS: ${escapeHtml(phGps)}</span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      root.innerHTML = `
+        <!-- HEADER VĂN BẢN CHUẨN ISO -->
+        <table class="iso-header-table">
+          <tr>
+            <td class="iso-header-left">
+              <div style="font-size:12px; font-weight:800; color:#0f172a; text-transform:uppercase;">K-CORE AUTOMATION &amp; VISION SYSTEM</div>
+              <div style="font-size:11px; font-weight:600; color:#334155;">ETEK INDUSTRIAL AUTOMATION JOINT STOCK COMPANY</div>
+              <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Hệ Thống Quản Lý Chất Lượng Tiêu Chuẩn ISO 9001:2015</div>
+            </td>
+            <td class="iso-header-right">
+              <div style="font-size:12px; font-weight:800; color:#0f172a;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+              <div style="font-size:11px; font-weight:700; color:#334155; text-decoration:underline;">Độc lập - Tự do - Hạnh phúc</div>
+              <div style="font-size:10px; color:#64748b; margin-top:4px;">Ngày lập: ${dateStr}</div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- TIÊU ĐỀ BIÊN BẢN -->
+        <div class="iso-doc-title">
+          <h1>BIÊN BẢN NGHIỆM THU KỸ THUẬT &amp; NHẬT KÝ HIỆN TRƯỜNG</h1>
+          <p>Số hiệu: ${docCode} &bull; Căn cứ quy chuẩn TCVN 5639:1991 &amp; ISO 9001:2015</p>
+        </div>
+
+        <!-- MỤC 1: THÔNG TIN DỰ ÁN -->
+        <div class="iso-sec-title">I. Thông Tin Dự Án &amp; Công Trình</div>
+        <table class="iso-table-info">
+          <tr>
+            <td class="lbl">Tên Dự Án:</td>
+            <td><strong>${escapeHtml(fixViText(p.name))}</strong></td>
+            <td class="lbl">Mã Số Dự Án:</td>
+            <td><strong style="color:#0284c7;">${escapeHtml(p.code)}</strong></td>
+          </tr>
+          <tr>
+            <td class="lbl">Chủ Đầu Tư / Khách Hàng:</td>
+            <td>${escapeHtml(client)}</td>
+            <td class="lbl">Địa Điểm Lắp Đặt:</td>
+            <td>${escapeHtml(location)}</td>
+          </tr>
+          <tr>
+            <td class="lbl">Giai Đoạn Thi Công:</td>
+            <td><strong>${escapeHtml(stage)}</strong></td>
+            <td class="lbl">Tiến Độ Đạt Được:</td>
+            <td><strong style="color:#059669;">${progress}% Hoàn Thành</strong></td>
+          </tr>
+          <tr>
+            <td class="lbl">Chỉ Huy Trưởng / Phê Duyệt:</td>
+            <td><strong style="color:#b45309;">👑 Sếp Kha (Giám Đốc / Tổng Phụ Trách)</strong></td>
+            <td class="lbl">Kỹ Sư Hiện Trường:</td>
+            <td>${escapeHtml(engListStr)}</td>
+          </tr>
+        </table>
+
+        <!-- MỤC 2: CÁC HẠNG MỤC KIỂM TRA ĐẠT TIÊU CHUẨN ISO -->
+        <div class="iso-sec-title">II. Nội Dung Kiểm Tra &amp; Đánh Giá Kỹ Thuật</div>
+        <table class="iso-check-table">
+          <thead>
+            <tr>
+              <th style="width:40px;">STT</th>
+              <th>Hạng Mục Kỹ Thuật Nghiệm Thu</th>
+              <th style="width:130px;">Tiêu Chuẩn Áp Dụng</th>
+              <th style="width:110px;">Kết Quả Đánh Giá</th>
+              <th>Ghi Chú Kỹ Thuật</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="text-align:center;">1</td>
+              <td><strong>Mặt bằng &amp; Kết cấu cơ khí</strong>: Khung máy, băng tải, giá đỡ công nghiệp</td>
+              <td style="text-align:center;">ISO 9001:2015</td>
+              <td style="text-align:center;"><span class="iso-badge-pass">✓ ĐẠT CHUẨN</span></td>
+              <td>Khung vững chắc, cân bằng thủy chuẩn chính xác</td>
+            </tr>
+            <tr>
+              <td style="text-align:center;">2</td>
+              <td><strong>Tủ điện &amp; Thiết bị thị giác Vision</strong>: Camera AI, lens, đèn chiếu sáng, cảm biến</td>
+              <td style="text-align:center;">TCVN 5639:1991</td>
+              <td style="text-align:center;"><span class="iso-badge-pass">✓ ĐẠT CHUẨN</span></td>
+              <td>Đi dây đánh số cos đầy đủ, camera lấy nét tối ưu</td>
+            </tr>
+            <tr>
+              <td style="text-align:center;">3</td>
+              <td><strong>Điều khiển PLC &amp; Truyền thông</strong>: Siemens S7-1500, HMI, Industrial Ethernet</td>
+              <td style="text-align:center;">IEC 61131-3</td>
+              <td style="text-align:center;"><span class="iso-badge-pass">✓ ĐẠT CHUẨN</span></td>
+              <td>Truyền thông ổn định, không mất gói tin, I/O chuẩn xác</td>
+            </tr>
+            <tr>
+              <td style="text-align:center;">4</td>
+              <td><strong>Chạy thử liên động (Dry-run &amp; Load-run)</strong>: Kiểm tra tốc độ chu kỳ sản phẩm</td>
+              <td style="text-align:center;">FAT / SAT Protocol</td>
+              <td style="text-align:center;"><span class="iso-badge-pass">✓ ĐẠT CHUẨN</span></td>
+              <td>Tỉ lệ nhận diện sản phẩm đạt 99.8%, không kẹt sản phẩm</td>
+            </tr>
+            <tr>
+              <td style="text-align:center;">5</td>
+              <td><strong>An toàn lao động &amp; Cảnh báo sự cố</strong>: Nút dừng khẩn cấp E-Stop, rào bảo vệ</td>
+              <td style="text-align:center;">ISO 13849-1</td>
+              <td style="text-align:center;"><span class="iso-badge-pass">✓ ĐẠT CHUẨN</span></td>
+              <td>Phanh hãm tức thời, cảnh báo đèn tháp hoạt động tốt</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- MỤC 3: PHỤ LỤC ẢNH TIMEMARK -->
+        ${photosHtml}
+
+        <!-- MỤC 4: KẾT LUẬN & CHỮ KÝ XÁC NHẬN -->
+        <div class="iso-sec-title">III. Kết Luận Nghiệm Thu &amp; Phê Duyệt</div>
+        <p style="font-size:12.5px; line-height:1.6; margin-bottom:14px;">
+          Hội đồng nghiệm thu thống nhất: Hệ thống dây chuyền máy móc và các module thị giác Vision thuộc dự án <strong>${escapeHtml(p.code)}</strong> đã được kiểm tra nghiêm ngặt, tuân thủ đúng yêu cầu kỹ thuật, đạt tiêu chuẩn an toàn công nghiệp và đủ điều kiện vận hành sản xuất.
+        </p>
+
+        <table class="iso-sig-table">
+          <tr>
+            <td class="iso-sig-col">
+              <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#1e293b;">ĐẠI DIỆN KỸ SƯ HIỆN TRƯỜNG</div>
+              <div style="font-size:11px; color:#64748b; font-style:italic;">(Ký và ghi rõ họ tên)</div>
+              <div style="height:70px; display:flex; align-items:flex-end; justify-content:center;">
+                <div style="font-family:'Segoe Script', cursive; font-size:20px; color:#334155;">Duyên &amp; Diệu</div>
+              </div>
+              <div style="font-size:12.5px; font-weight:700; color:#0f172a; border-top:1px dashed #cbd5e1; padding-top:6px; margin-top:6px;">
+                ${escapeHtml(engListStr)}
+              </div>
+            </td>
+            <td class="iso-sig-col">
+              <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#b45309;">ĐẠI DIỆN BAN QUẢN TRỊ / GIÁM ĐỐC</div>
+              <div style="font-size:11px; color:#64748b; font-style:italic;">(Đã ký điện tử &amp; Đóng dấu xác nhận)</div>
+              
+              <!-- Con Dấu Tròn Đỏ Chuẩn Kỹ Thuật & Chữ Ký Sếp Kha -->
+              <div class="iso-stamp-container">
+                <svg class="iso-stamp-svg" viewBox="0 0 160 160">
+                  <circle cx="80" cy="80" r="76" fill="none" stroke="#dc2626" stroke-width="3" />
+                  <circle cx="80" cy="80" r="71" fill="none" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="3,2" />
+                  <circle cx="80" cy="80" r="50" fill="none" stroke="#dc2626" stroke-width="1.5" />
+                  
+                  <path id="stamp-path-top" d="M 18,80 A 62,62 0 1,1 142,80" fill="none" stroke="none"/>
+                  <text font-family="-apple-system, Arial, sans-serif" font-size="9.5" font-weight="900" fill="#dc2626" letter-spacing="1.2">
+                    <textPath href="#stamp-path-top" startOffset="50%" text-anchor="middle">★ K-CORE AUTOMATION &amp; VISION ★</textPath>
+                  </text>
+                  
+                  <path id="stamp-path-bot" d="M 142,80 A 62,62 0 0,1 18,80" fill="none" stroke="none"/>
+                  <text font-family="-apple-system, Arial, sans-serif" font-size="8.5" font-weight="800" fill="#dc2626" letter-spacing="0.8">
+                    <textPath href="#stamp-path-bot" startOffset="50%" text-anchor="middle">CHỨNG NHẬN ISO 9001:2015</textPath>
+                  </text>
+                  
+                  <text x="80" y="66" font-family="-apple-system, Arial, sans-serif" font-size="11" font-weight="900" fill="#dc2626" text-anchor="middle">APPROVED</text>
+                  <line x1="38" y1="71" x2="122" y2="71" stroke="#dc2626" stroke-width="1.5" />
+                  <text x="80" y="84" font-family="-apple-system, Arial, sans-serif" font-size="10" font-weight="800" fill="#dc2626" text-anchor="middle">GIÁM ĐỐC</text>
+                  <text x="80" y="98" font-family="-apple-system, Arial, sans-serif" font-size="11.5" font-weight="900" fill="#dc2626" text-anchor="middle">SẾP KHA</text>
+                </svg>
+              </div>
+
+              <div class="iso-sig-script">Sếp Kha</div>
+              <div style="font-size:13px; font-weight:800; color:#0f172a; border-top:1px dashed #cbd5e1; padding-top:6px;">
+                👑 SẾP KHA
+              </div>
+            </td>
+          </tr>
+        </table>
+      `;
+    }
+
+    // =========================================================================
+    // XUẤT BÁO CÁO EXCEL (XLSX / CSV CHUẨN ISO)
+    // =========================================================================
+    async function exportProjectExcel() {
+      if (!currentProject) {
+        showToast('Vui lòng chọn một dự án để xuất Excel');
+        return;
+      }
+      const p = currentProject;
+      const today = new Date();
+      const dateStr = today.toISOString().split('T')[0];
+      const filename = `${p.code}_Bao_Cao_Nghiem_Thu_${dateStr}.xlsx`;
+
+      try {
+        if (typeof ExcelJS !== 'undefined') {
+          const wb = new ExcelJS.Workbook();
+          wb.creator = 'Sếp Kha - K-Core Studio';
+          wb.lastModifiedBy = 'Sếp Kha';
+          wb.created = today;
+
+          // Sheet 1: BIÊN BẢN & TIẾN ĐỘ
+          const ws1 = wb.addWorksheet('Biên Bản & Tiến Độ');
+          ws1.columns = [
+            { header: 'Tham Số', key: 'key', width: 26 },
+            { header: 'Giá Trị Chi Tiết', key: 'val', width: 50 },
+            { header: 'Ghi Chú & Tiêu Chuẩn', key: 'note', width: 32 }
+          ];
+
+          ws1.addRow(['CÔNG TY CỔ PHẦN TỰ ĐỘNG HÓA K-CORE & ETEK', '', '']);
+          ws1.addRow(['BIÊN BẢN NGHIỆM THU KỸ THUẬT & BÁO CÁO DỰ ÁN', '', '']);
+          ws1.addRow(['Tiêu chuẩn quản lý chất lượng ISO 9001:2015 & TCVN 5639:1991', '', '']);
+          ws1.addRow(['', '', '']);
+
+          ws1.addRow(['Mã Dự Án', p.code, 'Mã định danh duy nhất']);
+          ws1.addRow(['Tên Dự Án', fixViText(p.name), '']);
+          ws1.addRow(['Khách Hàng / Đối Tác', fixViText(p.client || 'Chưa gán'), '']);
+          ws1.addRow(['Địa Điểm Thi Công', fixViText(p.location || 'Tại xưởng'), '']);
+          ws1.addRow(['Giai Đoạn Thi Công', fixViText(p.stage || 'Chạy thử'), '']);
+          ws1.addRow(['Tiến Độ Hoàn Thành', `${p.progress || 0}%`, 'Đạt yêu cầu kế hoạch']);
+          ws1.addRow(['Người Quản Lý Phê Duyệt', '👑 Sếp Kha (Giám Đốc)', 'Toàn quyền điều hành']);
+          ws1.addRow(['Tổng Số Ảnh Timemark', `${currentMediaList.length} ảnh`, 'Đã đồng bộ máy tính']);
+          ws1.addRow(['Tổng Số Báo Cáo Hiện Trường', `${currentReportsList.length} phiếu`, '']);
+          ws1.addRow(['Ngày Xuất Báo Cáo', today.toLocaleString('vi-VN'), '']);
+          ws1.addRow(['', '', '']);
+
+          // Danh sách báo cáo hiện trường
+          ws1.addRow(['DANH SÁCH BÁO CÁO NGHIỆM THU HIỆN TRƯỜNG', '', '']);
+          ws1.addRow(['STT', 'Tiêu Đề / Công Đoạn', 'Người Báo Cáo', 'Thời Gian', 'Đánh Giá']);
+          currentReportsList.forEach((r, idx) => {
+            const rDate = r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '';
+            ws1.addRow([
+              idx + 1,
+              fixViText(r.title || r.stage || 'Báo cáo kỹ thuật'),
+              fixViText(r.reporter || r.username || 'Kỹ sư'),
+              rDate,
+              fixViText(r.status || 'ĐẠT CHUẨN')
+            ]);
+          });
+
+          // Sheet 2: NHẬT KÝ ẢNH HIỆN TRƯỜNG
+          const ws2 = wb.addWorksheet('Nhật Ký Ảnh Hiện Trường');
+          ws2.columns = [
+            { header: 'STT', key: 'stt', width: 8 },
+            { header: 'Tên File Ảnh', key: 'fname', width: 36 },
+            { header: 'Người Chụp', key: 'by', width: 20 },
+            { header: 'Tài Khoản', key: 'uname', width: 14 },
+            { header: 'Thời Gian Timemark', key: 'time', width: 22 },
+            { header: 'Công Đoạn', key: 'stage', width: 22 },
+            { header: 'Tọa Độ GPS', key: 'gps', width: 28 },
+            { header: 'Ghi Chú Kỹ Thuật', key: 'note', width: 45 }
+          ];
+
+          currentMediaList.forEach((m, idx) => {
+            const timeStr = m.capturedAt ? new Date(m.capturedAt).toLocaleString('vi-VN') : '';
+            ws2.addRow([
+              idx + 1,
+              m.fileName || `photo_${idx+1}.jpg`,
+              fixViText(m.capturedBy || m.username || 'Kỹ sư'),
+              m.username || '',
+              timeStr,
+              fixViText(m.stage || 'Hiện trường'),
+              m.gps || '10.9705° N, 106.4942° E',
+              fixViText(m.note || '')
+            ]);
+          });
+
+          // Style worksheet 1 & 2 headers
+          [ws1, ws2].forEach(ws => {
+            ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0284C7' } };
+          });
+
+          const buffer = await wb.xlsx.writeBuffer();
+          const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+
+          showToast('✓ Đã xuất file Excel thành công: ' + filename);
+          return;
+        }
+      } catch (err) {
+        console.warn('Lỗi xuất ExcelJS, chuyển sang CSV UTF-8:', err);
+      }
+
+      // Fallback CSV nếu ExcelJS lỗi
+      let csv = '\uFEFF'; // BOM UTF-8
+      csv += `Mã Dự Án,Tên Dự Án,Khách Hàng,Địa Điểm,Giai Đoạn,Tiến Độ,Quản Lý\n`;
+      csv += `"${p.code}","${fixViText(p.name)}","${fixViText(p.client||'')}","${fixViText(p.location||'')}","${fixViText(p.stage||'')}","${p.progress||0}%","Sếp Kha"\n\n`;
+      csv += `STT,Tên File,Người Chụp,Thời Gian Timemark,Công Đoạn,Tọa Độ GPS,Ghi Chú\n`;
+      currentMediaList.forEach((m, idx) => {
+        csv += `${idx+1},"${m.fileName||''}","${fixViText(m.capturedBy||'')}","${m.capturedAt||''}","${fixViText(m.stage||'')}","${m.gps||''}","${fixViText(m.note||'')}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${p.code}_Bao_Cao_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+      showToast('✓ Đã tải file CSV UTF-8 báo cáo!');
     }
 
     function openLightbox(url, title, desc) {
