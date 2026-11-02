@@ -1288,6 +1288,20 @@
       return user;
     }
 
+    _itemBelongsToUser(item, targetUsername, targetName) {
+      if (!item) return false;
+      const u = (item.username || '').toLowerCase().trim();
+      if (targetUsername && u === targetUsername) return true;
+
+      const reporter = (item.reporter || item.capturedBy || item.authorName || item.engineer || '').toLowerCase().trim();
+      if (targetUsername && (reporter === targetUsername || reporter.includes(`@${targetUsername}`))) return true;
+      if (targetName) {
+        const tn = targetName.toLowerCase().trim();
+        if (reporter === tn || reporter.includes(tn) || tn.includes(reporter)) return true;
+      }
+      return false;
+    }
+
     async deleteUserPermanently(id) {
       if (!this.hasRole('admin')) throw new Error('Chỉ Administrator mới có quyền xóa người dùng');
       const current = this.getCurrentUser();
@@ -1302,16 +1316,19 @@
         throw new Error('Không thể xóa tài khoản Quản trị viên Sếp Kha');
       }
 
+      const targetUsername = (user.username || '').toLowerCase().trim();
+      const targetName = (user.name || '').trim();
+
       // Xóa trong localStorage
-      users = users.filter(u => u.id !== user.id && u.username.toLowerCase() !== user.username.toLowerCase());
+      users = users.filter(u => u.id !== user.id && u.username.toLowerCase() !== targetUsername);
       this._saveUsers(users);
 
       // Xóa khỏi pending requests nếu còn
       let pendingList = this.getPendingRequests();
-      pendingList = pendingList.filter(p => p.id !== user.id && p.username.toLowerCase() !== user.username.toLowerCase());
+      pendingList = pendingList.filter(p => p.id !== user.id && p.username.toLowerCase() !== targetUsername);
       this._savePendingRequests(pendingList);
 
-      // 1. Xóa vĩnh viễn trên Cloud Firebase
+      // 1. Xóa vĩnh viễn trên Cloud Firebase (Tài khoản, Báo cáo hiện trường, Ảnh Timemark)
       try {
         const cfg = this.getCloudConfig();
         if (cfg && cfg.cloudUrl) {
@@ -1332,8 +1349,34 @@
             const regsData = await regsRes.json();
             if (regsData && typeof regsData === 'object') {
               for (const [rId, rVal] of Object.entries(regsData)) {
-                if (rVal && rVal.username && rVal.username.toLowerCase() === user.username.toLowerCase()) {
+                if (rVal && rVal.username && rVal.username.toLowerCase() === targetUsername) {
                   await fetch(`${base}/registrations/${rId}.json`, { method: 'DELETE' }).catch(() => {});
+                }
+              }
+            }
+          }
+
+          // Xóa tất cả BÁO CÁO HIỆN TRƯỜNG của người này trên Cloud Firebase
+          const repsRes = await fetch(`${base}/field_reports.json`).catch(() => null);
+          if (repsRes && repsRes.ok) {
+            const repsData = await repsRes.json();
+            if (repsData && typeof repsData === 'object') {
+              for (const [repId, repVal] of Object.entries(repsData)) {
+                if (repVal && this._itemBelongsToUser(repVal, targetUsername, targetName)) {
+                  await fetch(`${base}/field_reports/${repId}.json`, { method: 'DELETE' }).catch(() => {});
+                }
+              }
+            }
+          }
+
+          // Xóa tất cả ẢNH & MEDIA HIỆN TRƯỜNG của người này trên Cloud Firebase
+          const mediaRes = await fetch(`${base}/projects_media.json`).catch(() => null);
+          if (mediaRes && mediaRes.ok) {
+            const mediaData = await mediaRes.json();
+            if (mediaData && typeof mediaData === 'object') {
+              for (const [medId, medVal] of Object.entries(mediaData)) {
+                if (medVal && this._itemBelongsToUser(medVal, targetUsername, targetName)) {
+                  await fetch(`${base}/projects_media/${medId}.json`, { method: 'DELETE' }).catch(() => {});
                 }
               }
             }
@@ -1341,16 +1384,17 @@
         }
       } catch (_) {}
 
-      // 2. Gửi lệnh tới LAN Server để xóa trên ổ đĩa máy tính
+      // 2. Gửi lệnh tới LAN Server để xóa trên ổ đĩa máy tính (xóa user, xóa báo cáo và ảnh trong các folder dự án)
       try {
         await fetch('/api/auth/user/delete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: user.username, id: user.id })
+          body: JSON.stringify({ username: user.username, id: user.id, name: targetName })
         }).catch(() => {});
       } catch (_) {}
 
       window.dispatchEvent(new CustomEvent('ks:auth:users_synced', { detail: { users } }));
+      window.dispatchEvent(new CustomEvent('ks:auth:user_deleted', { detail: { username: targetUsername, name: targetName } }));
       return true;
     }
 

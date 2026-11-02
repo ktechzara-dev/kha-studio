@@ -1618,39 +1618,90 @@
       }
     }
 
+    function itemBelongsToUser(item, targetUsername, targetName) {
+      if (!item) return false;
+      const u = (item.username || '').toLowerCase().trim();
+      if (targetUsername && u === targetUsername) return true;
+
+      const reporter = (item.reporter || item.capturedBy || item.authorName || item.engineer || '').toLowerCase().trim();
+      if (targetUsername && (reporter === targetUsername || reporter.includes(`@${targetUsername}`))) return true;
+      if (targetName) {
+        const tn = targetName.toLowerCase().trim();
+        if (reporter === tn || reporter.includes(tn) || tn.includes(reporter)) return true;
+      }
+      return false;
+    }
+
     async function deleteUserMobile(username) {
       if (currentUser?.role !== 'admin') return;
       if (username === 'kha') return;
-      if (!confirm(`⚠️ Sếp có chắc chắn muốn XÓA VĨNH VIỄN tài khoản @${username}?\n\nTài khoản sẽ bị xóa sạch khỏi máy tính và Cloud Firebase!`)) return;
+      if (!confirm(`⚠️ Sếp có chắc chắn muốn XÓA VĨNH VIỄN tài khoản @${username}?\n\nToàn bộ tài khoản, phiếu báo cáo hiện trường và ảnh Timemark của người này sẽ bị xóa sạch khỏi máy tính và Cloud Firebase!`)) return;
+
+      const userObj = (usersList || []).find(u => u && u.username && u.username.toLowerCase() === username.toLowerCase());
+      const targetName = userObj ? (userObj.name || '') : '';
+      const targetUsername = username.toLowerCase().trim();
 
       const cfg = getConfig();
       try {
         const base = cfg.firebaseUrl.replace(/\/+$/, '');
         const safeKey = username.replace(/\./g, '_');
         await fetch(`${base}/users/${safeKey}.json`, { method: 'DELETE' });
+        if (safeKey !== username) {
+          await fetch(`${base}/users/${encodeURIComponent(username)}.json`, { method: 'DELETE' }).catch(() => {});
+        }
 
+        // 1. Xóa yêu cầu đăng ký
         const regsRes = await fetch(`${base}/registrations.json`).catch(() => null);
         if (regsRes && regsRes.ok) {
           const regsData = await regsRes.json();
           if (regsData && typeof regsData === 'object') {
             for (const [rId, rVal] of Object.entries(regsData)) {
-              if (rVal && rVal.username && rVal.username.toLowerCase() === username.toLowerCase()) {
+              if (rVal && rVal.username && rVal.username.toLowerCase() === targetUsername) {
                 await fetch(`${base}/registrations/${rId}.json`, { method: 'DELETE' }).catch(() => {});
               }
             }
           }
         }
 
+        // 2. Xóa tất cả Báo Cáo Hiện Trường của người này trên Cloud Firebase
+        const repRes = await fetch(`${base}/field_reports.json`).catch(() => null);
+        if (repRes && repRes.ok) {
+          const repData = await repRes.json();
+          if (repData && typeof repData === 'object') {
+            for (const [rId, rVal] of Object.entries(repData)) {
+              if (rVal && itemBelongsToUser(rVal, targetUsername, targetName)) {
+                await fetch(`${base}/field_reports/${rId}.json`, { method: 'DELETE' }).catch(() => {});
+              }
+            }
+          }
+        }
+
+        // 3. Xóa tất cả Ảnh & Media Hiện Trường của người này trên Cloud Firebase
+        const medRes = await fetch(`${base}/projects_media.json`).catch(() => null);
+        if (medRes && medRes.ok) {
+          const medData = await medRes.json();
+          if (medData && typeof medData === 'object') {
+            for (const [mId, mVal] of Object.entries(medData)) {
+              if (mVal && itemBelongsToUser(mVal, targetUsername, targetName)) {
+                await fetch(`${base}/projects_media/${mId}.json`, { method: 'DELETE' }).catch(() => {});
+              }
+            }
+          }
+        }
+
+        // 4. Gọi LAN Server để xóa sạch trên ổ đĩa máy tính
         if (cfg.lanUrl) {
           const lanBase = cfg.lanUrl.replace(/\/+$/, '');
           await fetch(`${lanBase}/api/auth/user/delete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
+            body: JSON.stringify({ username, name: targetName })
           }).catch(() => {});
         }
 
-        showToast(`✓ Đã xóa hoàn toàn tài khoản @${username}!`);
+        usersList = (usersList || []).filter(u => u && u.username && u.username.toLowerCase() !== targetUsername);
+        renderUsersList();
+        showToast(`✓ Đã xóa hoàn toàn @${username} cùng toàn bộ báo cáo & ảnh!`);
         refreshData();
       } catch (e) {
         showToast('Lỗi: ' + e.message);

@@ -1627,6 +1627,17 @@
     });
   }
 
+  window.addEventListener('ks:auth:user_deleted', e => {
+    const username = e.detail && e.detail.username;
+    if (username) {
+      document.querySelectorAll('#frames iframe').forEach(frame => {
+        try {
+          frame.contentWindow.postMessage({ type: 'ks:auth:user_deleted', username }, '*');
+        } catch (_) {}
+      });
+    }
+  });
+
   function updateSettingsAuthSection(user) {
     const curInfo = document.getElementById('set-current-user-info');
     const adminMgmt = document.getElementById('set-admin-user-mgmt');
@@ -1762,14 +1773,14 @@
         const u = window.Auth.getUsers().find(x => x.id === id || x.username === username);
         if (!u) return;
 
-        const confirmMsg = `⚠️ CẢNH BÁO XÓA VĨNH VIỄN!\n\nSếp có chắc chắn muốn XÓA HOÀN TOÀN tài khoản "@${u.username}" (${u.name})?\n\n• Tài khoản sẽ bị xóa sạch khỏi máy tính này.\n• Tài khoản sẽ bị xóa vĩnh viễn trên Cloud Firebase (không tự kéo về lại khi đồng bộ).\n• Thao tác này không thể hoàn tác!\n\nNhấn OK để xóa vĩnh viễn.`;
+        const confirmMsg = `⚠️ CẢNH BÁO XÓA VĨNH VIỄN!\n\nSếp có chắc chắn muốn XÓA HOÀN TOÀN tài khoản "@${u.username}" (${u.name})?\n\n• Tài khoản sẽ bị xóa sạch khỏi máy tính này.\n• Toàn bộ phiếu báo cáo hiện trường & ảnh Timemark của người này sẽ bị xóa sạch.\n• Tài khoản và dữ liệu sẽ bị xóa vĩnh viễn trên Cloud Firebase.\n• Thao tác này không thể hoàn tác!\n\nNhấn OK để xóa vĩnh viễn.`;
 
         if (confirm(confirmMsg)) {
           btn.disabled = true;
           try {
             await window.Auth.deleteUserPermanently(id);
             renderUserManagementTable();
-            notify('Đã xóa vĩnh viễn', `Đã xóa hoàn toàn tài khoản @${u.username} khỏi máy tính và Firebase Cloud!`, 'info');
+            notify('Đã xóa vĩnh viễn', `Đã xóa hoàn toàn tài khoản @${u.username} cùng toàn bộ báo cáo và ảnh hiện trường!`, 'info');
           } catch (err) {
             notify('Lỗi xóa tài khoản', err.message, 'error');
             btn.disabled = false;

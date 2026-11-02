@@ -3105,7 +3105,31 @@
         renderMediaGrid();
         renderReports();
       }
+      if (e.data && e.data.type === 'ks:auth:user_deleted' && e.data.username) {
+        handleUserDeletedEvent(e.data.username);
+      }
     });
+
+    window.addEventListener('ks:auth:user_deleted', e => {
+      if (e.detail && e.detail.username) {
+        handleUserDeletedEvent(e.detail.username);
+      }
+    });
+
+    function handleUserDeletedEvent(username) {
+      const u = (username || '').toLowerCase().trim();
+      if (!u) return;
+      currentMediaList = currentMediaList.filter(m => !itemMatchesUser(m, u));
+      currentReportsList = currentReportsList.filter(r => !itemMatchesUser(r, u));
+      registeredUsers = registeredUsers.filter(usr => (usr.username || '').toLowerCase() !== u);
+      if (selectedUserFilter.toLowerCase() === u) {
+        selectedUserFilter = 'all';
+      }
+      updateUserFilterBar();
+      renderMediaGrid();
+      renderReports();
+      if (typeof renderRadarSiteMap === 'function') renderRadarSiteMap();
+    }
 
     window.addEventListener('storage', e => {
       if (e.key === 'ks_session') {
@@ -3113,6 +3137,9 @@
         updateUserFilterBar();
         renderMediaGrid();
         renderReports();
+      }
+      if (e.key === 'ks_users') {
+        loadRegisteredUsers();
       }
     });
   </script>

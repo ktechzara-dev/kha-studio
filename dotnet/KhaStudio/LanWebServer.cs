@@ -1839,9 +1839,23 @@ public class LanWebServer
             if (node == null) return;
             var username = (node["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
             var id = (node["id"]?.ToString() ?? "").Trim();
+            var name = (node["name"]?.ToString() ?? "").Trim();
 
             if (username == "kha") return; // Không xóa tài khoản Admin Sếp Kha
 
+            bool MatchesUser(string u, string rep)
+            {
+                if (!string.IsNullOrEmpty(username) && (u.Equals(username, StringComparison.OrdinalIgnoreCase) || rep.Equals(username, StringComparison.OrdinalIgnoreCase)))
+                    return true;
+                if (!string.IsNullOrEmpty(name))
+                {
+                    if (rep.Equals(name, StringComparison.OrdinalIgnoreCase) || rep.Contains(name, StringComparison.OrdinalIgnoreCase) || name.Contains(rep, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+                return false;
+            }
+
+            // 1. Xóa trong users.json và pending_users.json
             void RemoveFromFile(string filePath)
             {
                 if (!File.Exists(filePath)) return;
@@ -1874,6 +1888,147 @@ public class LanWebServer
             RemoveFromFile(Path.Combine(WwwRoot, "data", "users.json"));
             RemoveFromFile(Path.Combine(UserDataDir, "pending_users.json"));
             RemoveFromFile(Path.Combine(WwwRoot, "data", "pending_users.json"));
+
+            // 2. Xóa tất cả báo cáo trong field_reports.json (UserDataDir & WwwRoot)
+            void PurgeFieldReports(string filePath)
+            {
+                if (!File.Exists(filePath)) return;
+                var raw = ReadTextWithoutBom(filePath);
+                if (string.IsNullOrWhiteSpace(raw)) return;
+                if (JsonNode.Parse(raw) is JsonArray arr)
+                {
+                    bool changed = false;
+                    for (int i = arr.Count - 1; i >= 0; i--)
+                    {
+                        if (arr[i] is JsonObject rObj)
+                        {
+                            var u = (rObj["username"]?.ToString() ?? "").Trim();
+                            var rep = (rObj["reporter"]?.ToString() ?? rObj["authorName"]?.ToString() ?? "").Trim();
+                            if (MatchesUser(u, rep))
+                            {
+                                arr.RemoveAt(i);
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (changed)
+                    {
+                        File.WriteAllText(filePath, arr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+                    }
+                }
+            }
+
+            PurgeFieldReports(Path.Combine(UserDataDir, "field_reports.json"));
+            PurgeFieldReports(Path.Combine(WwwRoot, "data", "field_reports.json"));
+
+            // 3. Xóa các file báo cáo chi tiết trong từng thư mục dự án (projects/{code}/reports/*.json)
+            var projectsDir = Path.Combine(UserDataDir, "projects");
+            if (Directory.Exists(projectsDir))
+            {
+                foreach (var projDir in Directory.GetDirectories(projectsDir))
+                {
+                    var repDir = Path.Combine(projDir, "reports");
+                    if (Directory.Exists(repDir))
+                    {
+                        foreach (var f in Directory.GetFiles(repDir, "*.json"))
+                        {
+                            try
+                            {
+                                var txt = ReadTextWithoutBom(f);
+                                if (!string.IsNullOrWhiteSpace(txt) && JsonNode.Parse(txt) is JsonObject rObj)
+                                {
+                                    var u = (rObj["username"]?.ToString() ?? "").Trim();
+                                    var rep = (rObj["reporter"]?.ToString() ?? rObj["authorName"]?.ToString() ?? "").Trim();
+                                    if (MatchesUser(u, rep))
+                                    {
+                                        File.Delete(f);
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+
+            // 4. Xóa media trong projects_media.json (UserDataDir & WwwRoot)
+            void PurgeProjectsMedia(string filePath)
+            {
+                if (!File.Exists(filePath)) return;
+                var raw = ReadTextWithoutBom(filePath);
+                if (string.IsNullOrWhiteSpace(raw)) return;
+                if (JsonNode.Parse(raw) is JsonArray arr)
+                {
+                    bool changed = false;
+                    for (int i = arr.Count - 1; i >= 0; i--)
+                    {
+                        if (arr[i] is JsonObject mObj)
+                        {
+                            var u = (mObj["username"]?.ToString() ?? "").Trim();
+                            var cap = (mObj["capturedBy"]?.ToString() ?? "").Trim();
+                            if (MatchesUser(u, cap))
+                            {
+                                arr.RemoveAt(i);
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (changed)
+                    {
+                        File.WriteAllText(filePath, arr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+                    }
+                }
+            }
+
+            PurgeProjectsMedia(Path.Combine(UserDataDir, "projects_media.json"));
+            PurgeProjectsMedia(Path.Combine(WwwRoot, "data", "projects_media.json"));
+
+            // 5. Xóa media trong media_index.json và xóa file ảnh vật lý trong photos/
+            if (Directory.Exists(projectsDir))
+            {
+                foreach (var projDir in Directory.GetDirectories(projectsDir))
+                {
+                    var idxPath = Path.Combine(projDir, "media_index.json");
+                    if (File.Exists(idxPath))
+                    {
+                        try
+                        {
+                            var raw = ReadTextWithoutBom(idxPath);
+                            if (!string.IsNullOrWhiteSpace(raw) && JsonNode.Parse(raw) is JsonArray arr)
+                            {
+                                bool changed = false;
+                                for (int i = arr.Count - 1; i >= 0; i--)
+                                {
+                                    if (arr[i] is JsonObject mObj)
+                                    {
+                                        var u = (mObj["username"]?.ToString() ?? "").Trim();
+                                        var cap = (mObj["capturedBy"]?.ToString() ?? "").Trim();
+                                        if (MatchesUser(u, cap))
+                                        {
+                                            var fn = mObj["fileName"]?.ToString() ?? "";
+                                            if (!string.IsNullOrWhiteSpace(fn))
+                                            {
+                                                var photoFile = Path.Combine(projDir, "photos", fn);
+                                                if (File.Exists(photoFile))
+                                                {
+                                                    try { File.Delete(photoFile); } catch { }
+                                                }
+                                            }
+                                            arr.RemoveAt(i);
+                                            changed = true;
+                                        }
+                                    }
+                                }
+                                if (changed)
+                                {
+                                    File.WriteAllText(idxPath, arr.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
         }
         catch { }
     }
