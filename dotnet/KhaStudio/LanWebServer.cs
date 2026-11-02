@@ -1307,9 +1307,12 @@ public class LanWebServer
         else
             s = Encoding.UTF8.GetString(bytes);
         s = s.Trim('\uFEFF', (char)65279, ' ', '\r', '\n', '\t');
-        if (s.Contains("S?p Kha") || s.Contains("S\uFFFDp Kha"))
+        if (s.Contains("S?p Kha") || s.Contains("S\uFFFDp Kha") || s.Contains("Sáº¿p Kha") || s.Contains("Sp Kha"))
         {
-            s = s.Replace("S?p Kha", "S\u1EBFp Kha").Replace("S\uFFFDp Kha", "S\u1EBFp Kha");
+            s = s.Replace("S?p Kha", "S\u1EBFp Kha")
+                 .Replace("S\uFFFDp Kha", "S\u1EBFp Kha")
+                 .Replace("Sáº¿p Kha", "S\u1EBFp Kha")
+                 .Replace("Sp Kha", "S\u1EBFp Kha");
         }
         return s;
     }

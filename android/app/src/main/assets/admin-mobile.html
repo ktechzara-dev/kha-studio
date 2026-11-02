@@ -613,7 +613,7 @@
       <div class="req-card">
         <h3 style="font-size:13.5px; margin-bottom:8px;">📦 Cập nhật ứng dụng</h3>
         <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
-          Phiên bản cài đặt: <strong id="app-version-badge" style="color:var(--accent);">v1.5.1</strong>
+          Phiên bản cài đặt: <strong id="app-version-badge" style="color:var(--accent);">v1.5.2</strong>
         </p>
         <div style="display:flex; flex-direction:column; gap:8px;">
           <button class="btn btn-outline" onclick="checkRemoteUpdate()" style="height:38px; width:100%;">
@@ -670,6 +670,39 @@
     const DEFAULT_FIREBASE_URL = 'https://k-core-studio-default-rtdb.asia-southeast1.firebasedatabase.app';
     const CFG_KEY = 'ks_admin_mobile_config';
     const SESSION_KEY = 'ks_mobile_session';
+
+    function fixViText(str) {
+      if (!str) return '';
+      let res = String(str);
+      if (/[\u00C0-\u00FF]/.test(res)) {
+        try {
+          const decoded = decodeURIComponent(escape(res));
+          if (decoded) res = decoded;
+        } catch (_) {}
+      }
+      return res
+        .replace(/S[\?\uFFFD]p\s*Kha|Sp\s*Kha|S\?p\s*Kha|Sáº¿p\s*Kha|S\?p Kha/gi, 'S\u1EBFp Kha')
+        .replace(/B[\?\uFFFD]nh\s*thu[\?\uFFFD]ng|Bnh\s*th[\?\uFFFD]ng|B\?nh thu\?ng|BÃ¬nh thÆ°á»\u009dng|BÃ¬nh thÆ°á» ng/gi, 'B\u00ECnh th\u01B0\u1EDDng')
+        .replace(/Ch[\?\uFFFD]y\s*th[\?\uFFFD]\s*&\s*Tinh\s*ch[\?\uFFFD]nh|Chy\s*th-?\s*&\s*Tinh\s*ch%?nh|Cháº¡y thá»\u00ad & Tinh chá»‰nh/gi, 'Ch\u1EA1y th\u1EED & Tinh ch\u1EC9nh')
+        .replace(/Ch[\?\uFFFD]y\s*th[\?\uFFFD]|Cháº¡y thá»\u00ad|Chay thu/gi, 'Ch\u1EA1y th\u1EED')
+        .replace(/Tinh\s*ch[\?\uFFFD]nh|Tinh chá»‰nh/gi, 'Tinh ch\u1EC9nh')
+        .replace(/L[\?\uFFFD]p\s*d[\?\uFFFD]t\s*t[\?\uFFFD]\s*[\?\uFFFD]i[\?\uFFFD]n\s*&\s*Camera|L_p\s*`t\s*t\s*`in\s*&\s*Camera/gi, 'L\u1EAFp \u0111\u1EB7t t\u1EE7 \u0111i\u1EC7n & Camera')
+        .replace(/Kh[\?\uFFFD]o\s*s[\?\uFFFD]t\s*hi[\?\uFFFD]n\s*tr[\?\uFFFD]ng|Kho\s*sAt\s*hin\s*tr\?ng/gi, 'Kh\u1EA3o s\u00E1t hi\u1EC7n tr\u01B0\u1EDDng')
+        .replace(/Nh[\?\uFFFD]\s*m[\?\uFFFD]y\s*Bia\s*S[\?\uFFFD]i\s*G[\?\uFFFD]n\s*C[\?\uFFFD]\s*Chi/gi, 'Nh\u00E0 m\u00E1y Bia S\u00E0i G\u00F2n C\u1EE7 Chi')
+        .replace(/D[\?\uFFFD]y\s*chuy[\?\uFFFD]n/gi, 'D\u00E2y chuy\u1EC1n')
+        .replace(/[\?\uFFFD]A3ng\s*thA1ng|[\?\uFFFD]ng\s*th[\?\uFFFD]ng/gi, '\u0110\u00F3ng th\u00F9ng')
+        .replace(/T[\?\uFFFD]\s*[\?\uFFFD]ng/gi, 'T\u1EF1 \u0111\u1ED9ng')
+        .replace(/H[\?\uFFFD]\s*th[\?\uFFFD]ng/gi, 'H\u1EC7 th\u1ED1ng')
+        .replace(/Tr[\?\uFFFD]m\s*Ki[\?\uFFFD]m\s*tra/gi, 'Tr\u1EA1m Ki\u1EC3m tra')
+        .replace(/Ngo[\?\uFFFD]i\s*quan/gi, 'Ngo\u1EA1i quan')
+        .replace(/Khuy[\?\uFFFD]t\s*t[\?\uFFFD]t/gi, 'Khuy\u1EBFt t\u1EADt')
+        .replace(/Hi[\?\uFFFD]n\s*tr[\?\uFFFD]ng|Hiá»‡n trÆ°á»\u009dng|Hiá»‡n trÆ°á» ng/gi, 'Hi\u1EC7n tr\u01B0\u1EDDng')
+        .replace(/Duy[\?\uFFFD]n1|DuyÃªn 1/gi, 'Duy\u00EAn 1')
+        .replace(/Duy[\?\uFFFD]n|DuyÃªn/gi, 'Duy\u00EAn')
+        .replace(/Di[\?\uFFFD]u|Diá»‡u/gi, 'Di\u1EC7u')
+        .replace(/Nguy cáº¥p/gi, 'Nguy c\u1EA5p')
+        .replace(/Ok rá»“i/gi, 'Ok r\u1ED3i');
+    }
 
     let currentUser = null;
     let projects = [];
@@ -893,6 +926,15 @@
     }
 
     function setupUserSession(user) {
+      if (!user) return;
+      if (user.username === 'kha' || (user.name && user.name.toLowerCase().includes('kha'))) {
+        user.name = 'Sếp Kha';
+        user.role = 'admin';
+      }
+      user.name = fixViText(user.name || user.username);
+      currentUser = user;
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); } catch (_) {}
+
       document.getElementById('screen-login').style.display = 'none';
       document.getElementById('main-header').style.display = 'flex';
       document.getElementById('main-container').style.display = 'block';
@@ -1248,8 +1290,10 @@
       const projName = selectedProj ? selectedProj.name : 'Dự án K-Core Studio';
       const stage = document.getElementById('cam-stage-select').value || 'Hiện trường';
       const note = document.getElementById('cam-photo-note').value.trim();
-      const engineerName = currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư';
       const uname = currentUser ? currentUser.username : '';
+      const isAdmUser = (uname === 'kha' || (currentUser?.name && currentUser.name.toLowerCase().includes('kha')));
+      const engineerName = isAdmUser ? 'Sếp Kha' : fixViText(currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư');
+      const rolePrefix = isAdmUser ? '👑 QUẢN TRỊ' : '👷 KỸ SƯ';
 
       const now = new Date();
       const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
@@ -1284,7 +1328,7 @@
       // 3. VẼ FOOTER BOX Ở CHÂN ẢNH
       const lines = [
         `🕒 THỜI GIAN: ${timeStr}`,
-        `👷 KỸ SƯ: ${engineerName} (@${uname})`,
+        `${rolePrefix}: ${engineerName} (@${uname})`,
         `📍 ĐỊA ĐIỂM: ${locStr}`,
         `🏷️ HẠNG MỤC: ${stage}`,
       ];
@@ -1342,16 +1386,19 @@
       btn.disabled = true;
       btn.textContent = 'Đang tải lên folder dự án…';
 
+      const isAdmUser = (currentUser?.username || '').toLowerCase() === 'kha' || (currentUser?.name && currentUser.name.toLowerCase().includes('kha'));
+      const capturerName = isAdmUser ? 'Sếp Kha' : fixViText(currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư');
+
       const payload = {
         projectCode: projCode,
         fileType: 'image',
         fileName: `site_${projCode}_${Date.now()}.jpg`,
         dataBase64: currentProcessedBase64,
         capturedAt: new Date().toISOString(),
-        capturedBy: currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư',
+        capturedBy: capturerName,
         username: currentUser ? (currentUser.username || '') : '',
         userId: currentUser ? (currentUser.id || '') : '',
-        role: currentUser ? (currentUser.role || 'engineer') : 'engineer',
+        role: isAdmUser ? 'admin' : (currentUser ? (currentUser.role || 'engineer') : 'engineer'),
         stage: stage,
         note: note,
         gps: 'Hiện trường'
@@ -1433,16 +1480,19 @@
         return;
       }
 
+      const isAdmUser = (currentUser?.username || '').toLowerCase() === 'kha' || (currentUser?.name && currentUser.name.toLowerCase().includes('kha'));
+      const reporterName = isAdmUser ? 'Sếp Kha' : fixViText(currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư');
+
       const report = {
         id: 'rep_' + Date.now().toString(36),
         projectCode: projCode,
         progress: progress,
         condition: condition,
         findings: content,
-        reporter: currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư',
+        reporter: reporterName,
         username: currentUser ? (currentUser.username || '') : '',
         userId: currentUser ? (currentUser.id || '') : '',
-        role: currentUser ? (currentUser.role || 'engineer') : 'engineer',
+        role: isAdmUser ? 'admin' : (currentUser ? (currentUser.role || 'engineer') : 'engineer'),
         timestamp: new Date().toLocaleString('vi-VN'),
         createdAt: new Date().toISOString()
       };
@@ -1666,10 +1716,11 @@
       if (!cfg.firebaseUrl) return;
       const base = cfg.firebaseUrl.replace(/\/+$/, '');
       const safeKey = currentUser.username.replace(/\./g, '_');
+      const isAdmUser = (currentUser.username || '').toLowerCase() === 'kha' || (currentUser.name && currentUser.name.toLowerCase().includes('kha'));
       const payload = {
         username: currentUser.username,
-        name: currentUser.name || currentUser.username,
-        role: currentUser.role || 'engineer',
+        name: isAdmUser ? 'Sếp Kha' : fixViText(currentUser.name || currentUser.username),
+        role: isAdmUser ? 'admin' : (currentUser.role || 'engineer'),
         platform: 'mobile',
         lastSeen: new Date().toISOString(),
         isOnline: true
@@ -1724,10 +1775,11 @@
 
       listEl.innerHTML = users.map(u => {
         const isMe = currentUser && (u.username === currentUser.username);
-        const isAdm = u.role === 'admin' || u.username === 'kha';
+        const isAdm = u.role === 'admin' || (u.username || '').toLowerCase() === 'kha' || (u.name && u.name.toLowerCase().includes('kha'));
         const roleLbl = isAdm ? '👑 Admin' : '👷 Kỹ sư';
         const platLbl = u.platform === 'mobile' ? '📱 Mobile' : '💻 PC';
-        const initial = (u.name || u.username || 'U').charAt(0).toUpperCase();
+        const displayName = isAdm ? 'Sếp Kha' : fixViText(u.name || u.username);
+        const initial = displayName.charAt(0).toUpperCase();
 
         return `
           <div style="display:flex; align-items:center; justify-content:space-between; padding:8px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid ${u.isOnline ? 'rgba(16,185,129,0.3)' : 'var(--border)'};">
@@ -1738,14 +1790,14 @@
               </div>
               <div>
                 <div style="font-size:13px; font-weight:600; color:var(--text);">
-                  ${escapeHtml(u.name || u.username)} ${isMe ? '<small style="color:var(--accent);">(Tôi)</small>' : ''}
+                  ${escapeHtml(displayName)} ${isMe ? '<small style="color:var(--accent);">(Tôi)</small>' : ''}
                 </div>
                 <div style="font-size:11px; color:var(--text-dim);">
                   ${roleLbl} &bull; ${platLbl}
                 </div>
               </div>
             </div>
-            <button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="tagMobileUser('${escapeHtml(u.name || u.username)}')">💬 Nhắn</button>
+            <button class="btn btn-outline" style="padding:4px 8px; font-size:11px;" onclick="tagMobileUser('${escapeHtml(displayName)}')">💬 Nhắn</button>
           </div>
         `;
       }).join('');
@@ -1812,15 +1864,16 @@
       const curUname = (currentUser?.username || '').toLowerCase();
       container.innerHTML = mobileMessages.map(m => {
         const isMe = (m.username || '').toLowerCase() === curUname;
-        const isAdm = m.role === 'admin' || (m.username || '').toLowerCase() === 'kha';
+        const isAdm = m.role === 'admin' || (m.username || '').toLowerCase() === 'kha' || (m.senderName && m.senderName.toLowerCase().includes('kha'));
         const roleBadge = isAdm ? '👑' : '👷';
         const platBadge = m.platform === 'mobile' ? '📱' : '💻';
+        const senderName = isAdm ? 'Sếp Kha' : fixViText(m.senderName || m.username);
 
         return `
           <div style="display:flex; flex-direction:column; align-items:${isMe ? 'flex-end' : 'flex-start'}; max-width:85%; align-self:${isMe ? 'flex-end' : 'flex-start'};">
             ${!isMe ? `
               <div style="font-size:10.5px; color:var(--text-dim); margin-bottom:2px; display:flex; align-items:center; gap:4px;">
-                <strong style="color:var(--text);">${escapeHtml(m.senderName || m.username)}</strong>
+                <strong style="color:var(--text);">${escapeHtml(senderName)}</strong>
                 <span>${roleBadge}</span>
                 <span>${platBadge}</span>
               </div>
@@ -1855,11 +1908,13 @@
       const base = cfg.firebaseUrl.replace(/\/+$/, '');
 
       const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      const isAdmUser = (currentUser.username || '').toLowerCase() === 'kha' || (currentUser.name && currentUser.name.toLowerCase().includes('kha'));
+      const senderDisplayName = isAdmUser ? 'Sếp Kha' : fixViText(currentUser.name || currentUser.username);
       const msgObj = {
         id: 'msg_' + Date.now().toString(36),
         username: currentUser.username,
-        senderName: currentUser.name || currentUser.username,
-        role: currentUser.role || 'engineer',
+        senderName: senderDisplayName,
+        role: isAdmUser ? 'admin' : (currentUser.role || 'engineer'),
         platform: 'mobile',
         text: text,
         timestamp: timeStr,

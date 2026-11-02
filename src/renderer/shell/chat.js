@@ -25,6 +25,22 @@
       this._isInit = false;
     }
 
+    fixViText(str) {
+      if (!str) return '';
+      let res = String(str);
+      if (/[\u00C0-\u00FF]/.test(res)) {
+        try {
+          const decoded = decodeURIComponent(escape(res));
+          if (decoded) res = decoded;
+        } catch (_) {}
+      }
+      return res
+        .replace(/S[\?\uFFFD]p\s*Kha|Sp\s*Kha|S\?p\s*Kha|Sáº¿p\s*Kha|S\?p Kha/gi, 'S\u1EBFp Kha')
+        .replace(/Duy[\?\uFFFD]n1|DuyÃªn 1/gi, 'Duy\u00EAn 1')
+        .replace(/Duy[\?\uFFFD]n|DuyÃªn/gi, 'Duy\u00EAn')
+        .replace(/Di[\?\uFFFD]u|Diá»‡u/gi, 'Di\u1EC7u');
+    }
+
     getFirebaseBase() {
       try {
         if (window.Auth && typeof window.Auth.getCloudConfig === 'function') {
@@ -89,11 +105,12 @@
 
       const safeKey = user.username.replace(/\./g, '_');
       const base = this.getFirebaseBase();
+      const isAdmUser = user.role === 'admin' || user.username === 'kha' || (user.name && user.name.toLowerCase().includes('kha'));
 
       const payload = {
         username: user.username,
-        name: user.name || user.username,
-        role: user.role || 'engineer',
+        name: isAdmUser ? 'Sếp Kha' : this.fixViText(user.name || user.username),
+        role: isAdmUser ? 'admin' : (user.role || 'engineer'),
         platform: 'desktop',
         lastSeen: new Date().toISOString(),
         isOnline: true
@@ -202,15 +219,15 @@
       `;
 
       html += users.map(u => {
-        const isAdm = u.role === 'admin' || u.username === 'kha';
+        const isAdm = u.role === 'admin' || (u.username || '').toLowerCase() === 'kha' || (u.name && u.name.toLowerCase().includes('kha'));
         const roleText = isAdm ? '👑 Quản trị viên' : '👷 Kỹ sư';
         const platformIcon = u.platform === 'mobile' ? '📱 Mobile App' : '💻 PC Desktop';
         const statusBadge = u.isOnline
           ? `<span class="presence-badge online"><span class="presence-dot-pulse"></span> Đang Online</span>`
           : `<span class="presence-badge offline">⚪ ${this.formatRelativeTime(u.lastSeenDate)}</span>`;
 
-        const initial = (u.name || u.username || 'U').charAt(0).toUpperCase();
-        const displayName = this.escapeHtml(u.name || u.username);
+        const displayName = isAdm ? 'Sếp Kha' : this.escapeHtml(this.fixViText(u.name || u.username));
+        const initial = displayName.charAt(0).toUpperCase();
 
         return `
           <div class="presence-card ${u.isOnline ? 'is-online' : ''}">
@@ -288,13 +305,15 @@
 
       const user = this.getCurrentUser();
       const base = this.getFirebaseBase();
+      const isAdmUser = user.role === 'admin' || (user.username || '').toLowerCase() === 'kha' || (user.name && user.name.toLowerCase().includes('kha'));
+      const senderDisplayName = isAdmUser ? 'Sếp Kha' : this.fixViText(user.name || user.username);
 
       const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
       const msgObj = {
         id: 'msg_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
         username: user.username,
-        senderName: user.name || user.username,
-        role: user.role || 'engineer',
+        senderName: senderDisplayName,
+        role: isAdmUser ? 'admin' : (user.role || 'engineer'),
         platform: 'desktop',
         text: text,
         timestamp: timeStr,
@@ -380,7 +399,7 @@
 
       this.messages.forEach(m => {
         const isMe = (m.username || '').toLowerCase() === curUname;
-        const isAdm = m.role === 'admin' || (m.username || '').toLowerCase() === 'kha';
+        const isAdm = m.role === 'admin' || (m.username || '').toLowerCase() === 'kha' || (m.senderName && m.senderName.toLowerCase().includes('kha'));
         const roleBadge = isAdm ? '👑 Admin' : '👷 Kỹ sư';
         const platformBadge = m.platform === 'mobile' ? '📱 Mobile' : '💻 PC';
 
@@ -390,7 +409,7 @@
           html += `<div class="kchat-date-divider"><span>${msgDate}</span></div>`;
         }
 
-        const senderName = this.escapeHtml(m.senderName || m.username);
+        const senderName = isAdm ? 'Sếp Kha' : this.escapeHtml(this.fixViText(m.senderName || m.username));
         const safeUname = this.escapeHtml(m.username || '');
 
         html += `

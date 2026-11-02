@@ -1081,12 +1081,19 @@
 
     function fixViText(str) {
       if (!str) return '';
-      return String(str)
-        .replace(/S[\?\uFFFD]p\s*Kha|Sp\s*Kha|S\?p Kha|Sp Kha/gi, 'S\u1EBFp Kha')
-        .replace(/B[\?\uFFFD]nh\s*thu[\?\uFFFD]ng|Bnh\s*th[\?\uFFFD]ng|B\?nh thu\?ng/gi, 'B\u00ECnh th\u01B0\u1EDDng')
-        .replace(/Ch[\?\uFFFD]y\s*th[\?\uFFFD]\s*&\s*Tinh\s*ch[\?\uFFFD]nh|Chy\s*th-?\s*&\s*Tinh\s*ch%?nh/gi, 'Ch\u1EA1y th\u1EED & Tinh ch\u1EC9nh')
-        .replace(/Ch[\?\uFFFD]y\s*th[\?\uFFFD]/gi, 'Ch\u1EA1y th\u1EED')
-        .replace(/Tinh\s*ch[\?\uFFFD]nh/gi, 'Tinh ch\u1EC9nh')
+      let res = String(str);
+      if (/[\u00C0-\u00FF]/.test(res)) {
+        try {
+          const decoded = decodeURIComponent(escape(res));
+          if (decoded) res = decoded;
+        } catch (_) {}
+      }
+      return res
+        .replace(/S[\?\uFFFD]p\s*Kha|Sp\s*Kha|S\?p\s*Kha|Sáº¿p\s*Kha|S\?p Kha/gi, 'S\u1EBFp Kha')
+        .replace(/B[\?\uFFFD]nh\s*thu[\?\uFFFD]ng|Bnh\s*th[\?\uFFFD]ng|B\?nh thu\?ng|BÃ¬nh thÆ°á»\u009dng|BÃ¬nh thÆ°á» ng/gi, 'B\u00ECnh th\u01B0\u1EDDng')
+        .replace(/Ch[\?\uFFFD]y\s*th[\?\uFFFD]\s*&\s*Tinh\s*ch[\?\uFFFD]nh|Chy\s*th-?\s*&\s*Tinh\s*ch%?nh|Cháº¡y thá»\u00ad & Tinh chá»‰nh/gi, 'Ch\u1EA1y th\u1EED & Tinh ch\u1EC9nh')
+        .replace(/Ch[\?\uFFFD]y\s*th[\?\uFFFD]|Cháº¡y thá»\u00ad|Chay thu/gi, 'Ch\u1EA1y th\u1EED')
+        .replace(/Tinh\s*ch[\?\uFFFD]nh|Tinh chá»‰nh/gi, 'Tinh ch\u1EC9nh')
         .replace(/L[\?\uFFFD]p\s*d[\?\uFFFD]t\s*t[\?\uFFFD]\s*[\?\uFFFD]i[\?\uFFFD]n\s*&\s*Camera|L_p\s*`t\s*t\s*`in\s*&\s*Camera/gi, 'L\u1EAFp \u0111\u1EB7t t\u1EE7 \u0111i\u1EC7n & Camera')
         .replace(/Kh[\?\uFFFD]o\s*s[\?\uFFFD]t\s*hi[\?\uFFFD]n\s*tr[\?\uFFFD]ng|Kho\s*sAt\s*hin\s*tr\?ng/gi, 'Kh\u1EA3o s\u00E1t hi\u1EC7n tr\u01B0\u1EDDng')
         .replace(/Nh[\?\uFFFD]\s*m[\?\uFFFD]y\s*Bia\s*S[\?\uFFFD]i\s*G[\?\uFFFD]n\s*C[\?\uFFFD]\s*Chi/gi, 'Nh\u00E0 m\u00E1y Bia S\u00E0i G\u00F2n C\u1EE7 Chi')
@@ -1097,10 +1104,12 @@
         .replace(/Tr[\?\uFFFD]m\s*Ki[\?\uFFFD]m\s*tra/gi, 'Tr\u1EA1m Ki\u1EC3m tra')
         .replace(/Ngo[\?\uFFFD]i\s*quan/gi, 'Ngo\u1EA1i quan')
         .replace(/Khuy[\?\uFFFD]t\s*t[\?\uFFFD]t/gi, 'Khuy\u1EBFt t\u1EADt')
-        .replace(/Hi[\?\uFFFD]n\s*tr[\?\uFFFD]ng/gi, 'Hi\u1EC7n tr\u01B0\u1EDDng')
-        .replace(/Duy[\?\uFFFD]n1/gi, 'Duy\u00EAn 1')
-        .replace(/Duy[\?\uFFFD]n/gi, 'Duy\u00EAn')
-        .replace(/Di[\?\uFFFD]u/gi, 'Di\u1EC7u');
+        .replace(/Hi[\?\uFFFD]n\s*tr[\?\uFFFD]ng|Hiá»‡n trÆ°á»\u009dng|Hiá»‡n trÆ°á» ng/gi, 'Hi\u1EC7n tr\u01B0\u1EDDng')
+        .replace(/Duy[\?\uFFFD]n1|DuyÃªn 1/gi, 'Duy\u00EAn 1')
+        .replace(/Duy[\?\uFFFD]n|DuyÃªn/gi, 'Duy\u00EAn')
+        .replace(/Di[\?\uFFFD]u|Diá»‡u/gi, 'Di\u1EC7u')
+        .replace(/Nguy cáº¥p/gi, 'Nguy c\u1EA5p')
+        .replace(/Ok rá»“i/gi, 'Ok r\u1ED3i');
     }
 
     // Tự động kéo ảnh chụp Timemark từ Firebase Cloud về lưu vào folder dự án trên máy tính
@@ -1473,10 +1482,11 @@
 
       const userMap = new Map();
       registeredUsers.forEach(u => {
+        const isAdm = u.role === 'admin' || u.username === 'kha' || (u.name && u.name.toLowerCase().includes('kha'));
         userMap.set(u.username.toLowerCase(), {
           username: u.username,
-          name: fixViText(u.name || u.username),
-          role: u.role || 'engineer',
+          name: isAdm ? 'Sếp Kha' : fixViText(u.name || u.username),
+          role: isAdm ? 'admin' : (u.role || 'engineer'),
           mediaCount: 0,
           reportCount: 0
         });
@@ -1484,24 +1494,26 @@
 
       // Bổ sung user xuất hiện từ ảnh hoặc báo cáo nếu chưa có trong bảng
       currentMediaList.forEach(m => {
-        const u = (m.username || '').toLowerCase() || (itemMatchesUser(m, 'kha') ? 'kha' : 'engineer');
+        const isAdm = itemMatchesUser(m, 'kha') || m.username === 'kha' || (m.capturedBy && m.capturedBy.toLowerCase().includes('kha'));
+        const u = (m.username || '').toLowerCase() || (isAdm ? 'kha' : 'engineer');
         if (!userMap.has(u) && u) {
           userMap.set(u, {
             username: u,
-            name: fixViText(m.capturedBy || u),
-            role: m.role || 'engineer',
+            name: isAdm ? 'Sếp Kha' : fixViText(m.capturedBy || u),
+            role: isAdm ? 'admin' : (m.role || 'engineer'),
             mediaCount: 0,
             reportCount: 0
           });
         }
       });
       currentReportsList.forEach(r => {
-        const u = (r.username || '').toLowerCase() || (itemMatchesUser(r, 'kha') ? 'kha' : 'engineer');
+        const isAdm = itemMatchesUser(r, 'kha') || r.username === 'kha' || (r.reporter && r.reporter.toLowerCase().includes('kha'));
+        const u = (r.username || '').toLowerCase() || (isAdm ? 'kha' : 'engineer');
         if (!userMap.has(u) && u) {
           userMap.set(u, {
             username: u,
-            name: fixViText(r.reporter || u),
-            role: r.role || 'engineer',
+            name: isAdm ? 'Sếp Kha' : fixViText(r.reporter || u),
+            role: isAdm ? 'admin' : (r.role || 'engineer'),
             mediaCount: 0,
             reportCount: 0
           });
@@ -1747,10 +1759,10 @@
       container.innerHTML = filteredMedia.map(m => {
         const fullUrl = m.url ? (m.url.startsWith('http') || m.url.startsWith('data:') ? m.url : `${API_BASE}${m.url}`) : '';
         const timeStr = m.capturedAt ? new Date(m.capturedAt).toLocaleString('vi-VN') : '';
-        const isAdm = (m.username === 'kha' || (m.capturedBy && m.capturedBy.includes('Kha')) || m.role === 'admin');
+        const isAdm = (m.username === 'kha' || (m.capturedBy && m.capturedBy.toLowerCase().includes('kha')) || m.role === 'admin' || (m.authorName && m.authorName.toLowerCase().includes('kha')));
         const badgeClass = isAdm ? 'user-badge-card admin' : 'user-badge-card engineer';
         const badgeIcon = isAdm ? '👑' : '👷';
-        const authorName = fixViText(m.capturedBy || (isAdm ? 'Sếp Kha' : 'Kỹ sư'));
+        const authorName = isAdm ? 'Sếp Kha' : fixViText(m.capturedBy || 'Kỹ sư');
         const userTag = m.username ? `@${m.username}` : (isAdm ? '@kha' : '');
 
         return `
@@ -1838,10 +1850,10 @@
 
       container.innerHTML = filteredReports.map(r => {
         const timeStr = r.timestamp || (r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : 'Vừa xong');
-        const isAdm = (r.username === 'kha' || (r.reporter && r.reporter.includes('Kha')) || r.role === 'admin');
+        const isAdm = (r.username === 'kha' || (r.reporter && r.reporter.toLowerCase().includes('kha')) || r.role === 'admin' || (r.authorName && r.authorName.toLowerCase().includes('kha')) || (r.engineer && r.engineer.toLowerCase().includes('kha')));
         const badgeClass = isAdm ? 'user-badge-card admin' : 'user-badge-card engineer';
         const badgeIcon = isAdm ? '👑' : '👷';
-        const reporterName = fixViText(r.reporter || r.authorName || r.engineer || (isAdm ? 'Sếp Kha' : 'Kỹ sư'));
+        const reporterName = isAdm ? 'Sếp Kha' : fixViText(r.reporter || r.authorName || r.engineer || 'Kỹ sư');
         const userTag = r.username ? `@${r.username}` : (isAdm ? '@kha' : '');
         const conditionText = fixViText(r.condition || 'Bình thường');
         const progressVal = r.progress !== undefined ? r.progress : (currentProject ? currentProject.progress : 0);
