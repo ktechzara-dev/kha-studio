@@ -1090,23 +1090,86 @@ public class LanWebServer
     {
         try
         {
+            var list = new JsonArray();
+            var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var safe = CleanFileName(code);
             var repDir = Path.Combine(UserDataDir, "projects", safe, "reports");
-            var list = new JsonArray();
+
             if (Directory.Exists(repDir))
             {
-                foreach (var f in Directory.GetFiles(repDir, "*.json"))
+                var files = Directory.GetFiles(repDir, "*.json")
+                    .OrderByDescending(f => File.GetLastWriteTimeUtc(f));
+
+                foreach (var f in files)
                 {
                     try
                     {
-                        if (JsonNode.Parse(File.ReadAllText(f, Encoding.UTF8)) is JsonObject obj)
+                        var raw = File.ReadAllText(f, Encoding.UTF8).Trim();
+                        while (raw.Length > 0 && (raw[0] == '\uFEFF' || raw[0] == 65279))
                         {
-                            list.Add(obj);
+                            raw = raw.Substring(1).Trim();
+                        }
+                        if (JsonNode.Parse(raw) is JsonObject parsedObj)
+                        {
+                            var clone = parsedObj.DeepClone() as JsonObject ?? parsedObj;
+                            var rId = (clone["id"]?.ToString() ?? Path.GetFileNameWithoutExtension(f)).Trim('"', ' ');
+                            if (seenIds.Add(rId))
+                            {
+                                var rName = (clone["reporter"]?.ToString() ?? "").Trim('"', ' ');
+                                if (string.IsNullOrWhiteSpace(rName) || rName.Contains("Kha", StringComparison.OrdinalIgnoreCase) || rName.Contains("?"))
+                                    clone["reporter"] = "S\u1EBFp Kha";
+                                var cText = (clone["condition"]?.ToString() ?? "").Trim('"', ' ');
+                                if (string.IsNullOrWhiteSpace(cText) || cText.Contains("?"))
+                                    clone["condition"] = "B\u00ECnh th\u01B0\u1EDDng";
+                                list.Add(clone);
+                            }
                         }
                     }
                     catch { }
                 }
             }
+
+            // Kiểm tra thêm trong field_reports.json nếu có báo cáo chưa lưu vào thư mục
+            var allReportsFile = Path.Combine(UserDataDir, "field_reports.json");
+            if (File.Exists(allReportsFile))
+            {
+                try
+                {
+                    var allRaw = File.ReadAllText(allReportsFile, Encoding.UTF8).Trim();
+                    while (allRaw.Length > 0 && (allRaw[0] == '\uFEFF' || allRaw[0] == 65279))
+                    {
+                        allRaw = allRaw.Substring(1).Trim();
+                    }
+                    if (JsonNode.Parse(allRaw) is JsonArray arr)
+                    {
+                        var cleanFilterCode = (code ?? "").Trim('"', ' ');
+                        foreach (var item in arr)
+                        {
+                            if (item is JsonObject rNode)
+                            {
+                                var pCode = (rNode["projectCode"]?.ToString() ?? "").Trim('"', ' ');
+                                var rId = (rNode["id"]?.ToString() ?? "").Trim('"', ' ');
+                                if (string.IsNullOrWhiteSpace(cleanFilterCode) || pCode.Equals(cleanFilterCode, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (!string.IsNullOrWhiteSpace(rId) && seenIds.Add(rId))
+                                    {
+                                        var clone = rNode.DeepClone() as JsonObject ?? rNode;
+                                        var rName = (clone["reporter"]?.ToString() ?? "").Trim('"', ' ');
+                                        if (string.IsNullOrWhiteSpace(rName) || rName.Contains("Kha", StringComparison.OrdinalIgnoreCase) || rName.Contains("?"))
+                                            clone["reporter"] = "S\u1EBFp Kha";
+                                        var cText = (clone["condition"]?.ToString() ?? "").Trim('"', ' ');
+                                        if (string.IsNullOrWhiteSpace(cText) || cText.Contains("?"))
+                                            clone["condition"] = "B\u00ECnh th\u01B0\u1EDDng";
+                                        list.Add(clone);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+
             return list.ToJsonString();
         }
         catch

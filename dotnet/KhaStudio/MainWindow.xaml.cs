@@ -661,7 +661,12 @@ public partial class MainWindow : Window
                             var baseDir = Path.Combine(LanWebServer.UserDataDir, "projects");
                             var targetDir = string.IsNullOrWhiteSpace(pCode) ? baseDir : Path.Combine(baseDir, LanWebServer.CleanFileName(pCode));
                             if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
-                            Process.Start(new ProcessStartInfo { FileName = targetDir, UseShellExecute = true });
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = "explorer.exe",
+                                Arguments = $"\"{targetDir}\"",
+                                UseShellExecute = true
+                            });
                         }
                         catch { }
                         break;
