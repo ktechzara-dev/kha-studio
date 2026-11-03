@@ -121,6 +121,7 @@
       email: 'admin@k-core.vn',
       name: 'Admin',
       role: 'admin', // 'admin' | 'engineer'
+      avatarUrl: null,
       allowedTools: ['*'], // Toàn quyền tất cả công cụ
       createdAt: '2026-10-01T00:00:00.000Z',
       // Mật khẩu mặc định: 'kha'
@@ -858,6 +859,10 @@
                     existing.allowedTools = remoteUser.allowedTools;
                     updatedUsers = true;
                   }
+                  if (remoteUser.avatarUrl !== undefined && existing.avatarUrl !== remoteUser.avatarUrl) {
+                    existing.avatarUrl = remoteUser.avatarUrl || null;
+                    updatedUsers = true;
+                  }
                 }
               });
 
@@ -1022,6 +1027,7 @@
           email: user.email || '',
           name: displayName,
           role: user.role,
+          avatarUrl: user.avatarUrl || null,
           allowedTools: user.allowedTools || (user.role === 'admin' ? ['*'] : []),
           createdAt: user.createdAt,
           loginAt: session.loginAt
@@ -1082,6 +1088,7 @@
         email: user.email || '',
         name: user.name,
         role: user.role,
+        avatarUrl: user.avatarUrl || null,
         allowedTools: user.allowedTools || (user.role === 'admin' ? ['*'] : []),
         loginAt: new Date().toISOString()
       };
@@ -1180,6 +1187,53 @@
       users.push(newUser);
       this._saveUsers(users);
       return newUser;
+    }
+
+    async updateAvatar(avatarUrl) {
+      const cur = this.getCurrentUser();
+      if (!cur) throw new Error('Chưa đăng nhập');
+      const users = this.getUsers();
+      const user = users.find(u => (u.id && u.id === cur.id) || (u.username && u.username.toLowerCase() === cur.username.toLowerCase()));
+      if (!user) throw new Error('Không tìm thấy người dùng');
+
+      user.avatarUrl = avatarUrl || null;
+      this._saveUsers(users);
+
+      const sessionData = {
+        ...cur,
+        avatarUrl: user.avatarUrl
+      };
+      if (localStorage.getItem(STORAGE_SESSION_KEY)) {
+        localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(sessionData));
+      }
+      if (sessionStorage.getItem(STORAGE_SESSION_KEY)) {
+        sessionStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(sessionData));
+      }
+
+      // Cập nhật Firebase Cloud Realtime
+      try {
+        const cfg = this.getCloudConfig();
+        if (cfg && cfg.cloudUrl) {
+          const base = cfg.cloudUrl.replace(/\/+$/, '');
+          const safeKey = user.username.replace(/\./g, '_');
+          await Promise.all([
+            fetch(`${base}/users/${safeKey}/avatarUrl.json`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify(user.avatarUrl)
+            }).catch(() => null),
+            fetch(`${base}/presence/${safeKey}/avatarUrl.json`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify(user.avatarUrl)
+            }).catch(() => null)
+          ]);
+        }
+      } catch (_) {}
+
+      window.dispatchEvent(new CustomEvent('ks:auth:change', { detail: sessionData }));
+      window.dispatchEvent(new CustomEvent('ks:auth:avatar_changed', { detail: { username: user.username, avatarUrl: user.avatarUrl } }));
+      return user.avatarUrl;
     }
 
     async updateUser(id, { email, name, role, allowedTools, password }) {

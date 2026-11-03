@@ -1544,6 +1544,16 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
   padding: 1px;
 }
 
+.presence-avatar-img,
+.kchat-msg-avatar-img,
+.hdr-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
 .kchat-bubble-wrap {
   display: flex;
   flex-direction: column;

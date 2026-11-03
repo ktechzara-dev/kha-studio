@@ -127,6 +127,7 @@
         username: user.username,
         name: isAdmUser ? 'Admin' : this.fixViText(user.name || user.username),
         role: isAdmUser ? 'admin' : (user.role || 'engineer'),
+        avatarUrl: user.avatarUrl || null,
         platform: 'desktop',
         lastSeen: new Date().toISOString(),
         isOnline: true
@@ -244,11 +245,14 @@
 
         const displayName = isAdm ? 'Admin' : this.escapeHtml(this.fixViText(u.name || u.username));
         const initial = displayName.charAt(0).toUpperCase();
+        const avatarHtml = u.avatarUrl
+          ? `<img src="${u.avatarUrl}" class="presence-avatar-img" alt="${displayName}">`
+          : `<span>${initial}</span>`;
 
         return `
           <div class="presence-card ${u.isOnline ? 'is-online' : ''}">
             <div class="presence-avatar ${isAdm ? 'adm' : ''}">
-              <span>${initial}</span>
+              ${avatarHtml}
               <span class="presence-dot ${u.isOnline ? 'on' : 'off'}"></span>
             </div>
             <div class="presence-info">
@@ -421,6 +425,7 @@
         username: user.username,
         senderName: senderDisplayName,
         role: isAdmUser ? 'admin' : (user.role || 'engineer'),
+        avatarUrl: user.avatarUrl || null,
         platform: 'desktop',
         text: text || (options.photoUrl ? '📸 Ảnh hiện trường' : (options.audioUrl ? '🎙️ Tin nhắn bộ đàm' : '')),
         photoUrl: options.photoUrl || null,
@@ -771,12 +776,16 @@
 
         const senderName = isAdm ? 'Admin' : this.escapeHtml(this.fixViText(m.senderName || m.username));
         const safeUname = this.escapeHtml(m.username || '');
+        const senderAvatarUrl = m.avatarUrl || (this.presenceMap && this.presenceMap[(m.username || '').replace(/\./g, '_')]?.avatarUrl) || null;
+        const msgAvatarContent = senderAvatarUrl
+          ? `<img src="${senderAvatarUrl}" class="kchat-msg-avatar-img" alt="${senderName}">`
+          : `<span>${(m.senderName || m.username || 'U').charAt(0).toUpperCase()}</span>`;
 
         html += `
           <div class="kchat-msg-row ${isMe ? 'is-me' : 'is-other'}">
             ${!isMe ? `
               <div class="kchat-msg-avatar ${isAdm ? 'adm' : ''}" title="${senderName} (${roleBadge})">
-                <span>${(m.senderName || m.username || 'U').charAt(0).toUpperCase()}</span>
+                ${msgAvatarContent}
                 <span class="kchat-msg-plat-ico">${m.platform === 'mobile' ? '📱' : '💻'}</span>
               </div>
             ` : ''}
@@ -823,7 +832,7 @@
             </div>
             ${isMe ? `
               <div class="kchat-msg-avatar is-me ${isAdm ? 'adm' : ''}" title="Bạn (${senderName})">
-                <span>${(m.senderName || m.username || 'U').charAt(0).toUpperCase()}</span>
+                ${msgAvatarContent}
               </div>
             ` : ''}
           </div>

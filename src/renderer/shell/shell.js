@@ -1576,7 +1576,21 @@
       ? 'Admin'
       : (user.name || user.username);
     const initial = finalDisplayName.trim().charAt(0).toUpperCase();
-    if (avatarEl) avatarEl.textContent = initial;
+    if (avatarEl) {
+      if (user.avatarUrl) {
+        avatarEl.innerHTML = `<img src="${user.avatarUrl}" class="hdr-avatar-img" alt="Avatar">`;
+      } else {
+        avatarEl.textContent = initial;
+      }
+    }
+    const menuAvatarEl = document.getElementById('menu-user-avatar');
+    if (menuAvatarEl) {
+      if (user.avatarUrl) {
+        menuAvatarEl.innerHTML = `<img src="${user.avatarUrl}" class="hdr-avatar-img" alt="Avatar">`;
+      } else {
+        menuAvatarEl.textContent = initial;
+      }
+    }
     if (nameEl) nameEl.textContent = finalDisplayName;
     if (roleEl) {
       if (user.role === 'admin') {
@@ -1862,7 +1876,7 @@
     const btnLogout = document.getElementById('btn-menu-logout');
     if (btnLogout) {
       btnLogout.onclick = () => {
-        if (confirm('Sếp có muốn đăng xuất khỏi Kha Studio không?')) {
+        if (confirm('Bạn có muốn đăng xuất khỏi Kha Studio không?')) {
           window.Auth.logout();
           notify('Đã đăng xuất', 'Màn hình làm việc đã được khóa bảo vệ an toàn.', 'info');
         }
@@ -1914,6 +1928,137 @@
           notify('Đổi mật khẩu thành công', 'Mật khẩu tài khoản đã được cập nhật an toàn.', 'success');
         } catch (err) {
           if (pwdErr) { pwdErr.textContent = err.message || 'Lỗi đổi mật khẩu'; pwdErr.hidden = false; }
+        }
+      };
+    }
+
+    // 6.1. Đổi ảnh đại diện (Avatar)
+    const modalAvatar = document.getElementById('modal-avatar');
+    const btnMenuChangeAvatar = document.getElementById('btn-menu-change-avatar');
+    const btnChangeAvatarDirect = document.getElementById('btn-change-avatar-direct');
+    const btnCloseAvatarModal = document.getElementById('btn-close-avatar-modal');
+    const btnCancelAvatar = document.getElementById('btn-cancel-avatar');
+    const btnSaveAvatar = document.getElementById('btn-save-avatar');
+    const btnAvatarChooseFile = document.getElementById('btn-avatar-choose-file');
+    const btnAvatarRemove = document.getElementById('btn-avatar-remove');
+    const inputAvatarFile = document.getElementById('input-avatar-file');
+    const avatarModalImg = document.getElementById('avatar-modal-img');
+    const avatarModalInitial = document.getElementById('avatar-modal-initial');
+    const avatarStatusMsg = document.getElementById('avatar-status-msg');
+
+    let pendingAvatarDataUrl = null;
+
+    function openAvatarModal() {
+      if (!modalAvatar) return;
+      if (userDropdown) userDropdown.hidden = true;
+      const curUser = window.Auth ? window.Auth.getCurrentUser() : null;
+      const initial = (curUser?.name || curUser?.username || 'A').charAt(0).toUpperCase();
+      if (avatarModalInitial) avatarModalInitial.textContent = initial;
+
+      pendingAvatarDataUrl = curUser?.avatarUrl || null;
+      updateAvatarModalPreview();
+
+      if (avatarStatusMsg) {
+        avatarStatusMsg.textContent = '';
+        avatarStatusMsg.style.color = '';
+      }
+      modalAvatar.hidden = false;
+    }
+
+    function closeAvatarModal() {
+      if (modalAvatar) modalAvatar.hidden = true;
+      if (inputAvatarFile) inputAvatarFile.value = '';
+    }
+
+    function updateAvatarModalPreview() {
+      if (pendingAvatarDataUrl) {
+        if (avatarModalImg) {
+          avatarModalImg.src = pendingAvatarDataUrl;
+          avatarModalImg.style.display = 'block';
+        }
+        if (avatarModalInitial) avatarModalInitial.style.display = 'none';
+      } else {
+        if (avatarModalImg) {
+          avatarModalImg.src = '';
+          avatarModalImg.style.display = 'none';
+        }
+        if (avatarModalInitial) avatarModalInitial.style.display = 'block';
+      }
+    }
+
+    if (btnMenuChangeAvatar) btnMenuChangeAvatar.onclick = openAvatarModal;
+    if (btnChangeAvatarDirect) btnChangeAvatarDirect.onclick = openAvatarModal;
+    if (btnCloseAvatarModal) btnCloseAvatarModal.onclick = closeAvatarModal;
+    if (btnCancelAvatar) btnCancelAvatar.onclick = closeAvatarModal;
+
+    if (btnAvatarChooseFile && inputAvatarFile) {
+      btnAvatarChooseFile.onclick = () => inputAvatarFile.click();
+      inputAvatarFile.onchange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+          if (avatarStatusMsg) {
+            avatarStatusMsg.textContent = 'Vui lòng chọn file hình ảnh (PNG, JPG, WEBP)';
+            avatarStatusMsg.style.color = '#ef4444';
+          }
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (loadEvt) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const minSide = Math.min(img.width, img.height);
+            const sx = (img.width - minSide) / 2;
+            const sy = (img.height - minSide) / 2;
+            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 256, 256);
+            pendingAvatarDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            updateAvatarModalPreview();
+            if (avatarStatusMsg) {
+              avatarStatusMsg.textContent = '✓ Đã chọn ảnh. Nhấn "Lưu thay đổi" để áp dụng.';
+              avatarStatusMsg.style.color = '#10b981';
+            }
+          };
+          img.src = loadEvt.target.result;
+        };
+        reader.readAsDataURL(file);
+      };
+    }
+
+    if (btnAvatarRemove) {
+      btnAvatarRemove.onclick = () => {
+        pendingAvatarDataUrl = null;
+        updateAvatarModalPreview();
+        if (avatarStatusMsg) {
+          avatarStatusMsg.textContent = 'Ảnh sẽ được đưa về chữ cái viết tắt mặc định.';
+          avatarStatusMsg.style.color = 'var(--text-3)';
+        }
+      };
+    }
+
+    if (btnSaveAvatar) {
+      btnSaveAvatar.onclick = async () => {
+        try {
+          btnSaveAvatar.disabled = true;
+          btnSaveAvatar.textContent = 'Đang lưu…';
+          if (window.Auth && typeof window.Auth.updateAvatar === 'function') {
+            await window.Auth.updateAvatar(pendingAvatarDataUrl);
+          }
+          closeAvatarModal();
+          notify('Ảnh đại diện', 'Cập nhật ảnh đại diện thành công!', 'success');
+        } catch (err) {
+          if (avatarStatusMsg) {
+            avatarStatusMsg.textContent = err.message || 'Lỗi lưu ảnh đại diện';
+            avatarStatusMsg.style.color = '#ef4444';
+          }
+        } finally {
+          btnSaveAvatar.disabled = false;
+          btnSaveAvatar.textContent = 'Lưu thay đổi';
         }
       };
     }
@@ -2819,8 +2964,11 @@
       );
     });
 
-    // Lắng nghe auth change
+    // Lắng nghe auth change & avatar change
     window.addEventListener('ks:auth:change', () => {
+      updateAuthUI();
+    });
+    window.addEventListener('ks:auth:avatar_changed', () => {
       updateAuthUI();
     });
   }

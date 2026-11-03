@@ -593,12 +593,17 @@
 
       <div class="req-card">
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
-          <div class="brand-logo" id="user-avatar-lbl">K</div>
-          <div>
+          <div style="position:relative; cursor:pointer;" onclick="triggerMobileAvatarUpload()" title="Chạm để đổi ảnh đại diện">
+            <div class="brand-logo" id="user-avatar-lbl" style="overflow:hidden; display:flex; align-items:center; justify-content:center; border-radius:50%; width:44px; height:44px; font-weight:800; font-size:18px;">A</div>
+            <span style="position:absolute; bottom:-2px; right:-2px; background:var(--accent); color:#fff; border-radius:50%; width:18px; height:18px; font-size:10px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 5px rgba(0,0,0,0.5);">📷</span>
+          </div>
+          <div style="flex:1;">
             <div id="user-display-name" style="font-weight:700; font-size:15px;">Admin</div>
             <div id="user-display-role" style="font-size:11.5px; color:var(--accent);">Quản trị viên (Admin)</div>
+            <button class="btn btn-outline" style="height:28px; font-size:11px; padding:0 10px; margin-top:6px;" onclick="triggerMobileAvatarUpload()">📷 Đổi ảnh đại diện</button>
           </div>
         </div>
+        <input type="file" id="mobile-avatar-input" accept="image/*" style="display:none;" onchange="handleMobileAvatarSelected(this)">
         <button class="btn btn-reject" onclick="handleLogout()" style="height:38px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
           <span>Đăng xuất tài khoản</span>
@@ -980,7 +985,14 @@
 
       // Kết nối Realtime stream tin nhắn
       initMobileRealtimeStream();
-      document.getElementById('user-avatar-lbl').textContent = (user.name || user.username || 'K').charAt(0).toUpperCase();
+      const avLbl = document.getElementById('user-avatar-lbl');
+      if (avLbl) {
+        if (user.avatarUrl) {
+          avLbl.innerHTML = '<img src="' + user.avatarUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+        } else {
+          avLbl.textContent = (user.name || user.username || 'A').charAt(0).toUpperCase();
+        }
+      }
 
       // Mặc định tab Dự án
       switchTab('projects');
@@ -1831,6 +1843,7 @@
         username: currentUser.username,
         name: isAdmUser ? 'Admin' : fixViText(currentUser.name || currentUser.username),
         role: isAdmUser ? 'admin' : (currentUser.role || 'engineer'),
+        avatarUrl: currentUser.avatarUrl || null,
         platform: 'mobile',
         lastSeen: new Date().toISOString(),
         isOnline: true
@@ -1894,8 +1907,8 @@
         return `
           <div style="display:flex; align-items:center; justify-content:space-between; padding:8px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid ${u.isOnline ? 'rgba(16,185,129,0.3)' : 'var(--border)'};">
             <div style="display:flex; align-items:center; gap:8px;">
-              <div style="position:relative; width:32px; height:32px; border-radius:50%; background:#334155; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; font-size:12px;">
-                ${initial}
+              <div style="position:relative; width:32px; height:32px; border-radius:50%; background:#334155; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; font-size:12px; overflow:hidden;">
+                ${u.avatarUrl ? '<img src="' + u.avatarUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : initial}
                 <span style="position:absolute; bottom:0; right:0; width:9px; height:9px; border-radius:50%; background:${u.isOnline ? '#10b981' : '#64748b'}; border:2px solid #0d1117;"></span>
               </div>
               <div>
@@ -2153,6 +2166,7 @@
         username: currentUser.username,
         senderName: senderDisplayName,
         role: isAdmUser ? 'admin' : (currentUser.role || 'engineer'),
+        avatarUrl: currentUser.avatarUrl || null,
         platform: 'mobile',
         text: text || (options.photoUrl ? '📸 Ảnh hiện trường' : (options.audioUrl ? '🎙️ Tin nhắn bộ đàm' : '')),
         photoUrl: options.photoUrl || null,
@@ -2422,6 +2436,67 @@
         if (el && v) el.textContent = 'v' + v;
       } catch (_) {}
     }
+
+    function triggerMobileAvatarUpload() {
+      const inp = document.getElementById('mobile-avatar-input');
+      if (inp) inp.click();
+    }
+
+    function handleMobileAvatarSelected(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 256;
+          canvas.height = 256;
+          const ctx = canvas.getContext('2d');
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 256, 256);
+          const base64 = canvas.toDataURL('image/jpeg', 0.88);
+
+          if (currentUser) {
+            currentUser.avatarUrl = base64;
+            localStorage.setItem('ks_mobile_current_user', JSON.stringify(currentUser));
+          }
+
+          const lbl = document.getElementById('user-avatar-lbl');
+          if (lbl) {
+            lbl.innerHTML = '<img src="' + base64 + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+          }
+
+          // Push to Firebase Cloud
+          const cfg = getConfig();
+          if (cfg.firebaseUrl && currentUser?.username) {
+            const base = cfg.firebaseUrl.replace(/\/+$/, '');
+            const safeKey = currentUser.username.replace(/\./g, '_');
+            await Promise.all([
+              fetch(`${base}/users/${safeKey}/avatarUrl.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(base64)
+              }).catch(() => null),
+              fetch(`${base}/presence/${safeKey}/avatarUrl.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(base64)
+              }).catch(() => null)
+            ]);
+          }
+
+          showToast('✓ Đã cập nhật ảnh đại diện thành công!');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      input.value = '';
+    }
+
   </script>
 </body>
 </html>
