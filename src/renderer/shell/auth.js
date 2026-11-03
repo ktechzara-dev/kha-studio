@@ -1,7 +1,7 @@
 /**
  * Kha Studio — Authentication, RBAC & User Approval Module
  * Chuẩn Web Crypto API (PBKDF2 HMAC-SHA256, 100,000 iterations, random salt)
- * Hỗ trợ Đăng ký tài khoản, gửi duyệt về tài khoản Sếp Kha (Admin),
+ * Hỗ trợ Đăng ký tài khoản, gửi duyệt về tài khoản Admin,
  * và đồng bộ Hybrid qua Cloud Online + LAN nội bộ.
  */
 (function (global) {
@@ -119,7 +119,7 @@
       id: 'usr_admin',
       username: 'kha',
       email: 'admin@k-core.vn',
-      name: 'Sếp Kha',
+      name: 'Admin',
       role: 'admin', // 'admin' | 'engineer'
       allowedTools: ['*'], // Toàn quyền tất cả công cụ
       createdAt: '2026-10-01T00:00:00.000Z',
@@ -163,12 +163,8 @@
           if (users.length !== beforeLen) changed = true;
 
           users.forEach(u => {
-            if (u.username === 'kha' && (!u.name || u.name.includes('?') || u.name.includes('\uFFFD'))) {
-              u.name = 'Sếp Kha';
-              changed = true;
-            }
-            if (u.name && (u.name.includes('?') || u.name.includes('\uFFFD'))) {
-              u.name = u.name.replace(/S[\?\uFFFD]p\s*Kha/gi, 'Sếp Kha');
+            if (u.username === 'kha') {
+              u.name = 'Admin';
               changed = true;
             }
             if (!Array.isArray(u.allowedTools)) {
@@ -963,7 +959,7 @@
           const freshUser = this.getUsers().find(u => (u.id && u.id === currentUser.id) || (u.username && u.username.toLowerCase() === currentUser.username.toLowerCase()));
           if (freshUser && freshUser.isLocked) {
             this.logout();
-            alert('Tài khoản của bạn đã bị Quản trị viên Sếp Kha tạm khóa. Phiên làm việc đã kết thúc!');
+            alert('Tài khoản của bạn đã bị Quản trị viên (Admin) tạm khóa. Phiên làm việc đã kết thúc!');
             window.location.reload();
             return;
           }
@@ -1017,9 +1013,8 @@
           return null;
         }
         let displayName = user.name || user.username;
-        if (user.username === 'kha' || (displayName && (displayName.includes('?') || displayName.includes('\uFFFD')))) {
-          displayName = (displayName || '').replace(/S[\?\uFFFD]p\s*Kha/gi, 'Sếp Kha');
-          if (!displayName || user.username === 'kha') displayName = 'Sếp Kha';
+        if (user.username === 'kha') {
+          displayName = 'Admin';
         }
         return {
           id: user.id,
@@ -1067,7 +1062,7 @@
       }
 
       if (user.isLocked) {
-        throw new Error(`Tài khoản "@${user.username}" (${user.name}) đã bị tạm khóa bởi Quản trị viên Sếp Kha. Vui lòng liên hệ để mở khóa!`);
+        throw new Error(`Tài khoản "@${user.username}" (${user.name}) đã bị tạm khóa bởi Quản trị viên (Admin). Vui lòng liên hệ để mở khóa!`);
       }
 
       const match = await verifyPassword(password, user.passwordHash);
@@ -1301,13 +1296,13 @@
       const user = users.find(u => u.id === id || (u.username && u.username.toLowerCase() === String(id).toLowerCase()));
       if (!user) throw new Error('Không tìm thấy người dùng');
       if (user.role === 'admin' || (user.username && user.username.toLowerCase() === 'kha')) {
-        throw new Error('Không thể khóa tài khoản Quản trị viên Sếp Kha');
+        throw new Error('Không thể khóa tài khoản Quản trị viên (Admin)');
       }
 
       const newLockState = (lock !== null) ? !!lock : !user.isLocked;
       user.isLocked = newLockState;
       user.lockedAt = newLockState ? new Date().toISOString() : null;
-      user.lockedBy = newLockState ? (current?.name || 'Sếp Kha') : null;
+      user.lockedBy = newLockState ? (current?.name || 'Admin') : null;
 
       this._saveUsers(users);
 
@@ -1371,7 +1366,7 @@
       const user = users.find(u => u.id === id || (u.username && u.username.toLowerCase() === String(id).toLowerCase()));
       if (!user) throw new Error('Không tìm thấy người dùng');
       if (user.role === 'admin' || (user.username && user.username.toLowerCase() === 'kha')) {
-        throw new Error('Không thể xóa tài khoản Quản trị viên Sếp Kha');
+        throw new Error('Không thể xóa tài khoản Quản trị viên (Admin)');
       }
 
       const targetUsername = (user.username || '').toLowerCase().trim();
@@ -1404,7 +1399,7 @@
               username: targetUsername,
               name: targetName,
               deletedAt: new Date().toISOString(),
-              deletedBy: current?.name || 'Sếp Kha'
+              deletedBy: current?.name || 'Admin'
             })
           }).catch(() => {});
 

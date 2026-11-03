@@ -317,7 +317,7 @@ public class LanWebServer
                                     var uName = (uNode["username"]?.ToString() ?? "").Trim().ToLowerInvariant();
                                     if (!string.IsNullOrWhiteSpace(uName) && !delSet.Contains(uName))
                                     {
-                                        if (uName == "kha") uNode["name"] = "S\u1EBFp Kha";
+                                        if (uName == "kha") uNode["name"] = "Admin";
                                         else if (uName == "dieu") uNode["name"] = "Di\u1EC7u";
                                         else if (uName == "kiet.dt") uNode["name"] = "\u0110\u1ED7 Tu\u1EA5n Ki\u1EC7t";
                                         uList.Add(uNode.DeepClone());
@@ -600,7 +600,7 @@ public class LanWebServer
                     return;
                 }
 
-                // 6. API: /api/auth/approve-request (Sếp Kha duyệt tài khoản)
+                // 6. API: /api/auth/approve-request (Admin duyệt tài khoản)
                 if (cleanPath == "/api/auth/approve-request" && method == "POST")
                 {
                     if (!string.IsNullOrWhiteSpace(body))
@@ -611,7 +611,7 @@ public class LanWebServer
                     return;
                 }
 
-                // 7. API: /api/auth/reject-request (Sếp Kha từ chối yêu cầu)
+                // 7. API: /api/auth/reject-request (Admin từ chối yêu cầu)
                 if (cleanPath == "/api/auth/reject-request" && method == "POST")
                 {
                     if (!string.IsNullOrWhiteSpace(body))
@@ -1121,7 +1121,7 @@ public class LanWebServer
 
         if (rName.Contains("Kha", StringComparison.OrdinalIgnoreCase) || rName.Contains("?") || uName.Equals("kha", StringComparison.OrdinalIgnoreCase))
         {
-            rNode["reporter"] = "S\u1EBFp Kha";
+            rNode["reporter"] = "Admin";
             rNode["username"] = "kha";
             rNode["role"] = "admin";
         }
@@ -1166,7 +1166,7 @@ public class LanWebServer
 
         if (cap.Contains("Kha", StringComparison.OrdinalIgnoreCase) || cap.Contains("?") || uName.Equals("kha", StringComparison.OrdinalIgnoreCase))
         {
-            mNode["capturedBy"] = "S\u1EBFp Kha";
+            mNode["capturedBy"] = "Admin";
             mNode["username"] = "kha";
             mNode["role"] = "admin";
         }
@@ -1251,7 +1251,7 @@ public class LanWebServer
                             ["url"] = $"/data/projects/{safe}/photos/{fi.Name}",
                             ["size"] = fi.Length,
                             ["capturedAt"] = fi.LastWriteTimeUtc.ToString("o"),
-                            ["capturedBy"] = "S\u1EBFp Kha",
+                            ["capturedBy"] = "Admin",
                             ["username"] = "kha",
                             ["role"] = "admin",
                             ["stage"] = "Ch\u1EA1y th\u1EED & Tinh ch\u1EC9nh"
@@ -1457,7 +1457,7 @@ public class LanWebServer
             "name": "Dây chuyền Đóng thùng Tự động Casepacker Line Glass",
             "client": "SABECO - Bia Sài Gòn Củ Chi",
             "location": "Nhà máy Bia Sài Gòn Củ Chi, TP.HCM",
-            "manager": "Sếp Kha",
+            "manager": "Admin",
             "engineers": ["duyen", "duyen1"],
             "stage": "Chạy thử & Tinh chỉnh",
             "status": "active",
@@ -1474,7 +1474,7 @@ public class LanWebServer
             "name": "Trạm Kiểm tra Ngoại quan Khuyết tật bằng AI (Vision Pro Studio)",
             "client": "VinFast Auto - Hải Phòng",
             "location": "Tổ hợp Nhà máy VinFast Cát Hải, Hải Phòng",
-            "manager": "Sếp Kha",
+            "manager": "Admin",
             "engineers": ["duyen"],
             "stage": "Lắp đặt tủ điện & Camera",
             "status": "active",
@@ -1491,7 +1491,7 @@ public class LanWebServer
             "name": "Hệ thống Điều khiển SCADA & Giám sát Bồn Bể Hóa Chất",
             "client": "Unilever Việt Nam",
             "location": "KCN Tây Bắc Củ Chi, TP.HCM",
-            "manager": "Sếp Kha",
+            "manager": "Admin",
             "engineers": ["duyen1"],
             "stage": "Khảo sát hiện trường",
             "status": "active",
@@ -1896,7 +1896,7 @@ public class LanWebServer
             if (bool.TryParse(lStr, out var bVal)) isLocked = bVal;
             else if (lStr == "1") isLocked = true;
 
-            if (username == "kha") return; // Không khóa tài khoản Admin Sếp Kha
+            if (username == "kha") return; // Không khóa tài khoản Admin
 
             void UpdateFile(string filePath)
             {
@@ -1918,7 +1918,7 @@ public class LanWebServer
                                 if (isLocked)
                                 {
                                     uObj["lockedAt"] = DateTime.UtcNow.ToString("o");
-                                    uObj["lockedBy"] = "S\u1EBFp Kha";
+                                    uObj["lockedBy"] = "Admin";
                                 }
                                 else
                                 {
@@ -1965,7 +1965,7 @@ public class LanWebServer
             name = (name ?? "").Trim();
             id = (id ?? "").Trim();
 
-            if (username == "kha") return; // Không xóa tài khoản Admin Sếp Kha
+            if (username == "kha") return; // Không xóa tài khoản Admin
 
             RecordDeletedUser(username);
 

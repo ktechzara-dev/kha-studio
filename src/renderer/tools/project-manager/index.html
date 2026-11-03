@@ -1368,7 +1368,7 @@
       <div class="site-user-control-bar" id="site-user-control-bar">
         <div class="user-control-header">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <span id="badge-current-auth" class="user-role-badge admin">👑 Quản trị viên: Sếp Kha</span>
+            <span id="badge-current-auth" class="user-role-badge admin">👑 Quản trị viên: Admin</span>
             <span id="site-log-perm-hint" style="font-size:12px; color:var(--text-muted);">
               Toàn quyền xem nhật ký và lọc chi tiết theo từng kỹ sư hiện trường
             </span>
@@ -1468,7 +1468,7 @@
 
             <div style="font-size:11px; color:var(--text-muted); margin-top:10px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center;">
               <span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; border-radius:50%; background:#0284c7; display:inline-block;"></span> Trạm PLC Trung tâm</span>
-              <span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; border-radius:50%; background:#fbbf24; display:inline-block;"></span> Sếp Kha</span>
+              <span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; border-radius:50%; background:#fbbf24; display:inline-block;"></span> Admin</span>
               <span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block;"></span> Kỹ sư hiện trường</span>
               <span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; border-radius:50%; background:#c084fc; display:inline-block;"></span> Điểm chụp Timemark</span>
             </div>
@@ -1761,7 +1761,7 @@
             name: "Dây chuyền Đóng thùng Tự động Casepacker Line Glass",
             client: "SABECO - Bia Sài Gòn Củ Chi",
             location: "Nhà máy Bia Sài Gòn Củ Chi, TP.HCM",
-            manager: "Sếp Kha",
+            manager: "Admin",
             stage: "Chạy thử & Tinh chỉnh",
             status: "active",
             progress: 85,
@@ -1892,7 +1892,7 @@
               </div>
               <div class="meta-col">
                 <span class="meta-lbl">Quản lý</span>
-                <span class="meta-val">${escapeHtml(fixViText(p.manager || 'Sếp Kha'))}</span>
+                <span class="meta-val">${escapeHtml(fixViText(p.manager || 'Admin'))}</span>
               </div>
             </div>
 
@@ -1922,7 +1922,7 @@
     let isAdmin = true; // Mặc định sếp Kha là Admin
     let selectedUserFilter = 'all'; // 'all' hoặc username
     let registeredUsers = [
-      { username: 'kha', name: 'Sếp Kha', role: 'admin' }
+      { username: 'kha', name: 'Admin', role: 'admin' }
     ];
 
     function initUserSession() {
@@ -1936,14 +1936,14 @@
       }
 
       if (!currentUserSession) {
-        currentUserSession = { username: 'kha', name: 'Sếp Kha', role: 'admin' };
+        currentUserSession = { username: 'kha', name: 'Admin', role: 'admin' };
       }
 
       isAdmin = (currentUserSession.role === 'admin' || currentUserSession.username === 'kha');
 
       const badge = document.getElementById('badge-current-auth');
       const hint = document.getElementById('site-log-perm-hint');
-      const displayName = fixViText(currentUserSession.name || currentUserSession.username || 'Sếp Kha');
+      const displayName = fixViText(currentUserSession.name || currentUserSession.username || 'Admin');
 
       if (badge) {
         if (isAdmin) {
@@ -2058,7 +2058,7 @@
         const isAdm = u.role === 'admin' || uName === 'kha' || (u.name && u.name.toLowerCase().includes('kha'));
         userMap.set(uName, {
           username: u.username,
-          name: isAdm ? 'Sếp Kha' : fixViText(u.name || u.username),
+          name: isAdm ? 'Admin' : fixViText(u.name || u.username),
           role: isAdm ? 'admin' : (u.role || 'engineer'),
           mediaCount: 0,
           reportCount: 0
@@ -2072,7 +2072,7 @@
         if (u && !deletedUsers.includes(u) && !userMap.has(u)) {
           userMap.set(u, {
             username: u,
-            name: isAdm ? 'Sếp Kha' : fixViText(m.capturedBy || u),
+            name: isAdm ? 'Admin' : fixViText(m.capturedBy || u),
             role: isAdm ? 'admin' : (m.role || 'engineer'),
             mediaCount: 0,
             reportCount: 0
@@ -2085,7 +2085,7 @@
         if (u && !deletedUsers.includes(u) && !userMap.has(u)) {
           userMap.set(u, {
             username: u,
-            name: isAdm ? 'Sếp Kha' : fixViText(r.reporter || u),
+            name: isAdm ? 'Admin' : fixViText(r.reporter || u),
             role: isAdm ? 'admin' : (r.role || 'engineer'),
             mediaCount: 0,
             reportCount: 0
@@ -2194,7 +2194,7 @@
             <p style="color:var(--text-muted); font-size:13px; margin-top:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span>🏢 Khách hàng: <strong style="color:var(--text);">${escapeHtml(fixViText(currentProject.client || 'Chưa gán'))}</strong></span> &bull; 
               <span>📍 Địa điểm: <strong style="color:var(--text);">${escapeHtml(fixViText(currentProject.location || 'Tại xưởng'))}</strong></span> &bull; 
-              <span>👑 Quản lý: <strong style="color:#fbbf24;">${escapeHtml(fixViText(currentProject.manager || 'Sếp Kha'))}</strong></span>
+              <span>👑 Quản lý: <strong style="color:#fbbf24;">${escapeHtml(fixViText(currentProject.manager || 'Admin'))}</strong></span>
             </p>
           </div>
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
@@ -2341,7 +2341,7 @@
         const isAdm = (m.username === 'kha' || (m.capturedBy && m.capturedBy.toLowerCase().includes('kha')) || m.role === 'admin' || (m.authorName && m.authorName.toLowerCase().includes('kha')));
         const badgeClass = isAdm ? 'user-badge-card admin' : 'user-badge-card engineer';
         const badgeIcon = isAdm ? '👑' : '👷';
-        const authorName = isAdm ? 'Sếp Kha' : fixViText(m.capturedBy || 'Kỹ sư');
+        const authorName = isAdm ? 'Admin' : fixViText(m.capturedBy || 'Kỹ sư');
         const userTag = m.username ? `@${m.username}` : (isAdm ? '@kha' : '');
 
         return `
@@ -2432,7 +2432,7 @@
         const isAdm = (r.username === 'kha' || (r.reporter && r.reporter.toLowerCase().includes('kha')) || r.role === 'admin' || (r.authorName && r.authorName.toLowerCase().includes('kha')) || (r.engineer && r.engineer.toLowerCase().includes('kha')));
         const badgeClass = isAdm ? 'user-badge-card admin' : 'user-badge-card engineer';
         const badgeIcon = isAdm ? '👑' : '👷';
-        const reporterName = isAdm ? 'Sếp Kha' : fixViText(r.reporter || r.authorName || r.engineer || 'Kỹ sư');
+        const reporterName = isAdm ? 'Admin' : fixViText(r.reporter || r.authorName || r.engineer || 'Kỹ sư');
         const userTag = r.username ? `@${r.username}` : (isAdm ? '@kha' : '');
         const conditionText = fixViText(r.condition || 'Bình thường');
         const progressVal = r.progress !== undefined ? r.progress : (currentProject ? currentProject.progress : 0);
@@ -2507,8 +2507,8 @@
           <div class="blip-pulse-wave" style="color:#0284c7;"></div>
         </div>
 
-        <!-- Sếp Kha (Chỉ huy / Quản lý) -->
-        <div class="radar-blip-item" style="top:38%; left:48%;" title="👑 Sếp Kha (Chỉ Huy &amp; Quản Trị Viên)">
+        <!-- Admin (Chỉ huy / Quản lý) -->
+        <div class="radar-blip-item" style="top:38%; left:48%;" title="👑 Admin (Chỉ Huy &amp; Quản Trị Viên)">
           <div class="blip-dot kha">👑</div>
           <div class="blip-pulse-wave" style="color:#fbbf24;"></div>
         </div>
@@ -2581,7 +2581,7 @@
           </div>
           <div style="font-size:12px; color:var(--text); margin-top:6px; line-height:1.7;">
             &bull; <strong>Bộ điều khiển:</strong> Siemens S7-1500 / Basler Camera GigE (Online)<br>
-            &bull; <strong>Chỉ huy trưởng:</strong> 👑 Sếp Kha (Giám sát toàn thời gian)<br>
+            &bull; <strong>Chỉ huy trưởng:</strong> 👑 Admin (Giám sát toàn thời gian)<br>
             &bull; <strong>Kỹ sư trực tiếp:</strong> Duyên 1, Diệu (Đang kết nối qua ứng dụng di động)<br>
             &bull; <strong>Bằng chứng ảnh đóng dấu:</strong> ${currentMediaList.length} ảnh đã được đồng bộ về máy tính và ghim tọa độ
           </div>
@@ -2737,7 +2737,7 @@
           </tr>
           <tr>
             <td class="lbl">Chỉ Huy Trưởng / Phê Duyệt:</td>
-            <td><strong style="color:#b45309;">👑 Sếp Kha (Giám Đốc / Tổng Phụ Trách)</strong></td>
+            <td><strong style="color:#b45309;">👑 Admin (Quản Trị &amp; Điều Hành)</strong></td>
             <td class="lbl">Kỹ Sư Hiện Trường:</td>
             <td>${escapeHtml(engListStr)}</td>
           </tr>
@@ -2819,7 +2819,7 @@
               <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#b45309;">ĐẠI DIỆN BAN QUẢN TRỊ / GIÁM ĐỐC</div>
               <div style="font-size:11px; color:#64748b; font-style:italic;">(Đã ký điện tử &amp; Đóng dấu xác nhận)</div>
               
-              <!-- Con Dấu Tròn Đỏ Chuẩn Kỹ Thuật & Chữ Ký Sếp Kha -->
+              <!-- Con Dấu Tròn Đỏ Chuẩn Kỹ Thuật & Chữ Ký Admin -->
               <div class="iso-stamp-container">
                 <svg class="iso-stamp-svg" viewBox="0 0 160 160">
                   <circle cx="80" cy="80" r="76" fill="none" stroke="#dc2626" stroke-width="3" />
@@ -2839,13 +2839,13 @@
                   <text x="80" y="66" font-family="-apple-system, Arial, sans-serif" font-size="11" font-weight="900" fill="#dc2626" text-anchor="middle">APPROVED</text>
                   <line x1="38" y1="71" x2="122" y2="71" stroke="#dc2626" stroke-width="1.5" />
                   <text x="80" y="84" font-family="-apple-system, Arial, sans-serif" font-size="10" font-weight="800" fill="#dc2626" text-anchor="middle">GIÁM ĐỐC</text>
-                  <text x="80" y="98" font-family="-apple-system, Arial, sans-serif" font-size="11.5" font-weight="900" fill="#dc2626" text-anchor="middle">SẾP KHA</text>
+                  <text x="80" y="98" font-family="-apple-system, Arial, sans-serif" font-size="11.5" font-weight="900" fill="#dc2626" text-anchor="middle">ADMIN</text>
                 </svg>
               </div>
 
-              <div class="iso-sig-script">Sếp Kha</div>
+              <div class="iso-sig-script">Admin</div>
               <div style="font-size:13px; font-weight:800; color:#0f172a; border-top:1px dashed #cbd5e1; padding-top:6px;">
-                👑 SẾP KHA
+                👑 ADMIN
               </div>
             </td>
           </tr>
@@ -2869,8 +2869,8 @@
       try {
         if (typeof ExcelJS !== 'undefined') {
           const wb = new ExcelJS.Workbook();
-          wb.creator = 'Sếp Kha - K-Core Studio';
-          wb.lastModifiedBy = 'Sếp Kha';
+          wb.creator = 'Admin - K-Core Studio';
+          wb.lastModifiedBy = 'Admin';
           wb.created = today;
 
           // Sheet 1: BIÊN BẢN & TIẾN ĐỘ
@@ -2892,7 +2892,7 @@
           ws1.addRow(['Địa Điểm Thi Công', fixViText(p.location || 'Tại xưởng'), '']);
           ws1.addRow(['Giai Đoạn Thi Công', fixViText(p.stage || 'Chạy thử'), '']);
           ws1.addRow(['Tiến Độ Hoàn Thành', `${p.progress || 0}%`, 'Đạt yêu cầu kế hoạch']);
-          ws1.addRow(['Người Quản Lý Phê Duyệt', '👑 Sếp Kha (Giám Đốc)', 'Toàn quyền điều hành']);
+          ws1.addRow(['Người Quản Lý Phê Duyệt', '👑 Admin (Quản Trị)', 'Toàn quyền điều hành']);
           ws1.addRow(['Tổng Số Ảnh Timemark', `${currentMediaList.length} ảnh`, 'Đã đồng bộ máy tính']);
           ws1.addRow(['Tổng Số Báo Cáo Hiện Trường', `${currentReportsList.length} phiếu`, '']);
           ws1.addRow(['Ngày Xuất Báo Cáo', today.toLocaleString('vi-VN'), '']);
@@ -2965,7 +2965,7 @@
       // Fallback CSV nếu ExcelJS lỗi
       let csv = '\uFEFF'; // BOM UTF-8
       csv += `Mã Dự Án,Tên Dự Án,Khách Hàng,Địa Điểm,Giai Đoạn,Tiến Độ,Quản Lý\n`;
-      csv += `"${p.code}","${fixViText(p.name)}","${fixViText(p.client||'')}","${fixViText(p.location||'')}","${fixViText(p.stage||'')}","${p.progress||0}%","Sếp Kha"\n\n`;
+      csv += `"${p.code}","${fixViText(p.name)}","${fixViText(p.client||'')}","${fixViText(p.location||'')}","${fixViText(p.stage||'')}","${p.progress||0}%","Admin"\n\n`;
       csv += `STT,Tên File,Người Chụp,Thời Gian Timemark,Công Đoạn,Tọa Độ GPS,Ghi Chú\n`;
       currentMediaList.forEach((m, idx) => {
         csv += `${idx+1},"${m.fileName||''}","${fixViText(m.capturedBy||'')}","${m.capturedAt||''}","${fixViText(m.stage||'')}","${m.gps||''}","${fixViText(m.note||'')}"\n`;
@@ -3083,7 +3083,7 @@
         name,
         client,
         location: loc,
-        manager: 'Sếp Kha',
+        manager: 'Admin',
         stage,
         status: 'active',
         progress,

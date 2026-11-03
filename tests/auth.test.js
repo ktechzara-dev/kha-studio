@@ -31,7 +31,7 @@ assert.strictEqual(verifyPasswordNode('wrongpassword', h1), false);
 console.log('✓ PBKDF2 password hashing & verification passed');
 
 // Test 2: Role Based Access Control
-const adminUser = { username: 'kha', name: 'Sếp Kha', role: 'admin' };
+const adminUser = { username: 'kha', name: 'Admin', role: 'admin' };
 const engUser = { username: 'engineer', name: 'Kỹ sư Dự án', role: 'engineer' };
 
 function hasRole(user, requiredRole) {
@@ -201,7 +201,7 @@ console.log('✓ Rejection workflow passed');
 
 // 4.7. Mô phỏng máy trạm khác (Machine B) nhận kết quả duyệt và đăng nhập
 const machineBUsers = [
-  { username: 'kha', name: 'Sếp Kha', role: 'admin', allowedTools: ['*'] }
+  { username: 'kha', name: 'Admin', role: 'admin', allowedTools: ['*'] }
 ];
 // Ban đầu máy B chưa có tài khoản tuan.le
 assert.strictEqual(machineBUsers.some(u => u.username === 'tuan.le'), false);

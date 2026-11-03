@@ -5884,7 +5884,7 @@ Kha Studio Engineering Suite.`;
         navigator.clipboard.writeText(url).then(() => {
           showScadaAlert({
             title: 'ĐÃ SAO CHÉP ĐƯỜNG DẪN',
-            msg: `Đã lưu liên kết Mobile SCADA vào bộ nhớ tạm: <br><b style="color: #38bdf8;">${url}</b><br><br>Sếp Kha có thể dán link này vào trình duyệt điện thoại để mở trực tiếp!`,
+            msg: `Đã lưu liên kết Mobile SCADA vào bộ nhớ tạm: <br><b style="color: #38bdf8;">${url}</b><br><br>Bạn có thể dán link này vào trình duyệt điện thoại để mở trực tiếp!`,
             type: 'success'
           });
         }).catch(() => {
@@ -6165,7 +6165,7 @@ Kha Studio Engineering Suite.`;
     }
 
     async function deletePlan(planId) {
-      if (!confirm('Sếp Kha có chắc muốn xóa kế hoạch này không?')) return;
+      if (!confirm('Bạn có chắc muốn xóa kế hoạch này không?')) return;
       deskWorkPlans = deskWorkPlans.filter(p => p.id !== planId);
       localStorage.setItem('kha_field_work_plans', JSON.stringify(deskWorkPlans));
       try {
@@ -6573,7 +6573,7 @@ Kha Studio Engineering Suite.`;
               <strong>TRƯỞNG CA / QUẢN ĐỐC NHÀ MÁY</strong>
               <div style="font-size: 11px; color: #64748b; margin-top: 2px;">(Ký duyệt &amp; xác nhận)</div>
               <div style="height: 50px;"></div>
-              <div style="font-weight: 700; margin-top: 6px;">Sếp Kha</div>
+              <div style="font-weight: 700; margin-top: 6px;">Admin</div>
             </div>
           </div>
         </body>

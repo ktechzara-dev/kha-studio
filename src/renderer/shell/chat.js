@@ -65,7 +65,7 @@
           return window.Auth.getCurrentUser();
         }
       } catch (_) {}
-      return { username: 'kha', name: 'Sếp Kha', role: 'admin' };
+      return { username: 'kha', name: 'Admin', role: 'admin' };
     }
 
     init() {
@@ -121,11 +121,11 @@
 
       const safeKey = user.username.replace(/\./g, '_');
       const base = this.getFirebaseBase();
-      const isAdmUser = user.role === 'admin' || user.username === 'kha' || (user.name && user.name.toLowerCase().includes('kha'));
+      const isAdmUser = user.role === 'admin' || user.username === 'kha' || (user.name && user.name.toLowerCase().includes('admin'));
 
       const payload = {
         username: user.username,
-        name: isAdmUser ? 'Sếp Kha' : this.fixViText(user.name || user.username),
+        name: isAdmUser ? 'Admin' : this.fixViText(user.name || user.username),
         role: isAdmUser ? 'admin' : (user.role || 'engineer'),
         platform: 'desktop',
         lastSeen: new Date().toISOString(),
@@ -242,7 +242,7 @@
           ? `<span class="presence-badge online"><span class="presence-dot-pulse"></span> Đang Online</span>`
           : `<span class="presence-badge offline">⚪ ${this.formatRelativeTime(u.lastSeenDate)}</span>`;
 
-        const displayName = isAdm ? 'Sếp Kha' : this.escapeHtml(this.fixViText(u.name || u.username));
+        const displayName = isAdm ? 'Admin' : this.escapeHtml(this.fixViText(u.name || u.username));
         const initial = displayName.charAt(0).toUpperCase();
 
         return `
@@ -412,8 +412,8 @@
 
       const user = this.getCurrentUser();
       const base = this.getFirebaseBase();
-      const isAdmUser = user.role === 'admin' || (user.username || '').toLowerCase() === 'kha' || (user.name && user.name.toLowerCase().includes('kha'));
-      const senderDisplayName = isAdmUser ? 'Sếp Kha' : this.fixViText(user.name || user.username);
+      const isAdmUser = user.role === 'admin' || (user.username || '').toLowerCase() === 'kha' || (user.name && user.name.toLowerCase().includes('admin'));
+      const senderDisplayName = isAdmUser ? 'Admin' : this.fixViText(user.name || user.username);
 
       const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
       const msgObj = {
@@ -769,7 +769,7 @@
           html += `<div class="kchat-date-divider"><span>${msgDate}</span></div>`;
         }
 
-        const senderName = isAdm ? 'Sếp Kha' : this.escapeHtml(this.fixViText(m.senderName || m.username));
+        const senderName = isAdm ? 'Admin' : this.escapeHtml(this.fixViText(m.senderName || m.username));
         const safeUname = this.escapeHtml(m.username || '');
 
         html += `

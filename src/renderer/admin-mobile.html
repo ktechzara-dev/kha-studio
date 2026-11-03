@@ -568,7 +568,7 @@
     <!-- TAB 4: CHỜ DUYỆT (CHỈ ADMIN THẤY) -->
     <section class="tab-content" id="tab-pending">
       <div class="sec-header">
-        <span class="sec-title">Chờ Sếp Kha Duyệt (<span id="pending-count-lbl">0</span>)</span>
+        <span class="sec-title">Chờ Admin Duyệt (<span id="pending-count-lbl">0</span>)</span>
       </div>
       <div id="pending-list-container">
         <!-- Render bởi JS -->
@@ -595,7 +595,7 @@
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
           <div class="brand-logo" id="user-avatar-lbl">K</div>
           <div>
-            <div id="user-display-name" style="font-weight:700; font-size:15px;">Sếp Kha</div>
+            <div id="user-display-name" style="font-weight:700; font-size:15px;">Admin</div>
             <div id="user-display-role" style="font-size:11.5px; color:var(--accent);">Quản trị viên (Admin)</div>
           </div>
         </div>
@@ -873,7 +873,7 @@
           users.push({
             username: 'kha',
             email: 'ktechzara@gmail.com',
-            name: 'Sếp Kha',
+            name: 'Admin',
             role: 'admin',
             allowedTools: ['*'],
             passwordHash: 'pbkdf2:100000:d8c5bb6dfca156e55c570f6cdb47788f:858aa09b80f15ffbe446c8431be20b5ede71caf17a587070034526a21f50cc69' // 'kha'
@@ -894,7 +894,7 @@
         }
 
         if (user.isLocked) {
-          showToast('🔒 Tài khoản đã bị tạm khóa bởi Admin Sếp Kha!');
+          showToast('🔒 Tài khoản đã bị tạm khóa bởi Admin!');
           btn.disabled = false;
           btn.textContent = 'Đăng nhập';
           return;
@@ -947,7 +947,7 @@
     function setupUserSession(user) {
       if (!user) return;
       if (user.username === 'kha' || (user.name && user.name.toLowerCase().includes('kha'))) {
-        user.name = 'Sếp Kha';
+        user.name = 'Admin';
         user.role = 'admin';
       }
       user.name = fixViText(user.name || user.username);
@@ -994,7 +994,7 @@
     function switchTab(tabId) {
       // Bảo vệ phân quyền: Nếu không phải admin thì chặn truy cập tab pending & users
       if ((tabId === 'pending' || tabId === 'users') && currentUser?.role !== 'admin') {
-        showToast('Chỉ Quản trị viên (Sếp Kha) mới có quyền duyệt tài khoản');
+        showToast('Chỉ Quản trị viên (Admin) mới có quyền duyệt tài khoản');
         return;
       }
 
@@ -1328,7 +1328,7 @@
       const note = document.getElementById('cam-photo-note').value.trim();
       const uname = currentUser ? currentUser.username : '';
       const isAdmUser = (uname === 'kha' || (currentUser?.name && currentUser.name.toLowerCase().includes('kha')));
-      const engineerName = isAdmUser ? 'Sếp Kha' : fixViText(currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư');
+      const engineerName = isAdmUser ? 'Admin' : fixViText(currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư');
       const rolePrefix = isAdmUser ? '👑 QUẢN TRỊ' : '👷 KỸ SƯ';
 
       const now = new Date();
@@ -1423,7 +1423,7 @@
       btn.textContent = 'Đang tải lên folder dự án…';
 
       const isAdmUser = (currentUser?.username || '').toLowerCase() === 'kha' || (currentUser?.name && currentUser.name.toLowerCase().includes('kha'));
-      const capturerName = isAdmUser ? 'Sếp Kha' : fixViText(currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư');
+      const capturerName = isAdmUser ? 'Admin' : fixViText(currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư');
 
       const payload = {
         projectCode: projCode,
@@ -1517,7 +1517,7 @@
       }
 
       const isAdmUser = (currentUser?.username || '').toLowerCase() === 'kha' || (currentUser?.name && currentUser.name.toLowerCase().includes('kha'));
-      const reporterName = isAdmUser ? 'Sếp Kha' : fixViText(currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư');
+      const reporterName = isAdmUser ? 'Admin' : fixViText(currentUser ? (currentUser.name || currentUser.username) : 'Kỹ sư');
 
       const report = {
         id: 'rep_' + Date.now().toString(36),
@@ -1581,7 +1581,7 @@
         await fetch(`${base}/registrations/${id}.json`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'approved', approvedAt: new Date().toISOString(), approvedBy: 'Sếp Kha (Mobile)' })
+          body: JSON.stringify({ status: 'approved', approvedAt: new Date().toISOString(), approvedBy: 'Admin (Mobile)' })
         });
         showToast('✓ Đã phê duyệt tài khoản thành công!');
         refreshData();
@@ -1620,7 +1620,7 @@
         await fetch(`${base}/users/${safeKey}.json`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isLocked: isLocked, lockedAt: isLocked ? new Date().toISOString() : null, lockedBy: 'Sếp Kha (Mobile)' })
+          body: JSON.stringify({ isLocked: isLocked, lockedAt: isLocked ? new Date().toISOString() : null, lockedBy: 'Admin (Mobile)' })
         });
 
         if (cfg.lanUrl) {
@@ -1675,7 +1675,7 @@
             username: targetUsername,
             name: targetName,
             deletedAt: new Date().toISOString(),
-            deletedBy: 'Sếp Kha (Mobile)'
+            deletedBy: 'Admin (Mobile)'
           })
         }).catch(() => {});
 
@@ -1829,7 +1829,7 @@
       const isAdmUser = (currentUser.username || '').toLowerCase() === 'kha' || (currentUser.name && currentUser.name.toLowerCase().includes('kha'));
       const payload = {
         username: currentUser.username,
-        name: isAdmUser ? 'Sếp Kha' : fixViText(currentUser.name || currentUser.username),
+        name: isAdmUser ? 'Admin' : fixViText(currentUser.name || currentUser.username),
         role: isAdmUser ? 'admin' : (currentUser.role || 'engineer'),
         platform: 'mobile',
         lastSeen: new Date().toISOString(),
@@ -1888,7 +1888,7 @@
         const isAdm = u.role === 'admin' || (u.username || '').toLowerCase() === 'kha' || (u.name && u.name.toLowerCase().includes('kha'));
         const roleLbl = isAdm ? '👑 Admin' : '👷 Kỹ sư';
         const platLbl = u.platform === 'mobile' ? '📱 Mobile' : '💻 PC';
-        const displayName = isAdm ? 'Sếp Kha' : fixViText(u.name || u.username);
+        const displayName = isAdm ? 'Admin' : fixViText(u.name || u.username);
         const initial = displayName.charAt(0).toUpperCase();
 
         return `
@@ -2075,7 +2075,7 @@
         const isAdm = m.role === 'admin' || (m.username || '').toLowerCase() === 'kha' || (m.senderName && m.senderName.toLowerCase().includes('kha'));
         const roleBadge = isAdm ? '👑' : '👷';
         const platBadge = m.platform === 'mobile' ? '📱' : '💻';
-        const senderName = isAdm ? 'Sếp Kha' : fixViText(m.senderName || m.username);
+        const senderName = isAdm ? 'Admin' : fixViText(m.senderName || m.username);
 
         let bgStyle = isMe ? 'background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);' : 'background:#1e293b;';
         let alertHtml = '';
@@ -2147,7 +2147,7 @@
 
       const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
       const isAdmUser = (currentUser.username || '').toLowerCase() === 'kha' || (currentUser.name && currentUser.name.toLowerCase().includes('kha'));
-      const senderDisplayName = isAdmUser ? 'Sếp Kha' : fixViText(currentUser.name || currentUser.username);
+      const senderDisplayName = isAdmUser ? 'Admin' : fixViText(currentUser.name || currentUser.username);
       const msgObj = {
         id: 'msg_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
         username: currentUser.username,

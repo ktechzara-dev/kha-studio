@@ -1573,7 +1573,7 @@
     const menuPendingApprovals = document.getElementById('btn-menu-pending-approvals');
 
     const finalDisplayName = (user.username === 'kha' || (user.name && (user.name.includes('?') || user.name.includes('\uFFFD'))))
-      ? 'Sếp Kha'
+      ? 'Admin'
       : (user.name || user.username);
     const initial = finalDisplayName.trim().charAt(0).toUpperCase();
     if (avatarEl) avatarEl.textContent = initial;

@@ -365,7 +365,7 @@ const CHANGELOG = [
     items: {
       vi: [
         'Hệ thống Phân quyền & Đăng nhập bảo mật (RBAC): tích hợp trang Login bảo mật cao (thuật toán PBKDF2 HMAC-SHA256 chuẩn Web Crypto, 100,000 vòng lặp, salt ngẫu nhiên).',
-        'Phân quyền đa vai trò: Quản trị viên (Admin - Sếp Kha) và Kỹ sư (Engineer) với giao diện người dùng chuyên nghiệp trên Titlebar.',
+        'Phân quyền đa vai trò: Quản trị viên (Admin) và Kỹ sư (Engineer) với giao diện người dùng chuyên nghiệp trên Titlebar.',
         'Bảo mật phân quyền trong APM: Khóa tab "Bảng điều khiển Admin", chỉ cho phép tài khoản Administrator xem tổng hợp dự án.',
         'Trang quản lý tài khoản trong Cài đặt: Admin có thể tạo tài khoản nhân viên mới, phân vai trò, đổi mật khẩu và quản lý danh sách người dùng.',
         'Tính năng Đăng nhập nhanh 1 chạm: tiện lợi tối đa khi demo hoặc thao tác nhanh.',
