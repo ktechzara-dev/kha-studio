@@ -936,6 +936,10 @@
     function handleLogout() {
       localStorage.removeItem(SESSION_KEY);
       currentUser = null;
+      if (mobileEventSource) {
+        try { mobileEventSource.close(); } catch (_) {}
+        mobileEventSource = null;
+      }
       showToast('Đã đăng xuất.');
       showLoginScreen();
     }
@@ -973,6 +977,9 @@
       // Cập nhật info tab settings
       document.getElementById('user-display-name').textContent = user.name || user.username;
       document.getElementById('user-display-role').textContent = isAdmin ? 'Quản trị viên (Admin)' : 'Kỹ sư hiện trường (Engineer)';
+
+      // Kết nối Realtime stream tin nhắn
+      initMobileRealtimeStream();
       document.getElementById('user-avatar-lbl').textContent = (user.name || user.username || 'K').charAt(0).toUpperCase();
 
       // Mặc định tab Dự án
@@ -1915,42 +1922,132 @@
       }
     }
 
+    let mobileEventSource = null;
+
+    function initMobileRealtimeStream() {
+      const cfg = getConfig();
+      if (!cfg.firebaseUrl) return;
+      const base = cfg.firebaseUrl.replace(/\/+$/, '');
+      try {
+        if (mobileEventSource) {
+          mobileEventSource.close();
+          mobileEventSource = null;
+        }
+        mobileEventSource = new EventSource(`${base}/team_messages.json`);
+        mobileEventSource.addEventListener('put', (e) => {
+          try {
+            if (!e.data) return;
+            const payload = JSON.parse(e.data);
+            if (!payload) return;
+            if (payload.path === '/') {
+              if (payload.data && typeof payload.data === 'object') {
+                processMobileMessagesData(payload.data);
+              }
+            } else if (payload.path && payload.data) {
+              const key = payload.path.replace(/^\//, '');
+              handleSingleMobileMessage({ key, ...payload.data });
+            }
+          } catch (_) {}
+        });
+        mobileEventSource.onerror = () => {
+          // Tự động kết nối lại, polling nền vẫn chạy dự phòng
+        };
+      } catch (_) {}
+    }
+
+    function handleSingleMobileMessage(newMsg) {
+      if (!newMsg || (!newMsg.text && !newMsg.photoUrl && !newMsg.audioUrl)) return;
+      const curUname = (currentUser?.username || '').toLowerCase().trim();
+      const msgUname = (newMsg.username || '').toLowerCase().trim();
+      const isFromOther = msgUname && msgUname !== curUname;
+
+      const idx = mobileMessages.findIndex(m => (m.key && m.key === newMsg.key) || (m.id && newMsg.id && m.id === newMsg.id));
+      if (idx !== -1) {
+        mobileMessages[idx] = Object.assign({}, mobileMessages[idx], newMsg);
+      } else {
+        mobileMessages.push(newMsg);
+        mobileMessages.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+        if (mobileMessages.length > 80) mobileMessages = mobileMessages.slice(-80);
+
+        if (isFromOther) {
+          const isChatActive = document.getElementById('tab-chat')?.classList.contains('active');
+          if (!isChatActive) {
+            const navBadge = document.getElementById('nav-chat-badge');
+            if (navBadge) {
+              mobileUnreadChat++;
+              navBadge.textContent = mobileUnreadChat;
+              navBadge.style.display = 'block';
+            }
+          }
+          playDing();
+          if (newMsg.isAlert) {
+            playMobileSiren();
+          }
+          if (window.Android && window.Android.showNotification) {
+            window.Android.showNotification(`Tin nhắn từ ${newMsg.senderName || newMsg.username}`, newMsg.text || '', 1);
+          }
+        }
+      }
+
+      mobileLastMsgKey = newMsg.key || mobileLastMsgKey;
+      renderMobileMessages();
+    }
+
+    function processMobileMessagesData(data) {
+      if (!data || typeof data !== 'object') return;
+      let list = Object.entries(data).map(([key, v]) => ({ key, ...v }));
+      list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+      if (list.length > 80) list = list.slice(-80);
+
+      const curUname = (currentUser?.username || '').toLowerCase().trim();
+
+      if (mobileLastMsgKey && list.length > 0) {
+        const last = list[list.length - 1];
+        const lastUname = (last.username || '').toLowerCase().trim();
+        if (last.key !== mobileLastMsgKey && lastUname !== curUname) {
+          const isChatActive = document.getElementById('tab-chat')?.classList.contains('active');
+          if (!isChatActive) {
+            const navBadge = document.getElementById('nav-chat-badge');
+            if (navBadge) {
+              mobileUnreadChat++;
+              navBadge.textContent = mobileUnreadChat;
+              navBadge.style.display = 'block';
+            }
+          }
+          playDing();
+          if (last.isAlert) {
+            playMobileSiren();
+          }
+          if (window.Android && window.Android.showNotification) {
+            window.Android.showNotification(`Tin nhắn từ ${last.senderName || last.username}`, last.text || '', 1);
+          }
+        }
+      }
+
+      if (list.length > 0) {
+        mobileLastMsgKey = list[list.length - 1].key;
+      }
+
+      // Giữ lại tin nhắn optimistic nếu chưa kịp có trên server
+      const existingOptimistic = mobileMessages.filter(m => !m.key && m.id && !list.some(s => s.id === m.id));
+      if (existingOptimistic.length > 0) {
+        list = [...list, ...existingOptimistic];
+        list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+      }
+
+      mobileMessages = list;
+      renderMobileMessages();
+    }
+
     async function fetchMobileMessages() {
       const cfg = getConfig();
       if (!cfg.firebaseUrl) return;
       const base = cfg.firebaseUrl.replace(/\/+$/, '');
       try {
-        const res = await fetch(`${base}/team_messages.json?limitToLast=50`).catch(() => null);
+        const res = await fetch(`${base}/team_messages.json`).catch(() => null);
         if (res && res.ok) {
           const data = await res.json();
-          if (data && typeof data === 'object') {
-            const list = Object.entries(data).map(([key, v]) => ({ key, ...v }));
-            list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
-
-            // Kiểm tra tin nhắn mới để phát chuông nếu đang ở tab khác
-            if (mobileLastMsgKey && list.length > 0) {
-              const last = list[list.length - 1];
-              if (last.key !== mobileLastMsgKey && last.username !== currentUser?.username) {
-                const navBadge = document.getElementById('nav-chat-badge');
-                if (navBadge) {
-                  mobileUnreadChat++;
-                  navBadge.textContent = mobileUnreadChat;
-                  navBadge.style.display = 'block';
-                }
-                playDing();
-                if (window.Android && window.Android.showNotification) {
-                  window.Android.showNotification(`Tin nhắn từ ${last.senderName || last.username}`, last.text || '', 1);
-                }
-              }
-            }
-
-            if (list.length > 0) {
-              mobileLastMsgKey = list[list.length - 1].key;
-            }
-
-            mobileMessages = list;
-            renderMobileMessages();
-          }
+          processMobileMessagesData(data);
         }
       } catch (_) {}
     }
@@ -2052,7 +2149,7 @@
       const isAdmUser = (currentUser.username || '').toLowerCase() === 'kha' || (currentUser.name && currentUser.name.toLowerCase().includes('kha'));
       const senderDisplayName = isAdmUser ? 'Sếp Kha' : fixViText(currentUser.name || currentUser.username);
       const msgObj = {
-        id: 'msg_' + Date.now().toString(36),
+        id: 'msg_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
         username: currentUser.username,
         senderName: senderDisplayName,
         role: isAdmUser ? 'admin' : (currentUser.role || 'engineer'),
@@ -2075,11 +2172,18 @@
       renderMobileMessages();
 
       try {
-        await fetch(`${base}/team_messages.json`, {
+        const res = await fetch(`${base}/team_messages.json`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(msgObj)
         });
+        if (res && res.ok) {
+          const resData = await res.json();
+          if (resData && resData.name) {
+            msgObj.key = resData.name;
+            mobileLastMsgKey = resData.name;
+          }
+        }
       } catch (_) {}
     }
 

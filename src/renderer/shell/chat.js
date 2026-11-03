@@ -21,6 +21,7 @@
       this.currentTab = 'chat'; // 'chat' | 'presence'
       this._heartbeatTimer = null;
       this._pollTimer = null;
+      this._eventSource = null;
       this._lastSeenMsgKey = null;
       this._isInit = false;
       this._activeAudio = null;
@@ -79,11 +80,18 @@
       this.fetchPresence();
       this.fetchMessages(true);
 
-      // 3. Chu kỳ làm mới tin nhắn & presence
+      // 3. Kết nối Realtime SSE Stream để nhận tin nhắn tức thì (0 delay)
+      this._initRealtimeStream();
+
+      // 4. Chu kỳ làm mới tin nhắn & presence (Polling dự phòng)
       this._startPolling();
 
       // Khi người dùng tắt hoặc đóng trang -> đánh dấu offline
       window.addEventListener('beforeunload', () => {
+        if (this._eventSource) {
+          try { this._eventSource.close(); } catch (_) {}
+          this._eventSource = null;
+        }
         this.markOffline();
       });
 
@@ -91,6 +99,7 @@
       window.addEventListener('ks:auth:change', () => {
         this.sendHeartbeat();
         this.fetchPresence();
+        this._initRealtimeStream();
       });
     }
 
@@ -268,43 +277,131 @@
     // 2. REALTIME TEAM MESSAGES (TRÒ CHUYỆN NỘI BỘ)
     // =========================================================================
 
+    _initRealtimeStream() {
+      try {
+        if (this._eventSource) {
+          this._eventSource.close();
+          this._eventSource = null;
+        }
+        const base = this.getFirebaseBase();
+        if (!base) return;
+
+        this._eventSource = new EventSource(`${base}/team_messages.json`);
+        this._eventSource.addEventListener('put', (e) => {
+          try {
+            if (!e.data) return;
+            const payload = JSON.parse(e.data);
+            if (!payload) return;
+
+            if (payload.path === '/') {
+              if (payload.data && typeof payload.data === 'object') {
+                this._processIncomingData(payload.data, false);
+              }
+            } else if (payload.path && payload.data) {
+              const key = payload.path.replace(/^\//, '');
+              this._handleSingleNewMessage({ key, ...payload.data });
+            }
+          } catch (_) {}
+        });
+
+        this._eventSource.onerror = () => {
+          // EventSource tự động reconnect; polling nền vẫn chạy bình thường
+        };
+      } catch (_) {}
+    }
+
+    _handleSingleNewMessage(newMsg) {
+      if (!newMsg || (!newMsg.text && !newMsg.photoUrl && !newMsg.audioUrl)) return;
+
+      const currentUser = this.getCurrentUser();
+      const curUname = (currentUser?.username || '').toLowerCase().trim();
+      const msgUname = (newMsg.username || '').toLowerCase().trim();
+      const isFromOther = msgUname && msgUname !== curUname;
+
+      const existingIdx = this.messages.findIndex(m => (m.key && m.key === newMsg.key) || (m.id && newMsg.id && m.id === newMsg.id));
+      if (existingIdx !== -1) {
+        this.messages[existingIdx] = Object.assign({}, this.messages[existingIdx], newMsg);
+      } else {
+        this.messages.push(newMsg);
+        this.messages.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+        if (this.messages.length > 80) this.messages = this.messages.slice(-80);
+
+        if (isFromOther) {
+          if (newMsg.isAlert) {
+            this.playEmergencySiren();
+            this.showChatToast(newMsg, true);
+          } else if (!this.isOpen) {
+            this.unreadCount++;
+            this.updateUnreadBadge();
+            this.playChime();
+            this.showChatToast(newMsg, false);
+          } else {
+            this.playChime();
+          }
+        }
+      }
+
+      this._lastSeenMsgKey = newMsg.key || this._lastSeenMsgKey;
+      this.renderMessages();
+      if (this.isOpen) {
+        this.scrollToBottom();
+      }
+    }
+
+    _processIncomingData(data, isFirstLoad = false) {
+      if (!data || typeof data !== 'object') return;
+      let list = Object.entries(data).map(([k, v]) => ({ key: k, ...v }));
+      list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+      if (list.length > 80) list = list.slice(-80);
+
+      const currentUser = this.getCurrentUser();
+      const curUname = (currentUser?.username || '').toLowerCase().trim();
+
+      // Kiểm tra tin nhắn mới từ người khác
+      if (!isFirstLoad && list.length > 0) {
+        const lastMsg = list[list.length - 1];
+        const msgUname = (lastMsg.username || '').toLowerCase().trim();
+        if (lastMsg.key && lastMsg.key !== this._lastSeenMsgKey && msgUname !== curUname) {
+          this._lastSeenMsgKey = lastMsg.key;
+          if (lastMsg.isAlert) {
+            this.playEmergencySiren();
+            this.showChatToast(lastMsg, true);
+          } else if (!this.isOpen) {
+            this.unreadCount++;
+            this.updateUnreadBadge();
+            this.playChime();
+            this.showChatToast(lastMsg, false);
+          } else {
+            this.playChime();
+          }
+        }
+      }
+
+      if (list.length > 0) {
+        this._lastSeenMsgKey = list[list.length - 1].key;
+      }
+
+      // Giữ lại các tin nhắn optimistic chưa kịp đồng bộ (nếu có)
+      const existingOptimistic = this.messages.filter(m => !m.key && m.id && !list.some(s => s.id === m.id));
+      if (existingOptimistic.length > 0) {
+        list = [...list, ...existingOptimistic];
+        list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+      }
+
+      this.messages = list;
+      this.renderMessages();
+      if (this.isOpen) {
+        this.scrollToBottom();
+      }
+    }
+
     async fetchMessages(isFirstLoad = false) {
       const base = this.getFirebaseBase();
       try {
-        const res = await fetch(`${base}/team_messages.json?limitToLast=80`).catch(() => null);
+        const res = await fetch(`${base}/team_messages.json`).catch(() => null);
         if (res && res.ok) {
           const data = await res.json();
-          if (data && typeof data === 'object') {
-            const list = Object.entries(data).map(([k, v]) => ({ key: k, ...v }));
-            // Sắp xếp theo thời gian tăng dần
-            list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
-
-            // Kiểm tra tin nhắn mới để phát chuông & báo unread
-            if (!isFirstLoad && list.length > 0) {
-              const lastMsg = list[list.length - 1];
-              const currentUser = this.getCurrentUser();
-              if (lastMsg.key !== this._lastSeenMsgKey && lastMsg.username !== currentUser.username) {
-                // Có tin nhắn mới từ người khác
-                this._lastSeenMsgKey = lastMsg.key;
-                if (lastMsg.isAlert) {
-                  this.playEmergencySiren();
-                  this.showChatToast(lastMsg, true);
-                } else if (!this.isOpen) {
-                  this.unreadCount++;
-                  this.updateUnreadBadge();
-                  this.playChime();
-                  this.showChatToast(lastMsg, false);
-                }
-              }
-            }
-
-            if (list.length > 0) {
-              this._lastSeenMsgKey = list[list.length - 1].key;
-            }
-
-            this.messages = list;
-            this.renderMessages();
-          }
+          this._processIncomingData(data, isFirstLoad);
         }
       } catch (_) {}
     }
@@ -348,12 +445,22 @@
       this.scrollToBottom();
 
       try {
-        await fetch(`${base}/team_messages.json`, {
+        const res = await fetch(`${base}/team_messages.json`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json; charset=utf-8' },
           body: JSON.stringify(msgObj)
         });
+        if (res && res.ok) {
+          const resData = await res.json();
+          if (resData && resData.name) {
+            msgObj.key = resData.name;
+            this._lastSeenMsgKey = resData.name;
+          }
+        }
       } catch (e) {
+        console.warn('Lỗi gửi tin nhắn:', e);
+      }
+    }
         console.warn('Lỗi gửi tin nhắn:', e);
       }
     }
