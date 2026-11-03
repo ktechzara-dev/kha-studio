@@ -461,9 +461,6 @@
         console.warn('Lỗi gửi tin nhắn:', e);
       }
     }
-        console.warn('Lỗi gửi tin nhắn:', e);
-      }
-    }
 
     // =========================================================================
     // MULTIMEDIA: ẢNH HIỆN TRƯỜNG, BỘ ĐÀM THOẠI & CẢNH BÁO SOS
