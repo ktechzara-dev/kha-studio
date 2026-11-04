@@ -743,24 +743,26 @@
       background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 14px;
-      max-width: 900px;
+      max-width: 1050px;
       width: 100%;
-      max-height: 92vh;
+      max-height: 94vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
     .lightbox-img-wrap {
-      max-height: 65vh;
+      max-height: 72vh;
+      min-height: 280px;
       background: #050505;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      padding: 10px;
     }
     .lightbox-img-wrap img {
       max-width: 100%;
-      max-height: 65vh;
+      max-height: 70vh;
       object-fit: contain;
     }
     .lightbox-info {
@@ -1545,6 +1547,7 @@
           <div id="lightbox-desc" style="color:var(--text-muted); font-size:12px; margin-top:2px;"></div>
         </div>
         <div style="display:flex; gap:8px;">
+          <button class="btn" type="button" onclick="rotateLightbox()" title="Xoay ảnh 90°">↻ Xoay Ảnh</button>
           <a id="lightbox-download" class="btn" href="" download target="_blank">Tải Về</a>
           <button class="btn primary" onclick="closeLightbox()">Đóng</button>
         </div>
@@ -2982,16 +2985,34 @@
       showToast('✓ Đã tải file CSV UTF-8 báo cáo!');
     }
 
+    let currentLightboxRotation = 0;
     function openLightbox(url, title, desc) {
-      document.getElementById('lightbox-img').src = url;
+      currentLightboxRotation = 0;
+      const img = document.getElementById('lightbox-img');
+      if (img) {
+        img.style.transform = 'none';
+        img.src = url;
+      }
       document.getElementById('lightbox-title').textContent = title;
       document.getElementById('lightbox-desc').textContent = desc;
       document.getElementById('lightbox-download').href = url;
       document.getElementById('lightbox-modal').classList.add('active');
     }
 
+    function rotateLightbox() {
+      currentLightboxRotation = (currentLightboxRotation + 90) % 360;
+      const img = document.getElementById('lightbox-img');
+      if (img) {
+        img.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+        img.style.transform = `rotate(${currentLightboxRotation}deg)`;
+      }
+    }
+
     function closeLightbox() {
       document.getElementById('lightbox-modal').classList.remove('active');
+      const img = document.getElementById('lightbox-img');
+      if (img) img.style.transform = 'none';
+      currentLightboxRotation = 0;
     }
 
     function sendNative(cmd, payload = {}) {

@@ -454,9 +454,28 @@
 
         <!-- BẢN XEM TRƯỚC TIMEMARK -->
         <div id="timemark-preview-section" style="display:none; margin-top:16px;">
-          <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:6px;">✓ Bản xem trước ảnh đóng dấu Timemark:</div>
-          <img id="timemark-preview-img" src="" alt="Timemark Preview">
-          <button class="btn btn-approve" id="btn-save-to-project" onclick="uploadPhotoToProjectFolder()" style="margin-top:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-size:12px; font-weight:700; color:var(--accent);">✓ Bản xem trước ảnh đóng dấu:</div>
+            <button type="button" class="btn btn-outline" onclick="rotateCapturedImage()" style="padding:4px 10px; font-size:11px; display:inline-flex; align-items:center; gap:5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <span>↻ Xoay 90°</span>
+            </button>
+          </div>
+
+          <div style="position:relative; border-radius:8px; overflow:hidden; border:1px solid var(--border); background:#020617; text-align:center;">
+            <img id="timemark-preview-img" src="" alt="Timemark Preview" style="width:100%; display:block; object-fit:contain; max-height:480px; margin:0 auto;">
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:6px; border:1px solid var(--border); margin-top:10px;">
+            <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Vị trí tem đóng dấu:</span>
+            <select id="cam-watermark-pos" onchange="renderTimemarkWatermark()" style="background:#090d16; color:#38bdf8; border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-size:11px; font-weight:600;">
+              <option value="bottom-left" selected>Góc dưới trái (Gọn gàng, không che ảnh)</option>
+              <option value="bottom-right">Góc dưới phải (Gọn gàng)</option>
+              <option value="classic-bottom">Dải băng đáy ảnh</option>
+            </select>
+          </div>
+
+          <button class="btn btn-approve" id="btn-save-to-project" onclick="uploadPhotoToProjectFolder()" style="margin-top:12px; width:100%;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             <span>Lưu Vào Folder Dự Án Trên Máy Tính</span>
           </button>
@@ -1281,58 +1300,116 @@
       input.click();
     }
 
+    // ==========================================
+    // 4. CHỨC NĂNG CHỤP ẢNH CÓ TIMEMARK
+    // ==========================================
+    let currentRawCapturedSource = null;
+    let currentManualRotation = 0; // 0, 90, 180, 270
+
     // Nhận ảnh từ Android Native Camera Bridge
-    window.handleNativePhotoCaptured = function(base64Data) {
+    window.handleNativePhotoCaptured = async function(base64Data) {
       if (!base64Data) return;
-      showToast('Đang xử lý & đóng dấu Timemark…');
-      const img = new Image();
-      img.onload = function() {
-        applyTimemarkWatermark(img);
-      };
-      img.src = base64Data;
+      currentRawCapturedSource = base64Data;
+      currentManualRotation = 0;
+      showToast('Đang tạo tem Timemark hiện trường…');
+      await renderTimemarkWatermark();
     };
 
-    function handleImageCaptured(event) {
+    async function handleImageCaptured(event) {
       const file = event.target.files?.[0];
       if (!file) return;
-
-      showToast('Đang xử lý & đóng dấu Timemark…');
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          applyTimemarkWatermark(img);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
+      currentRawCapturedSource = file;
+      currentManualRotation = 0;
+      showToast('Đang tạo tem Timemark hiện trường…');
+      await renderTimemarkWatermark();
     }
 
-    function applyTimemarkWatermark(img) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+    async function rotateCapturedImage() {
+      if (!currentRawCapturedSource) {
+        showToast('Chưa có ảnh để xoay');
+        return;
+      }
+      currentManualRotation = (currentManualRotation + 90) % 360;
+      await renderTimemarkWatermark();
+      showToast(`Đã xoay ảnh ${currentManualRotation}°`);
+    }
 
-      // Giới hạn max width/height 1600px để ảnh sắc nét nhưng dung lượng nhẹ
-      const maxDim = 1600;
-      let w = img.width;
-      let h = img.height;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) {
-          h = Math.round((h * maxDim) / w);
-          w = maxDim;
-        } else {
-          w = Math.round((w * maxDim) / h);
-          h = maxDim;
+    async function loadOrientedSource(source) {
+      let blob = source;
+      if (typeof source === 'string' && source.startsWith('data:')) {
+        try {
+          const res = await fetch(source);
+          blob = await res.blob();
+        } catch (e) {
+          blob = null;
         }
       }
 
-      canvas.width = w;
-      canvas.height = h;
+      // Tự động nhận diện hướng EXIF (từ máy ảnh/thư viện) nếu trình duyệt hỗ trợ
+      if (typeof createImageBitmap === 'function' && blob instanceof Blob) {
+        try {
+          const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+          return bitmap;
+        } catch (e) {
+          console.warn('createImageBitmap failed, fallback to Image()', e);
+        }
+      }
 
-      // 1. Vẽ ảnh gốc
-      ctx.drawImage(img, 0, 0, w, h);
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        if (typeof source === 'string') {
+          img.src = source;
+        } else {
+          img.src = URL.createObjectURL(source);
+        }
+      });
+    }
 
-      // Thông tin đóng dấu
+    async function renderTimemarkWatermark() {
+      if (!currentRawCapturedSource) return;
+
+      let imgObj;
+      try {
+        imgObj = await loadOrientedSource(currentRawCapturedSource);
+      } catch (err) {
+        console.error('Lỗi đọc ảnh:', err);
+        showToast('Không thể đọc file ảnh');
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // 1. Kích thước & Tỷ lệ chuẩn (giới hạn max 1600px nhưng giữ nguyên tỷ lệ dọc/ngang)
+      const maxDim = 1600;
+      let rawW = imgObj.width;
+      let rawH = imgObj.height;
+
+      let scale = 1;
+      if (rawW > maxDim || rawH > maxDim) {
+        scale = Math.min(maxDim / rawW, maxDim / rawH);
+      }
+      const drawW = Math.round(rawW * scale);
+      const drawH = Math.round(rawH * scale);
+
+      // Nếu người dùng xoay 90° hoặc 270°, đảo chiều rộng và chiều cao của Canvas
+      const isSwapped = (currentManualRotation === 90 || currentManualRotation === 270);
+      const canvasW = isSwapped ? drawH : drawW;
+      const canvasH = isSwapped ? drawW : drawH;
+
+      canvas.width = canvasW;
+      canvas.height = canvasH;
+
+      // 2. Vẽ ảnh gốc (giữ nguyên hình dọc là dọc, hình ngang là ngang)
+      ctx.save();
+      ctx.translate(canvasW / 2, canvasH / 2);
+      ctx.rotate((currentManualRotation * Math.PI) / 180);
+      ctx.drawImage(imgObj, -drawW / 2, -drawH / 2, drawW, drawH);
+      ctx.restore();
+
+      // 3. Chuẩn bị nội dung Timemark
       const projCode = document.getElementById('cam-project-select').value || 'ETEK.PROJECT';
       const selectedProj = projects.find(p => p.code === projCode);
       const projName = selectedProj ? selectedProj.name : 'Dự án K-Core Studio';
@@ -1347,69 +1424,171 @@
       const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
       const locStr = selectedProj?.location || 'Công trường / Nhà máy';
 
-      // 2. VẼ HEADER BANNER TRÊN ĐỈNH ẢNH
-      const topBarH = Math.max(50, Math.round(h * 0.065));
-      ctx.fillStyle = 'rgba(9, 9, 11, 0.85)';
-      ctx.fillRect(0, 0, w, topBarH);
+      const watermarkPos = document.getElementById('cam-watermark-pos')?.value || 'bottom-left';
 
-      // Viền dải băng
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = Math.max(2, Math.round(w * 0.002));
-      ctx.beginPath();
-      ctx.moveTo(0, topBarH);
-      ctx.lineTo(w, topBarH);
-      ctx.stroke();
+      // ========================================================
+      // KIỂU 1: THẺ GÓC GỌN GÀNG (BOTTOM-LEFT / BOTTOM-RIGHT)
+      // KHÔNG CÓ THANH ĐEN TRÊN ĐẦU, KHÔNG CHE KHUẤT MÁY MÓC/HIỆN TRƯỜNG
+      // ========================================================
+      if (watermarkPos === 'bottom-left' || watermarkPos === 'bottom-right') {
+        const isLandscape = canvasW >= canvasH;
 
-      // Logo + Text Header
-      const headerFontSize = Math.max(16, Math.round(topBarH * 0.42));
-      ctx.font = `bold ${headerFontSize}px sans-serif`;
-      ctx.fillStyle = '#38bdf8';
-      ctx.fillText(`K-CORE STUDIO · [${projCode}]`, 20, Math.round(topBarH * 0.65));
+        // Font size & line height tính toán tỷ lệ theo độ phân giải ảnh
+        const baseFontSize = Math.max(12, Math.min(22, Math.round(canvasW * 0.016)));
+        const titleFontSize = Math.round(baseFontSize * 1.15);
+        const lineH = Math.round(baseFontSize * 1.55);
+        const cardPadX = Math.round(baseFontSize * 1.1);
+        const cardPadY = Math.round(baseFontSize * 0.9);
+        const margin = Math.max(14, Math.round(canvasW * 0.018));
+        const maxCardW = Math.round(canvasW * (isLandscape ? 0.58 : 0.85));
 
-      ctx.font = `normal ${Math.round(headerFontSize * 0.85)}px sans-serif`;
-      ctx.fillStyle = '#f8fafc';
-      const titleOffset = ctx.measureText(`K-CORE STUDIO · [${projCode}]  `).width + 25;
-      if (w > 600) {
-        ctx.fillText(`| ${projName}`, titleOffset, Math.round(topBarH * 0.65));
+        // Rút gọn text nếu quá dài để không tràn thẻ
+        function truncateText(text, maxW, fontStyle) {
+          ctx.font = fontStyle;
+          if (ctx.measureText(text).width <= maxW) return text;
+          let truncated = text;
+          while (truncated.length > 4 && ctx.measureText(truncated + '…').width > maxW) {
+            truncated = truncated.slice(0, -1);
+          }
+          return truncated + '…';
+        }
+
+        const textMaxW = maxCardW - (cardPadX * 2) - 16;
+        const line1 = `🕒 THỜI GIAN: ${timeStr}`;
+        const line2 = truncateText(`📁 [${projCode}] ${projName ? '· ' + projName : ''}`, textMaxW, `bold ${baseFontSize}px sans-serif`);
+        const line3 = truncateText(`📍 ĐỊA ĐIỂM: ${locStr}`, textMaxW, `normal ${baseFontSize}px sans-serif`);
+        const line4 = truncateText(`🛠️ ${stage} · ${rolePrefix}: ${engineerName}`, textMaxW, `normal ${baseFontSize}px sans-serif`);
+
+        const linesToDraw = [
+          { text: line1, font: `bold ${titleFontSize}px monospace`, color: '#38bdf8' },
+          { text: line2, font: `bold ${baseFontSize}px sans-serif`, color: '#f8fafc' },
+          { text: line3, font: `normal ${baseFontSize}px sans-serif`, color: '#e2e8f0' },
+          { text: line4, font: `normal ${baseFontSize}px sans-serif`, color: '#bae6fd' }
+        ];
+
+        if (note) {
+          const line5 = truncateText(`💬 GHI CHÚ: ${note}`, textMaxW, `bold ${baseFontSize}px sans-serif`);
+          linesToDraw.push({ text: line5, font: `bold ${baseFontSize}px sans-serif`, color: '#fde047' });
+        }
+
+        // Đo chiều rộng thẻ thực tế dựa trên nội dung dài nhất
+        let widestLine = 0;
+        linesToDraw.forEach(item => {
+          ctx.font = item.font;
+          const w = ctx.measureText(item.text).width;
+          if (w > widestLine) widestLine = w;
+        });
+
+        const cardW = Math.min(maxCardW, Math.round(widestLine + (cardPadX * 2) + 12));
+        const cardH = (linesToDraw.length * lineH) + (cardPadY * 2);
+
+        // Tọa độ góc
+        let cardX = margin;
+        if (watermarkPos === 'bottom-right') {
+          cardX = canvasW - cardW - margin;
+        }
+        const cardY = canvasH - cardH - margin;
+
+        // Vẽ thẻ nền kính mờ cao cấp (Glassmorphism), bo góc
+        ctx.save();
+        const radius = Math.min(12, Math.round(baseFontSize * 0.7));
+
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(cardX, cardY, cardW, cardH, radius);
+        } else {
+          ctx.moveTo(cardX + radius, cardY);
+          ctx.lineTo(cardX + cardW - radius, cardY);
+          ctx.arcTo(cardX + cardW, cardY, cardX + cardW, cardY + radius, radius);
+          ctx.lineTo(cardX + cardW, cardY + cardH - radius);
+          ctx.arcTo(cardX + cardW, cardY + cardH, cardX + cardW - radius, cardY + cardH, radius);
+          ctx.lineTo(cardX + radius, cardY + cardH);
+          ctx.arcTo(cardX, cardY + cardH, cardX, cardY + cardH - radius, radius);
+          ctx.lineTo(cardX, cardY + radius);
+          ctx.arcTo(cardX, cardY, cardX + radius, cardY, radius);
+          ctx.closePath();
+        }
+
+        // Nền đen bán trong suốt (75% opacity) - vừa đọc chữ siêu nét, vừa không che mất chi tiết phía sau
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+        ctx.fill();
+
+        // Viền xanh công nghệ tinh tế
+        ctx.lineWidth = Math.max(1.5, Math.round(canvasW * 0.0015));
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+        ctx.stroke();
+
+        // Dải line chỉ thị xanh cyan bên mép thẻ
+        ctx.fillStyle = '#38bdf8';
+        const indicatorW = Math.max(3, Math.round(baseFontSize * 0.25));
+        ctx.fillRect(cardX + 2, cardY + radius, indicatorW, cardH - (radius * 2));
+
+        // Vẽ text với bóng đổ sắc nét
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
+        linesToDraw.forEach((item, idx) => {
+          ctx.font = item.font;
+          ctx.fillStyle = item.color;
+          const textX = cardX + cardPadX + indicatorW + 4;
+          const textY = cardY + cardPadY + (idx * lineH) + (baseFontSize * 0.85);
+          ctx.fillText(item.text, textX, textY);
+        });
+
+        // Watermark thương hiệu cực nhỏ ở góc trên phải (không che ảnh)
+        const brandFontSize = Math.max(10, Math.round(baseFontSize * 0.7));
+        ctx.font = `bold ${brandFontSize}px sans-serif`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 3;
+        const brandText = 'K-CORE STUDIO';
+        const brandW = ctx.measureText(brandText).width;
+        ctx.fillText(brandText, canvasW - brandW - margin, margin + brandFontSize);
+
+        ctx.restore();
+      } else {
+        // KIỂU 2: DẢI BĂNG Ở ĐÁY (Đã gỡ bỏ hoàn toàn thanh che đỉnh)
+        const baseFontSize = Math.max(12, Math.min(20, Math.round(canvasW * 0.015)));
+        const lineH = Math.round(baseFontSize * 1.55);
+        const boxPad = 14;
+        const lines = [
+          `🕒 THỜI GIAN: ${timeStr}`,
+          `📁 DỰ ÁN: [${projCode}] ${projName}`,
+          `📍 ĐỊA ĐIỂM: ${locStr}`,
+          `🏷️ HẠNG MỤC: ${stage} · ${rolePrefix}: ${engineerName}`,
+        ];
+        if (note) lines.push(`💬 GHI CHÚ: ${note}`);
+
+        const boxH = (lines.length * lineH) + (boxPad * 2);
+        const boxY = canvasH - boxH;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+        ctx.fillRect(0, boxY, canvasW, boxH);
+
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, boxY);
+        ctx.lineTo(canvasW, boxY);
+        ctx.stroke();
+
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
+        lines.forEach((line, idx) => {
+          ctx.font = idx === 0 ? `bold ${Math.round(baseFontSize * 1.1)}px monospace` : `bold ${baseFontSize}px sans-serif`;
+          ctx.fillStyle = idx === 0 ? '#38bdf8' : (idx === lines.length - 1 && note ? '#fde047' : '#f8fafc');
+          const textY = boxY + boxPad + (idx * lineH) + (baseFontSize * 0.85);
+          ctx.fillText(line, 20, textY);
+        });
       }
 
-      // 3. VẼ FOOTER BOX Ở CHÂN ẢNH
-      const lines = [
-        `🕒 THỜI GIAN: ${timeStr}`,
-        `${rolePrefix}: ${engineerName} (@${uname})`,
-        `📍 ĐỊA ĐIỂM: ${locStr}`,
-        `🏷️ HẠNG MỤC: ${stage}`,
-      ];
-      if (note) lines.push(`💬 GHI CHÚ: ${note}`);
-
-      const lineH = Math.max(22, Math.round(h * 0.026));
-      const boxPad = 16;
-      const boxH = (lines.length * lineH) + (boxPad * 2);
-      const boxY = h - boxH;
-
-      ctx.fillStyle = 'rgba(9, 9, 11, 0.88)';
-      ctx.fillRect(0, boxY, w, boxH);
-
-      // Viền chân
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, boxY);
-      ctx.lineTo(w, boxY);
-      ctx.stroke();
-
-      // Vẽ từng dòng thông tin
-      const infoFontSize = Math.max(14, Math.round(lineH * 0.72));
-      ctx.font = `bold ${infoFontSize}px monospace`;
-
-      lines.forEach((line, idx) => {
-        const textY = boxY + boxPad + (idx * lineH) + (infoFontSize * 0.8);
-        ctx.fillStyle = idx === 0 ? '#38bdf8' : (idx === lines.length - 1 && note ? '#fbbf24' : '#f8fafc');
-        ctx.fillText(line, 20, textY);
-      });
-
-      // Xuất Base64 JPEG chất lượng 85%
-      currentProcessedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+      // Xuất Base64 JPEG chất lượng 88%
+      currentProcessedBase64 = canvas.toDataURL('image/jpeg', 0.88);
 
       // Hiển thị Preview
       const previewImg = document.getElementById('timemark-preview-img');
@@ -1419,6 +1598,9 @@
 
       showToast('✓ Đã đóng dấu Timemark thành công!');
     }
+
+    // Alias tương thích ngược nếu có chỗ khác gọi
+    window.applyTimemarkWatermark = renderTimemarkWatermark;
 
     async function uploadPhotoToProjectFolder() {
       if (!currentProcessedBase64) {

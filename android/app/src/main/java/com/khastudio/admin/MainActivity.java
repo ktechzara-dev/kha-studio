@@ -5,12 +5,15 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
@@ -351,20 +354,39 @@ public class MainActivity extends AppCompatActivity {
         } else if (requestCode == CAMERA_DIRECT_REQUEST_CODE) {
             if (resultCode == RESULT_OK && cameraPhotoUri != null) {
                 try {
+                    // Đọc hướng xoay EXIF để ảnh chụp dọc giữ nguyên dọc, ảnh ngang giữ nguyên ngang
+                    int rotationDegrees = getExifOrientation(cameraPhotoUri);
+
                     InputStream inputStream = getContentResolver().openInputStream(cameraPhotoUri);
                     Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
                     if (inputStream != null) inputStream.close();
                     if (bitmap != null) {
+                        // Tự động xoay Bitmap đúng theo chiều cầm máy chụp thực tế
+                        if (rotationDegrees != 0) {
+                            Matrix matrix = new Matrix();
+                            matrix.postRotate(rotationDegrees);
+                            Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+                            if (rotated != bitmap) {
+                                bitmap.recycle();
+                                bitmap = rotated;
+                            }
+                        }
+
                         int maxDim = 1600;
                         int w = bitmap.getWidth();
                         int h = bitmap.getHeight();
                         if (w > maxDim || h > maxDim) {
                             float ratio = Math.min((float) maxDim / w, (float) maxDim / h);
-                            bitmap = Bitmap.createScaledBitmap(bitmap, Math.round(w * ratio), Math.round(h * ratio), true);
+                            Bitmap scaled = Bitmap.createScaledBitmap(bitmap, Math.round(w * ratio), Math.round(h * ratio), true);
+                            if (scaled != bitmap) {
+                                bitmap.recycle();
+                                bitmap = scaled;
+                            }
                         }
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
                         bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
                         byte[] imageBytes = baos.toByteArray();
+                        bitmap.recycle();
                         String base64Image = "data:image/jpeg;base64," + Base64.encodeToString(imageBytes, Base64.NO_WRAP);
 
                         webView.post(() -> {
@@ -378,7 +400,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
+    private int getExifOrientation(Uri uri) {
+        if (uri == null) return 0;
+        try (InputStream stream = getContentResolver().openInputStream(uri)) {
+            if (stream == null) return 0;
+            ExifInterface exif = new ExifInterface(stream);
+            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    return 90;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    return 180;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    return 270;
+                default:
+                    return 0;
+            }
+        } catch (Exception e) {
+            Log.w("MainActivity", "Không đọc được EXIF orientation: " + e.getMessage());
+            return 0;
+        }
+    }
+
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 1001) {
