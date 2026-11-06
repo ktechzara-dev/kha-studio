@@ -539,6 +539,22 @@ public class LanWebServer
                     return;
                 }
 
+                // 1h. API: /api/projects/browse-folder (Mở hộp thoại chọn thư mục đĩa trên Windows)
+                if (cleanPath == "/api/projects/browse-folder" && method == "POST")
+                {
+                    var res = BrowseProjectFolder(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
+                // 1i. API: /api/projects/save-file-json (Lưu file JSON cấu hình dự án ra đĩa)
+                if (cleanPath == "/api/projects/save-file-json" && method == "POST")
+                {
+                    var res = SaveProjectFileJson(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
                 // 2. API: /api/work_plans (Kế hoạch công việc bảo trì & kiểm tra)
                 if (cleanPath == "/api/work_plans")
                 {
@@ -1455,6 +1471,114 @@ public class LanWebServer
         {
             return $"{{\"status\":\"error\",\"message\":\"{ex.Message}\"}}";
         }
+    }
+
+    private string BrowseProjectFolder(string body)
+    {
+        string? selectedDir = null;
+        string? matchedJson = null;
+        string? jsonContent = null;
+        string? jsonPath = null;
+        string targetCode = "";
+        string title = "Chọn thư mục dự án";
+
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                var node = JsonNode.Parse(body) as JsonObject;
+                targetCode = node?["code"]?.ToString()?.Trim() ?? "";
+                title = node?["title"]?.ToString()?.Trim() ?? "Chọn thư mục dự án";
+            }
+        }
+        catch { }
+
+        try
+        {
+            System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
+            {
+                try
+                {
+                    var dlg = new Microsoft.Win32.OpenFolderDialog
+                    {
+                        Title = string.IsNullOrWhiteSpace(title) ? "Chọn thư mục dự án" : title
+                    };
+                    var win = System.Windows.Application.Current.MainWindow;
+                    if (dlg.ShowDialog(win) == true)
+                    {
+                        selectedDir = dlg.FolderName;
+                    }
+                }
+                catch { }
+            });
+        }
+        catch { }
+
+        if (!string.IsNullOrWhiteSpace(selectedDir) && Directory.Exists(selectedDir))
+        {
+            try
+            {
+                var jsonFiles = Directory.GetFiles(selectedDir, "*.json", SearchOption.TopDirectoryOnly);
+                if (!string.IsNullOrWhiteSpace(targetCode))
+                {
+                    matchedJson = jsonFiles.FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(targetCode, StringComparison.OrdinalIgnoreCase));
+                }
+                if (matchedJson == null)
+                {
+                    matchedJson = jsonFiles.FirstOrDefault(f => Path.GetFileName(f).Equals("_AUTOMATION_APP.json", StringComparison.OrdinalIgnoreCase)
+                                                             || Path.GetFileName(f).Equals("_PROJECT_INFO.json", StringComparison.OrdinalIgnoreCase)
+                                                             || Path.GetFileName(f).Equals("project.json", StringComparison.OrdinalIgnoreCase));
+                }
+                if (matchedJson == null && jsonFiles.Length > 0)
+                {
+                    matchedJson = jsonFiles[0];
+                }
+                if (matchedJson != null && File.Exists(matchedJson))
+                {
+                    jsonPath = matchedJson;
+                    matchedJson = Path.GetFileName(matchedJson);
+                    jsonContent = File.ReadAllText(jsonPath, System.Text.Encoding.UTF8);
+                }
+            }
+            catch { }
+
+            var resObj = new
+            {
+                status = "ok",
+                path = selectedDir,
+                matchedJson = matchedJson,
+                jsonPath = jsonPath,
+                jsonContent = jsonContent
+            };
+            return JsonSerializer.Serialize(resObj);
+        }
+
+        return "{\"status\":\"cancelled\",\"path\":null}";
+    }
+
+    private string SaveProjectFileJson(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body) as JsonObject;
+            var filePath = node?["filePath"]?.ToString()?.Trim() ?? "";
+            var content = node?["content"]?.ToString() ?? "";
+            if (!string.IsNullOrWhiteSpace(filePath) && !string.IsNullOrWhiteSpace(content))
+            {
+                var dir = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                File.WriteAllText(filePath, content, System.Text.Encoding.UTF8);
+                return "{\"status\":\"ok\"}";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"{{\"status\":\"error\",\"message\":{JsonSerializer.Serialize(ex.Message)}}}";
+        }
+        return "{\"status\":\"error\",\"message\":\"Invalid parameters\"}";
     }
 
     private static string GetDefaultProjectsJson()

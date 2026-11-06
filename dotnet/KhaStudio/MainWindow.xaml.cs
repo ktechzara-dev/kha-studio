@@ -587,17 +587,26 @@ public partial class MainWindow : Window
                     {
                         var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
                         var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
-                        var title = root.TryGetProperty("title", out var tElem) ? tElem.GetString() : "Chọn thư mục";
+                        var title = root.TryGetProperty("title", out var tElem) ? tElem.GetString() : "Chọn thư mục dự án";
                         var targetCode = root.TryGetProperty("code", out var cElem) ? cElem.GetString() ?? "" : "";
                         Dispatcher.Invoke(() =>
                         {
-                            var dlg = new Microsoft.Win32.OpenFolderDialog
+                            string? selectedDir = null;
+                            try
                             {
-                                Title = string.IsNullOrWhiteSpace(title) ? "Chọn thư mục" : title
-                            };
-                            if (dlg.ShowDialog() == true)
+                                var dlg = new Microsoft.Win32.OpenFolderDialog
+                                {
+                                    Title = string.IsNullOrWhiteSpace(title) ? "Chọn thư mục dự án" : title
+                                };
+                                if (dlg.ShowDialog(this) == true)
+                                {
+                                    selectedDir = dlg.FolderName;
+                                }
+                            }
+                            catch { }
+
+                            if (!string.IsNullOrWhiteSpace(selectedDir))
                             {
-                                string selectedDir = dlg.FolderName;
                                 string? matchedJson = null;
                                 string? jsonContent = null;
                                 string? jsonPath = null;

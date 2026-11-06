@@ -127,21 +127,37 @@
   // Native bridge helpers (for Kha Studio WPF WebView2 & Electron)
   function sendNativeMessage(cmd, payload = {}) {
     const msg = { cmd, ...payload };
-    if (window.chrome && window.chrome.webview) {
-      try { window.chrome.webview.postMessage(msg); return true; } catch (_) {}
-    }
-    if (window.parent && window.parent.chrome && window.parent.chrome.webview) {
-      try { window.parent.chrome.webview.postMessage(msg); return true; } catch (_) {}
-    }
+    // 1. Ưu tiên cao nhất: Đang nằm trong iframe của Kha Studio Shell
     if (window.parent && window.parent !== window) {
-      try { window.parent.postMessage(msg, '*'); return true; } catch (_) {}
+      try {
+        window.parent.postMessage(msg, '*');
+        return true;
+      } catch (_) {}
+    }
+    // 2. Chạy trực tiếp qua WebView2 top-level
+    if (window.chrome && window.chrome.webview) {
+      try {
+        window.chrome.webview.postMessage(msg);
+        return true;
+      } catch (_) {}
+    }
+    // 3. Chạy qua Electron
+    if (window.electronAPI && typeof window.electronAPI.postMessage === 'function') {
+      try {
+        window.electronAPI.postMessage(msg);
+        return true;
+      } catch (_) {}
     }
     return false;
   }
 
   const pendingReplies = new Map();
   function onNativeMessage(data) {
-    if (!data || !data.type) return;
+    if (!data) return;
+    if (typeof data === 'string') {
+      try { data = JSON.parse(data); } catch (_) {}
+    }
+    if (typeof data !== 'object' || !data) return;
     if (data.id && pendingReplies.has(data.id)) {
       const resolve = pendingReplies.get(data.id);
       pendingReplies.delete(data.id);
@@ -153,7 +169,7 @@
     try { window.chrome.webview.addEventListener('message', e => onNativeMessage(e.data)); } catch (_) {}
   }
 
-  function requestNative(cmd, payload = {}) {
+  function requestNative(cmd, payload = {}, timeoutMs = 25000) {
     const id = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
     return new Promise(resolve => {
       pendingReplies.set(id, resolve);
@@ -162,7 +178,7 @@
           pendingReplies.delete(id);
           resolve({ timeout: true });
         }
-      }, 30000);
+      }, timeoutMs);
       sendNativeMessage(cmd, { id, ...payload });
     });
   }
@@ -171,10 +187,33 @@
     if (!p) p = project();
     if (!p) return;
     toast('Đang mở hộp thoại chọn thư mục dự án…');
-    const res = await requestNative('dialog.browseFolder', {
-      code: p.code,
-      title: 'Chọn thư mục dự án cho ' + p.code + ' (' + p.name + ')'
-    });
+
+    let res = null;
+    try {
+      res = await requestNative('dialog.browseFolder', {
+        code: p.code,
+        title: 'Chọn thư mục dự án cho ' + p.code + ' (' + p.name + ')'
+      }, 15000);
+    } catch (_) {}
+
+    // HTTP LAN API Fallback nếu native IPC không trả kết quả hoặc timeout
+    if (!res || (!res.path && !res.type && !res.id)) {
+      try {
+        const fetchRes = await fetch('http://127.0.0.1:5055/api/projects/browse-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: p.code,
+            title: 'Chọn thư mục dự án cho ' + p.code + ' (' + p.name + ')'
+          })
+        });
+        if (fetchRes.ok) {
+          const json = await fetchRes.json();
+          if (json && json.path) res = json;
+        }
+      } catch (_) {}
+    }
+
     if (res && res.path) {
       p.rootPath = res.path;
       p.jsonFile = res.matchedJson || (p.code + '.json');
@@ -182,10 +221,19 @@
       
       // Auto-save/sync JSON into that folder
       const jsonFullPath = (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + p.jsonFile);
+      const jsonContent = JSON.stringify(p, null, 2);
       sendNativeMessage('project.save_json', {
         filePath: jsonFullPath,
-        content: JSON.stringify(p, null, 2)
+        content: jsonContent
       });
+      // Fallback LAN server
+      try {
+        fetch('http://127.0.0.1:5055/api/projects/save-file-json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: jsonFullPath, content: jsonContent })
+        }).catch(() => {});
+      } catch (_) {}
       
       save(p, true);
       render();
@@ -193,19 +241,37 @@
     }
   }
 
-  function openFolderOnDisk(p, subPath = '') {
+  async function openFolderOnDisk(p, subPath = '') {
     if (!p) p = project();
     if (!p) return;
     if (!p.rootPath) {
       toast('Dự án chưa liên kết thư mục trên máy. Đang mở hộp thoại chọn thư mục…');
-      pickProjectFolder(p).then(() => {
-        if (p.rootPath) openFolderOnDisk(p, subPath);
-      });
+      await pickProjectFolder(p);
+      if (p.rootPath) {
+        openFolderOnDisk(p, subPath);
+      } else {
+        // Nếu người dùng không chọn hoặc huỷ, mở thư mục dự án mặc định của app
+        sendNativeMessage('project.open_folder', { code: p.code, path: '' });
+        try {
+          fetch('http://127.0.0.1:5055/api/projects/open-folder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: p.code, path: '' })
+          }).catch(() => {});
+        } catch (_) {}
+      }
       return;
     }
     const cleanSub = (subPath || '').replace(/\//g, '\\');
     const fullPath = cleanSub ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + cleanSub) : p.rootPath;
     sendNativeMessage('project.open_folder', { code: p.code, path: fullPath });
+    try {
+      fetch('http://127.0.0.1:5055/api/projects/open-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: p.code, path: fullPath })
+      }).catch(() => {});
+    } catch (_) {}
     toast('Đang mở thư mục: ' + (cleanSub || fullPath));
   }
 
