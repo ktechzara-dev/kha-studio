@@ -39,6 +39,15 @@ const TOOLS = [
     path: 'tools/pallet/index.html', keywords: 'pallet xep hang robot hmi 3d excel',
   },
   {
+    id: 'robot-sim', icon: 'robot', color: ['#EA580C', '#F97316'], cat: 'industry',
+    name: { vi: '3D Robot Palletizer & PLC Digital Twin', en: '3D Robot Palletizer & PLC Digital Twin' },
+    desc: {
+      vi: 'Mô phỏng Digital Twin 3D trạm robot xếp pallet công nghiệp: Cánh tay robot 6 trục, băng chuyền cấp hộp, cảm biến Photo-Eye, lồng rào an toàn và bộ lập trình mô phỏng PLC Ladder Logic thời gian thực.',
+      en: '3D Digital Twin simulation of industrial robotic palletizing cell: 6-Axis articulated robot arm, infeed conveyors, Photo-Eye sensor, safety enclosure and real-time PLC Ladder Logic simulation engine.',
+    },
+    path: 'tools/robot-sim/index.html', keywords: 'robot palletizer 3d digital twin simumatik ladder plc mo phong canh tay robot 6 truc pallet cell simulation demo',
+  },
+  {
     id: 'calculator', icon: 'calculator', color: ['#10B981', '#06B6D4'], cat: 'industry',
     name: { vi: 'Industrial Calculator Pro', en: 'Industrial Calculator Pro' },
     desc: {

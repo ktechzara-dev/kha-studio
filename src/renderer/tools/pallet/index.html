@@ -252,6 +252,9 @@
         <button class="btn-purple" onclick="export3DPNG(true)">📷 Xuất 3D PNG</button>
       </div>
       <button class="btn-excel" style="margin-top:2px;" onclick="exportFullExcelReport()">📊 Báo Cáo Excel Đầy Đủ</button>
+      <button type="button" style="margin-top:6px; background:linear-gradient(135deg, #ea580c, #f97316); color:#fff; font-weight:700; border:none; padding:8px; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; width:100%; box-shadow:0 2px 8px rgba(234,88,12,0.35);" onclick="openRobotSimTool()">
+        🤖 MÔ PHỎNG 3D ROBOT CELL &amp; PLC
+      </button>
     </div>
   </div>
 
@@ -1398,6 +1401,14 @@
         const buffer = await wb.xlsx.writeBuffer();
         downloadBlob(new Blob([buffer]), `Pallet_Spec_${model.replace(/\s+/g, '_')}.xlsx`);
       };
+    }
+
+    function openRobotSimTool() {
+      if (window.parent && window.parent.Shell && typeof window.parent.Shell.openTool === 'function') {
+        window.parent.Shell.openTool('robot-sim');
+      } else {
+        window.open('../robot-sim/index.html', '_blank');
+      }
     }
 
     init3D();

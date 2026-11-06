@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Palletizing Demo — 3D Robot & PLC Digital Twin</title>
+  <script src="../../lib/three.min.js"></script>
+  <script src="../../lib/OrbitControls.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0a0e17;
+      --bg-panel: #111827;
+      --bg-panel-alt: #1a2333;
+      --bg-header: #0f172a;
+      --border: #2d3748;
+      --border-light: #3f4d67;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-green-glow: rgba(34, 197, 94, 0.45);
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+      --robot-orange: #ea580c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: var(--bg-dark); color: var(--text-main); overflow: hidden; user-select: none; }
+
+    /* TOP HEADER */
+    #top-bar {
+      height: 44px;
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      gap: 12px;
+      z-index: 30;
+    }
+    .top-left { display: flex; align-items: center; gap: 10px; }
+    .project-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #f8fafc; }
+    .project-title span { color: var(--accent-blue); }
+
+    .sim-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.85);
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .ctrl-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .ctrl-btn:hover { background: #1e293b; color: #fff; }
+    .ctrl-btn.active-play { background: #166534; color: #4ade80; border-color: #22c55e; }
+    .ctrl-btn.active-pause { background: #854d0e; color: #fde047; border-color: #eab308; }
+    .ctrl-btn.active-stop { background: #7f1d1d; color: #f87171; border-color: #ef4444; }
+
+    .speed-select {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #38bdf8;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .top-tools { display: flex; align-items: center; gap: 4px; margin-left: 12px; }
+    .tool-icon-btn {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tool-icon-btn:hover { background: #334155; color: #fff; }
+    .tool-icon-btn.active { background: #0369a1; color: #fff; border-color: var(--accent-blue); }
+
+    .top-right { display: flex; align-items: center; gap: 8px; }
+    .btn-top {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-top:hover { background: #334155; }
+    .btn-top.accent { background: #0284c7; border-color: #38bdf8; color: #fff; }
+
+    /* MAIN WORKSPACE */
+    #main-workspace {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* LEFT PANEL: SCENE HIERARCHY */
+    #left-panel {
+      width: 250px;
+      min-width: 210px;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+    }
+    .panel-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel-alt);
+    }
+    .panel-tab {
+      flex: 1;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-align: center;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .panel-tab.active {
+      color: var(--accent-blue);
+      border-bottom-color: var(--accent-blue);
+      background: var(--bg-panel);
+    }
+    .panel-search {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .search-input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #fff;
+      outline: none;
+    }
+    .search-input:focus { border-color: var(--accent-blue); }
+
+    .tree-view {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0;
+      font-size: 11px;
+    }
+    .tree-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 10px;
+      cursor: pointer;
+      color: #cbd5e1;
+      transition: background 0.1s;
+    }
+    .tree-item:hover { background: rgba(56, 189, 248, 0.08); color: #fff; }
+    .tree-item.selected { background: rgba(56, 189, 248, 0.2); color: var(--accent-blue); font-weight: 700; }
+    .tree-label { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-indent-1 { padding-left: 22px; }
+    .tree-indent-2 { padding-left: 36px; }
+    .tree-indent-3 { padding-left: 48px; }
+    .tree-tag { font-size: 9px; padding: 1px 4px; border-radius: 3px; background: #1e293b; color: #94a3b8; }
+    .tree-eye { color: #64748b; font-size: 11px; cursor: pointer; }
+    .tree-eye:hover { color: #38bdf8; }
+
+    /* CENTER 3D VIEWPORT */
+    #viewport-container {
+      flex: 1;
+      position: relative;
+      background: #050811;
+      overflow: hidden;
+    }
+    #viewport-3d { width: 100%; height: 100%; display: block; }
+
+    /* 3D FLOATING HUD BADGES */
+    .viewport-overlay {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+    .hud-chip {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #cbd5e1;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .hud-chip span.val { color: var(--accent-blue); font-weight: 700; }
+    .hud-chip span.dot-green { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+    .hud-chip span.dot-orange { width: 7px; height: 7px; border-radius: 50%; background: #f97316; box-shadow: 0 0 6px #f97316; }
+
+    /* GIZMO CORNER BADGE */
+    #compass-gizmo {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      width: 70px;
+      height: 70px;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    /* RIGHT PANEL: INSPECTOR */
+    #right-panel {
+      width: 280px;
+      min-width: 250px;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      z-index: 20;
+    }
+    .inspector-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel-alt);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .inspector-title { font-size: 12px; font-weight: 700; color: #f8fafc; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .inspector-sec {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+    }
+    .sec-caption {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .prop-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 11px;
+    }
+    .prop-label { color: var(--text-muted); font-size: 11px; }
+    .prop-val-group { display: flex; gap: 4px; }
+    .axis-input {
+      width: 58px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: #fff;
+      font-size: 11px;
+      font-family: monospace;
+      padding: 3px 6px;
+      border-radius: 4px;
+      text-align: right;
+    }
+    .axis-label { font-size: 10px; font-weight: 700; color: #64748b; margin-right: 2px; }
+
+    /* JOBS LIST */
+    .job-card {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 6px 8px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .job-card.running { border-color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+    .job-badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .job-badge.running { background: #0284c7; color: #fff; animation: pulse 1.5s infinite; }
+    .job-badge.idle { background: #334155; color: #94a3b8; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* WAYPOINTS */
+    .waypoint-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      padding: 3px 6px;
+      border-radius: 3px;
+      margin-bottom: 2px;
+      cursor: pointer;
+    }
+    .waypoint-item:hover { background: #1e293b; color: #38bdf8; }
+    .waypoint-item.active { background: #0369a1; color: #fff; font-weight: 600; }
+
+    .btn-action-small {
+      width: 100%;
+      background: #1e293b;
+      border: 1px dashed var(--border-light);
+      color: var(--accent-blue);
+      padding: 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: all 0.15s;
+    }
+    .btn-action-small:hover { background: #334155; border-color: var(--accent-blue); }
+
+    /* BOTTOM PANEL: PLC LADDER LOGIC */
+    #bottom-panel {
+      height: 270px;
+      min-height: 180px;
+      max-height: 480px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 25;
+      transition: height 0.2s ease;
+    }
+    .plc-header {
+      height: 38px;
+      background: var(--bg-panel-alt);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+    }
+    .plc-tabs { display: flex; gap: 2px; height: 100%; }
+    .plc-tab-btn {
+      padding: 0 14px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .plc-tab-btn:hover { color: #fff; }
+    .plc-tab-btn.active { color: var(--accent-green); border-bottom-color: var(--accent-green); background: var(--bg-panel); }
+
+    .plc-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #0f172a;
+      border-bottom: 1px solid var(--border);
+      padding: 4px 10px;
+      overflow-x: auto;
+    }
+    .ladder-cmd-btn {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .ladder-cmd-btn:hover { background: #334155; color: #fff; border-color: var(--accent-blue); }
+    .ladder-cmd-btn.special { background: #064e3b; color: #4ade80; border-color: #059669; }
+
+    .plc-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* PLC SUBTREE LEFT */
+    .plc-tree {
+      width: 220px;
+      min-width: 180px;
+      border-right: 1px solid var(--border);
+      background: #0d131f;
+      overflow-y: auto;
+      padding: 6px 0;
+      font-size: 11px;
+    }
+    .plc-tree-node {
+      padding: 4px 10px;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .plc-tree-node:hover { background: #1e293b; color: #fff; }
+    .plc-tree-node.active { background: rgba(34, 197, 94, 0.15); color: #4ade80; font-weight: 700; }
+
+    /* LADDER CANVAS */
+    .ladder-viewport {
+      flex: 1;
+      background: #080c14;
+      overflow-y: auto;
+      overflow-x: auto;
+      padding: 12px 18px;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    /* LADDER RUNG CARD */
+    .ladder-rung {
+      margin-bottom: 14px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 8px 12px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .ladder-rung.powered {
+      border-color: rgba(34, 197, 94, 0.4);
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.15);
+    }
+    .rung-num {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+    }
+    .rung-desc {
+      font-size: 10px;
+      color: #64748b;
+      font-style: italic;
+      margin-left: 24px;
+      margin-bottom: 6px;
+    }
+    .rung-diagram {
+      display: flex;
+      align-items: center;
+      position: relative;
+      padding: 8px 0 8px 24px;
+      overflow-x: auto;
+    }
+
+    /* POWER RAILS */
+    .rail-left, .rail-right {
+      width: 4px;
+      height: 48px;
+      background: #475569;
+      border-radius: 2px;
+    }
+    .rail-left.powered { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .rail-right { margin-left: auto; }
+
+    /* WIRE LINE */
+    .ladder-wire {
+      height: 2px;
+      background: #475569;
+      flex-grow: 1;
+      min-width: 14px;
+      transition: background 0.15s;
+    }
+    .ladder-wire.active { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+
+    /* LADDER ELEMENTS */
+    .ladder-el {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 4px;
+      cursor: pointer;
+      position: relative;
+    }
+    .ladder-tag-name {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-bottom: 2px;
+    }
+    .ladder-tag-comment {
+      font-size: 9px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .ladder-symbol {
+      font-size: 14px;
+      font-weight: 900;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: #e2e8f0;
+      min-width: 36px;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .ladder-el.active .ladder-symbol {
+      background: #052e16;
+      border-color: #22c55e;
+      color: #4ade80;
+      box-shadow: 0 0 8px var(--accent-green-glow);
+    }
+    .ladder-el.active .ladder-tag-name { color: #4ade80; }
+
+    /* FUNCTION BLOCK DISPLAY */
+    .ladder-block {
+      background: #0f172a;
+      border: 1.5px solid #334155;
+      border-radius: 5px;
+      padding: 6px 12px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 130px;
+    }
+    .ladder-block.active { border-color: #22c55e; box-shadow: 0 0 8px var(--accent-green-glow); }
+    .ladder-block-header { font-weight: 800; color: #38bdf8; font-size: 11px; border-bottom: 1px solid #1e293b; padding-bottom: 3px; }
+    .ladder-block-row { display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; }
+    .ladder-block-row span.val { color: #22c55e; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header id="top-bar">
+    <div class="top-left">
+      <div class="project-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+        <span>Palletizing Demo</span> &middot; Robot 6 Trục &amp; PLC Digital Twin
+      </div>
+
+      <div class="sim-controls">
+        <button class="ctrl-btn active-play" id="btn-play" onclick="simPlay()" title="Chạy mô phỏng (Play)">▶</button>
+        <button class="ctrl-btn" id="btn-pause" onclick="simPause()" title="Tạm dừng (Pause)">⏸</button>
+        <button class="ctrl-btn" id="btn-stop" onclick="simStop()" title="Reset về vị trí ban đầu (Stop)">⏹</button>
+        <select class="speed-select" id="sim-speed" onchange="setSimSpeed(this.value)">
+          <option value="1">1x Speed</option>
+          <option value="2">2x Tốc độ</option>
+          <option value="4">4x Tốc độ</option>
+        </select>
+      </div>
+
+      <div class="top-tools">
+        <button class="tool-icon-btn active" id="tool-select" onclick="setGizmoMode('select')" title="Chọn vật thể">👆 Chọn</button>
+        <button class="tool-icon-btn" id="tool-orbit" onclick="resetCamera('orbit')" title="Góc nhìn phối cảnh 3D">🎥 Phối cảnh</button>
+        <button class="tool-icon-btn" id="tool-top" onclick="resetCamera('top')" title="Nhìn từ trên xuống">📐 Top</button>
+        <button class="tool-icon-btn" id="tool-side" onclick="resetCamera('side')" title="Nhìn ngang mặt bên">📊 Side</button>
+      </div>
+    </div>
+
+    <div class="top-right">
+      <button class="btn-top" onclick="spawnNewBox()">📦 Thêm Kiện Hàng</button>
+      <button class="btn-top" onclick="toggleSafetyGate()" id="btn-safety-gate">🚧 Cửa An Toàn: ĐÓNG</button>
+      <button class="btn-top accent" onclick="triggerEStop()" id="btn-estop" style="background:#dc2626; border-color:#f87171;">🚨 E-STOP</button>
+      <button class="btn-top" onclick="toggleFullscreen()" title="Toàn màn hình">⛶</button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <div id="main-workspace">
+
+    <!-- LEFT PANEL: SCENE HIERARCHY -->
+    <aside id="left-panel">
+      <div class="panel-tabs">
+        <div class="panel-tab active" id="tab-scene" onclick="switchLeftTab('scene')">Scene Tree</div>
+        <div class="panel-tab" id="tab-history" onclick="switchLeftTab('history')">Lịch Sử Lắp</div>
+      </div>
+      <div class="panel-search">
+        <input type="text" class="search-input" id="search-parts" placeholder="Lọc chi tiết (Filter parts)..." oninput="filterParts(this.value)">
+      </div>
+      <div class="tree-view" id="tree-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </aside>
+
+    <!-- CENTER 3D VIEWPORT -->
+    <main id="viewport-container">
+      <canvas id="viewport-3d"></canvas>
+
+      <!-- FLOATING HUD OVERLAY -->
+      <div class="viewport-overlay">
+        <div class="hud-chip">
+          <span class="dot-green" id="hud-sim-dot"></span>
+          <span>TRẠNG THÁI CELL:</span>
+          <span class="val" id="hud-cell-state">RUNNING</span>
+        </div>
+        <div class="hud-chip">
+          <span>📦 HỘP ĐÃ XẾP:</span>
+          <span class="val" id="hud-box-count">0 / 16 Kiện</span>
+        </div>
+        <div class="hud-chip">
+          <span>🪵 PALLET HIỆN TẠI:</span>
+          <span class="val" id="hud-pallet-count">Pallet #1 (Layer 1)</span>
+        </div>
+        <div class="hud-chip">
+          <span>👁️ SENSOR PE-01:</span>
+          <span class="val" id="hud-sensor-state">WAITING</span>
+        </div>
+      </div>
+
+      <!-- COMPASS GIZMO -->
+      <canvas id="compass-gizmo"></canvas>
+    </main>
+
+    <!-- RIGHT PANEL: INSPECTOR -->
+    <aside id="right-panel">
+      <div class="inspector-header">
+        <div class="inspector-title" id="insp-title">Six-Axis Robot (Palletizer)</div>
+        <input type="checkbox" id="insp-visible" checked onchange="toggleSelectedVisibility(this.checked)" title="Hiển thị">
+      </div>
+
+      <!-- TRANSFORM SECTION -->
+      <div class="inspector-sec">
+        <div class="sec-caption">TRANSFORM VỊ TRÍ (M)</div>
+        <div class="prop-row">
+          <span class="prop-label">Vị trí (m)</span>
+          <div class="prop-val-group">
+            <span class="axis-label">X</span><input class="axis-input" id="insp-pos-x" value="0.00" readonly>
+            <span class="axis-label">Y</span><input class="axis-input" id="insp-pos-y" value="0.00" readonly>
+            <span class="axis-label">Z</span><input class="axis-input" id="insp-pos-z" value="0.00" readonly>
+          </div>
+        </div>
+        <div class="prop-row">
+          <span class="prop-label">Góc xoay (°)</span>
+          <div class="prop-val-group">
+            <span class="axis-label">J1</span><input class="axis-input" id="insp-rot-j1" value="0°" readonly style="color:#38bdf8; font-weight:700;">
+            <span class="axis-label">J2</span><input class="axis-input" id="insp-rot-j2" value="-25°" readonly>
+            <span class="axis-label">J3</span><input class="axis-input" id="insp-rot-j3" value="45°" readonly>
+          </div>
+        </div>
+      </div>
+
+      <!-- JOBS SECTION -->
+      <div class="inspector-sec">
+        <div class="sec-caption">
+          <span>JOBS QUY TRÌNH (4)</span>
+          <span style="color:#22c55e; font-weight:700;">AUTO</span>
+        </div>
+        <div class="job-card" id="job-1">
+          <div>
+            <div style="font-weight:700; color:#f8fafc;">1. Pick from conveyor</div>
+            <div style="color:var(--text-muted); font-size:10px;">5 steps &middot; Hút chân không</div>
+          </div>
+          <span class="job-badge idle" id="job-1-badge">IDLE</span>
+        </div>
+        <div class="job-card running" id="job-2">
+          <div>
+            <div style="font-weight:700; color:#f8fafc;">2. Place Course Layer 1</div>
+            <div style="color:var(--text-muted); font-size:10px;">6 steps &middot; Xếp 8 hộp tầng 1</div>
+          </div>
+          <span class="job-badge running" id="job-2-badge">RUNNING</span>
+        </div>
+        <div class="job-card" id="job-3">
+          <div>
+            <div style="font-weight:700; color:#f8fafc;">3. Place Course Layer 2</div>
+            <div style="color:var(--text-muted); font-size:10px;">6 steps &middot; Xếp xoay chiều 90°</div>
+          </div>
+          <span class="job-badge idle" id="job-3-badge">QUEUED</span>
+        </div>
+        <div class="job-card" id="job-4">
+          <div>
+            <div style="font-weight:700; color:#f8fafc;">4. Complete &amp; Outfeed</div>
+            <div style="color:var(--text-muted); font-size:10px;">4 steps &middot; Bàn xoay xuất pallet</div>
+          </div>
+          <span class="job-badge idle" id="job-4-badge">STANDBY</span>
+        </div>
+        <button class="btn-action-small" onclick="addCustomJob()">+ Thêm Job Tự Động Mới</button>
+      </div>
+
+      <!-- MOTION PARAMETERS -->
+      <div class="inspector-sec">
+        <div class="sec-caption">THÔNG SỐ ĐỘNG HỌC (MOTION)</div>
+        <div class="prop-row">
+          <span class="prop-label">Tốc độ trục (Joint Speed)</span>
+          <span style="font-weight:700; color:#38bdf8;" id="val-speed">120 °/s</span>
+        </div>
+        <input type="range" min="30" max="300" value="120" style="width:100%; accent-color:#38bdf8; margin-bottom:8px;" oninput="updateRobotSpeed(this.value)">
+
+        <div class="prop-row">
+          <span class="prop-label">Gia tốc (Joint Accel)</span>
+          <span style="font-weight:700; color:#38bdf8;">720 °/s²</span>
+        </div>
+
+        <div class="prop-row" style="margin-top:6px;">
+          <span class="prop-label">Đầu hút (Vacuum Gripper)</span>
+          <span class="job-badge" id="insp-vacuum-badge" style="background:#0284c7; color:#fff;">ON (HÚT)</span>
+        </div>
+      </div>
+
+      <!-- WAYPOINTS -->
+      <div class="inspector-sec">
+        <div class="sec-caption">TỌA ĐỘ WAYPOINTS (7)</div>
+        <div class="waypoint-item active" onclick="gotoWaypoint(0)"><span>0: Home (Vị trí chuẩn)</span><span style="color:#22c55e;">✓</span></div>
+        <div class="waypoint-item" onclick="gotoWaypoint(1)"><span>1: Above pick (Chờ gắp)</span><span style="color:#64748b;">•</span></div>
+        <div class="waypoint-item" onclick="gotoWaypoint(2)"><span>2: Pick (Hạ hút hộp)</span><span style="color:#64748b;">•</span></div>
+        <div class="waypoint-item" onclick="gotoWaypoint(3)"><span>3: Above pallet (Chờ đặt)</span><span style="color:#64748b;">•</span></div>
+        <div class="waypoint-item" onclick="gotoWaypoint(4)"><span>4: Course 1 (Xếp tầng 1)</span><span style="color:#64748b;">•</span></div>
+        <div class="waypoint-item" onclick="gotoWaypoint(5)"><span>5: Course 2 (Xếp tầng 2)</span><span style="color:#64748b;">•</span></div>
+        <div class="waypoint-item" onclick="gotoWaypoint(6)"><span>6: Safe Retract (Rút an toàn)</span><span style="color:#64748b;">•</span></div>
+        <button class="btn-action-small" onclick="captureCurrentPose()">📍 Chụp Tọa Độ Hiện Tại (Capture Pose)</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- BOTTOM PANEL: PLC LADDER LOGIC -->
+  <footer id="bottom-panel">
+    <div class="plc-header">
+      <div class="plc-tabs">
+        <button class="plc-tab-btn active" id="btn-tab-ladder" onclick="switchPlcTab('ladder')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16M8 6v12M16 6v12"/></svg>
+          LADDER LOGIC (Palletizer - Variables: 76)
+        </button>
+        <button class="plc-tab-btn" id="btn-tab-io" onclick="switchPlcTab('io')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="2"/><circle cx="15" cy="15" r="2"/></svg>
+          TÍN HIỆU I/O &amp; SENSOR
+        </button>
+        <button class="plc-tab-btn" id="btn-tab-alarms" onclick="switchPlcTab('alarms')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          ALARMS &amp; AN TOÀN CELL
+        </button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:11px; color:#4ade80; font-weight:700;">● PLC RUNNING (Scan: 10ms)</span>
+        <button class="ladder-cmd-btn special" onclick="toggleBitContact('EStop')">⚡ Bấm Nút Contact (Toggle Bit)</button>
+      </div>
+    </div>
+
+    <!-- LADDER INSTRUCTION TOOLBAR -->
+    <div class="plc-toolbar">
+      <button class="ladder-cmd-btn" onclick="addNewRung()">+ Thêm Rung</button>
+      <button class="ladder-cmd-btn" onclick="addBranch()">Branch // (OR)</button>
+      <div style="width:1px; height:18px; background:var(--border); margin:0 4px;"></div>
+      <button class="ladder-cmd-btn" onclick="insertInstruction('NO')" title="Normally Open Contact">| | Thường Mở</button>
+      <button class="ladder-cmd-btn" onclick="insertInstruction('NC')" title="Normally Closed Contact">|/| Thường Đóng</button>
+      <button class="ladder-cmd-btn" onclick="insertInstruction('P')" title="Positive Edge">|P| Sườn Lên</button>
+      <button class="ladder-cmd-btn" onclick="insertInstruction('COIL')" title="Output Coil">( ) Cuộn Hút</button>
+      <button class="ladder-cmd-btn" onclick="insertInstruction('SET')" title="Set Coil">[S] Latch Set</button>
+      <button class="ladder-cmd-btn" onclick="insertInstruction('RST')" title="Reset Coil">[R] Reset</button>
+      <div style="width:1px; height:18px; background:var(--border); margin:0 4px;"></div>
+      <button class="ladder-cmd-btn" onclick="insertInstruction('TON')">⏱️ TON Timer</button>
+      <button class="ladder-cmd-btn" onclick="insertInstruction('CTU')">🔢 CTU Counter</button>
+      <button class="ladder-cmd-btn" onclick="insertInstruction('MUTING')">🛡️ MutingSeq Block</button>
+    </div>
+
+    <!-- PLC BODY -->
+    <div class="plc-body">
+      <!-- PLC SUBTREE -->
+      <div class="plc-tree">
+        <div class="plc-tree-node active"><span>⚙️ Controller: Main [SIM]</span></div>
+        <div class="plc-tree-node" style="padding-left:22px;"><span>⏱️ MainTask (Cyclic 10ms)</span></div>
+        <div class="plc-tree-node active" style="padding-left:34px;"><span>📄 Program: Palletizer</span></div>
+        <div class="plc-tree-node" style="padding-left:46px;"><span>📦 FB: MutingSeq</span></div>
+        <div class="plc-tree-node" style="padding-left:46px;"><span>📦 FB: PalletTracker</span></div>
+        <div class="plc-tree-node" style="padding-left:22px;"><span>🔌 Devices &amp; Peripherals</span></div>
+        <div class="plc-tree-node" style="padding-left:34px;"><span>🛞 Infeed Roller Conveyor</span></div>
+        <div class="plc-tree-node" style="padding-left:34px;"><span>👁️ Sensor PhotoEye-01</span></div>
+        <div class="plc-tree-node" style="padding-left:34px;"><span>🤖 Robot Palletizer Driver</span></div>
+        <div class="plc-tree-node" style="padding-left:34px;"><span>🪵 Pallet Turntable Motor</span></div>
+      </div>
+
+      <!-- LADDER VIEWPORT WITH ANIMATED GREEN POWER FLOW -->
+      <div class="ladder-viewport" id="ladder-container">
+        <!-- RUNG 0: SAFETY LINE -->
+        <div class="ladder-rung powered" id="rung-0">
+          <div class="rung-num">0</div>
+          <div class="rung-desc">// Chuỗi tiếp điểm an toàn: Nút dừng khẩn E-Stop, lồng rào bảo vệ, cửa nạp pallet &rarr; Cuộn eStopOk</div>
+          <div class="rung-diagram">
+            <div class="rail-left powered"></div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active" onclick="toggleBitContact('EStop')" title="Nhấp để Test ngắt E-Stop">
+              <span class="ladder-tag-name">EStop</span>
+              <div class="ladder-symbol">| |</div>
+              <span class="ladder-tag-comment">Dừng khẩn</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active" onclick="toggleBitContact('EStopGate')" title="Nhấp để Test mở cửa rào">
+              <span class="ladder-tag-name">EStopGate</span>
+              <div class="ladder-symbol">| |</div>
+              <span class="ladder-tag-comment">Cửa an toàn</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active" onclick="toggleBitContact('EStopSupply')">
+              <span class="ladder-tag-name">EStopSupply</span>
+              <div class="ladder-symbol">| |</div>
+              <span class="ladder-tag-comment">Nguồn cấp 24V</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active">
+              <span class="ladder-tag-name">eStopOk</span>
+              <div class="ladder-symbol">( )</div>
+              <span class="ladder-tag-comment">An toàn OK</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="rail-right"></div>
+          </div>
+        </div>
+
+        <!-- RUNG 1: FAULT CLEAR & SYSTEM READY -->
+        <div class="ladder-rung powered" id="rung-1">
+          <div class="rung-num">1</div>
+          <div class="rung-desc">// Xác nhận an toàn và xóa cờ lỗi hệ thống</div>
+          <div class="rung-diagram">
+            <div class="rail-left powered"></div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active">
+              <span class="ladder-tag-name">eStopOk</span>
+              <div class="ladder-symbol">| |</div>
+              <span class="ladder-tag-comment">An toàn OK</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active">
+              <span class="ladder-tag-name">FltClr</span>
+              <div class="ladder-symbol">( )</div>
+              <span class="ladder-tag-comment">Xóa cờ lỗi</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="rail-right"></div>
+          </div>
+        </div>
+
+        <!-- RUNG 2: LIGHT CURTAIN MUTING BLOCK -->
+        <div class="ladder-rung powered" id="rung-2">
+          <div class="rung-num">2</div>
+          <div class="rung-desc">// Function Block MutingSeq: Tự động Muting rèm an toàn khi kiện hàng đi qua băng tải</div>
+          <div class="rung-diagram">
+            <div class="rail-left powered"></div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-block active">
+              <div class="ladder-block-header">CaseMuting (MutingSeq)</div>
+              <div class="ladder-block-row"><span>Enable:</span><span class="val">TRUE</span></div>
+              <div class="ladder-block-row"><span>SensorA1:</span><span class="val">ACTIVE</span></div>
+              <div class="ladder-block-row"><span>Muted:</span><span class="val">MUTED (OK)</span></div>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active">
+              <span class="ladder-tag-name">CurtainMuted</span>
+              <div class="ladder-symbol">( )</div>
+              <span class="ladder-tag-comment">Bỏ qua rèm</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="rail-right"></div>
+          </div>
+        </div>
+
+        <!-- RUNG 3: INFEED CONVEYOR RUN -->
+        <div class="ladder-rung powered" id="rung-3">
+          <div class="rung-num">3</div>
+          <div class="rung-desc">// Điều khiển chạy băng tải nạp: Chạy khi an toàn OK và sensor PhotoEye chưa có hộp chờ</div>
+          <div class="rung-diagram">
+            <div class="rail-left powered"></div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active">
+              <span class="ladder-tag-name">eStopOk</span>
+              <div class="ladder-symbol">| |</div>
+              <span class="ladder-tag-comment">An toàn</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active" id="ladder-el-pe" onclick="toggleBitContact('PE01')">
+              <span class="ladder-tag-name">PE_Infeed</span>
+              <div class="ladder-symbol">|/|</div>
+              <span class="ladder-tag-comment">Chưa nghẽn</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active" id="ladder-el-conv">
+              <span class="ladder-tag-name">ConveyorRun</span>
+              <div class="ladder-symbol">( )</div>
+              <span class="ladder-tag-comment">Chạy băng tải</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="rail-right"></div>
+          </div>
+        </div>
+
+        <!-- RUNG 4: ROBOT PICK & PLACE TRIGGER -->
+        <div class="ladder-rung powered" id="rung-4">
+          <div class="rung-num">4</div>
+          <div class="rung-desc">// Kích hoạt chu trình gắp Robot: Khi hộp đến điểm gắp (PE active) và Robot ở trạng thái Ready</div>
+          <div class="rung-diagram">
+            <div class="rail-left powered"></div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active">
+              <span class="ladder-tag-name">eStopOk</span>
+              <div class="ladder-symbol">| |</div>
+              <span class="ladder-tag-comment">An toàn</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active">
+              <span class="ladder-tag-name">RobotReady</span>
+              <div class="ladder-symbol">| |</div>
+              <span class="ladder-tag-comment">Robot sẵn sàng</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active" id="ladder-el-trigger">
+              <span class="ladder-tag-name">TriggerPick</span>
+              <div class="ladder-symbol">( )</div>
+              <span class="ladder-tag-comment">Lệnh gắp hộp</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="rail-right"></div>
+          </div>
+        </div>
+
+        <!-- RUNG 5: BOX COUNTER -->
+        <div class="ladder-rung" id="rung-5">
+          <div class="rung-num">5</div>
+          <div class="rung-desc">// Bộ đếm kiện hàng hoàn thành (CTU): Đếm đủ 16 hộp &rarr; Báo Pallet Đầy (PalletFull)</div>
+          <div class="rung-diagram">
+            <div class="rail-left powered"></div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-el active">
+              <span class="ladder-tag-name">CasePlaced</span>
+              <div class="ladder-symbol">|P|</div>
+              <span class="ladder-tag-comment">Hộp đã đặt</span>
+            </div>
+            <div class="ladder-wire active"></div>
+            <div class="ladder-block active">
+              <div class="ladder-block-header">CTU BoxCounter</div>
+              <div class="ladder-block-row"><span>Preset (PV):</span><span class="val">16</span></div>
+              <div class="ladder-block-row"><span>Accum (CV):</span><span class="val" id="ladder-cv">0</span></div>
+            </div>
+            <div class="ladder-wire"></div>
+            <div class="ladder-el" id="ladder-el-full">
+              <span class="ladder-tag-name">PalletFull</span>
+              <div class="ladder-symbol">( )</div>
+              <span class="ladder-tag-comment">Đầy pallet</span>
+            </div>
+            <div class="ladder-wire"></div>
+            <div class="rail-right"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- CORE LOGIC & 3D SIMULATION SCRIPT -->
+  <script>
+    // ==========================================
+    // 1. STATE & SIMULATION VARIABLES
+    // ==========================================
+    let isPlaying = true;
+    let simSpeed = 1.0;
+    let boxCounter = 0;
+    let palletCounter = 1;
+    let eStopActive = false;
+    let safetyGateOpen = false;
+
+    // Robot & Cell Kinematic State
+    const ROBOT_STATES = {
+      IDLE: 'IDLE',
+      WAIT_BOX: 'WAIT_BOX',
+      MOVE_TO_PICK: 'MOVE_TO_PICK',
+      LOWER_PICK: 'LOWER_PICK',
+      GRIP_BOX: 'GRIP_BOX',
+      LIFT_PICK: 'LIFT_PICK',
+      MOVE_TO_PALLET: 'MOVE_TO_PALLET',
+      LOWER_PLACE: 'LOWER_PLACE',
+      RELEASE_BOX: 'RELEASE_BOX',
+      RETRACT: 'RETRACT'
+    };
+    let currentRobotState = ROBOT_STATES.IDLE;
+    let stateTimer = 0;
+
+    // 3D Scene Objects
+    let scene, camera, renderer, controls;
+    let robotRoot, j1Base, j2Shoulder, j3Elbow, j4Wrist1, j5Wrist2, j6Flange, gripper;
+    let infeedConveyor, palletMesh, safetyFenceGroup;
+    let activeBoxes = []; // Boxes traveling or placed
+    let grippedBox = null;
+    let targetBox = null;
+
+    // Joint angles (in radians)
+    const joints = {
+      j1: 0,
+      j2: -0.4,
+      j3: 0.8,
+      j4: 0,
+      j5: -0.4,
+      j6: 0
+    };
+    const targetJoints = { ...joints };
+
+    // Standard Waypoint Joint Angle Presets
+    const WAYPOINTS = [
+      { name: 'Home', j1: 0, j2: -0.4, j3: 0.8, j4: 0, j5: -0.4, j6: 0 },
+      { name: 'Above pick', j1: -Math.PI * 0.45, j2: -0.2, j3: 0.6, j4: 0, j5: -0.4, j6: 0 },
+      { name: 'Pick', j1: -Math.PI * 0.45, j2: 0.1, j3: 0.95, j4: 0, j5: -0.35, j6: 0 },
+      { name: 'Above pallet', j1: Math.PI * 0.35, j2: -0.3, j3: 0.5, j4: 0, j5: -0.3, j6: 0 },
+      { name: 'Course 1 (Layer 1)', j1: Math.PI * 0.35, j2: 0.15, j3: 0.8, j4: 0, j5: -0.25, j6: 0 },
+      { name: 'Course 2 (Layer 2)', j1: Math.PI * 0.35, j2: 0.0, j3: 0.7, j4: 0, j5: -0.25, j6: 0 },
+      { name: 'Safe Retract', j1: 0, j2: -0.5, j3: 0.9, j4: 0, j5: -0.4, j6: 0 }
+    ];
+
+    // ==========================================
+    // 2. INITIALIZE THREE.JS 3D SCENE
+    // ==========================================
+    function init3D() {
+      const container = document.getElementById('viewport-container');
+      const canvas = document.getElementById('viewport-3d');
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0f1d);
+      scene.fog = new THREE.FogExp2(0x0a0f1d, 0.025);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(7.5, 6.2, 8.5);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      // Orbit Controls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, 1.2, 0);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't dip below floor
+
+      // Lighting
+      const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+      scene.add(ambient);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+      dirLight.position.set(10, 18, 12);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.bias = -0.0005;
+      scene.add(dirLight);
+
+      const blueSpot = new THREE.PointLight(0x38bdf8, 1.2, 20);
+      blueSpot.position.set(-2, 4, 3);
+      scene.add(blueSpot);
+
+      // Environment: Factory Floor & Grid
+      buildFactoryEnvironment();
+
+      // Build Industrial Cell Assets
+      buildRobot();
+      buildInfeedConveyor();
+      buildPalletStation();
+      buildSafetyFencing();
+
+      // Spawn initial box on conveyor
+      spawnNewBox();
+
+      // Window resize listener
+      window.addEventListener('resize', onWindowResize);
+
+      // Render Tree Hierarchy in left panel
+      renderSceneTree();
+
+      // Start animation loop
+      animate();
+    }
+
+    // Factory Hall Floor & Grid
+    function buildFactoryEnvironment() {
+      // Floor plane
+      const floorGeo = new THREE.PlaneGeometry(35, 35);
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: 0x111827,
+        roughness: 0.85,
+        metalness: 0.2
+      });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // Grid helper
+      const grid = new THREE.GridHelper(30, 30, 0x38bdf8, 0x1f2937);
+      grid.position.y = 0.005;
+      scene.add(grid);
+
+      // Yellow safety walkways marking on floor
+      const walkMat = new THREE.MeshBasicMaterial({ color: 0xeab308, transparent: true, opacity: 0.35 });
+      const walkGeo = new THREE.RingGeometry(2.4, 2.48, 48);
+      const walk = new THREE.Mesh(walkGeo, walkMat);
+      walk.rotation.x = -Math.PI / 2;
+      walk.position.y = 0.006;
+      scene.add(walk);
+    }
+
+    // Build 6-Axis Robot Arm with Articulated Hierarchy
+    function buildRobot() {
+      robotRoot = new THREE.Group();
+      robotRoot.name = "Palletizer 6-Axis Robot";
+
+      const orangeMat = new THREE.MeshStandardMaterial({ color: 0xea580c, roughness: 0.35, metalness: 0.5 });
+      const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.7 });
+      const chromeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.2, metalness: 0.9 });
+
+      // Pedestal Base
+      const baseGeo = new THREE.CylinderGeometry(0.5, 0.6, 0.7, 32);
+      const base = new THREE.Mesh(baseGeo, darkSteelMat);
+      base.position.y = 0.35;
+      base.castShadow = true;
+      base.receiveShadow = true;
+      robotRoot.add(base);
+
+      // J1: Base Turntable
+      j1Base = new THREE.Group();
+      j1Base.position.y = 0.7;
+      robotRoot.add(j1Base);
+
+      const j1Mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.3, 32), orangeMat);
+      j1Mesh.position.y = 0.15;
+      j1Mesh.castShadow = true;
+      j1Base.add(j1Mesh);
+
+      // J2: Shoulder
+      j2Shoulder = new THREE.Group();
+      j2Shoulder.position.set(0, 0.3, 0);
+      j1Base.add(j2Shoulder);
+
+      const j2Mesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.3, 0.35), orangeMat);
+      j2Mesh.position.set(0, 0.65, 0);
+      j2Mesh.castShadow = true;
+      j2Shoulder.add(j2Mesh);
+
+      // J3: Elbow
+      j3Elbow = new THREE.Group();
+      j3Elbow.position.set(0, 1.3, 0);
+      j2Shoulder.add(j3Elbow);
+
+      const j3Mesh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.2, 0.28), orangeMat);
+      j3Mesh.position.set(0, 0.6, 0);
+      j3Mesh.castShadow = true;
+      j3Elbow.add(j3Mesh);
+
+      // J4: Forearm
+      j4Wrist1 = new THREE.Group();
+      j4Wrist1.position.set(0, 1.2, 0);
+      j3Elbow.add(j4Wrist1);
+
+      const j4Mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.4, 24), darkSteelMat);
+      j4Mesh.position.y = 0.2;
+      j4Mesh.castShadow = true;
+      j4Wrist1.add(j4Mesh);
+
+      // J5: Wrist Tilt
+      j5Wrist2 = new THREE.Group();
+      j5Wrist2.position.set(0, 0.4, 0);
+      j4Wrist1.add(j5Wrist2);
+
+      const j5Mesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.25, 0.22), orangeMat);
+      j5Mesh.position.y = 0.12;
+      j5Mesh.castShadow = true;
+      j5Wrist2.add(j5Mesh);
+
+      // J6: Tool Flange & Gripper
+      j6Flange = new THREE.Group();
+      j6Flange.position.set(0, 0.25, 0);
+      j5Wrist2.add(j6Flange);
+
+      // Vacuum Gripper Plate
+      gripper = new THREE.Group();
+      gripper.position.y = 0.08;
+
+      const plateGeo = new THREE.BoxGeometry(0.55, 0.04, 0.55);
+      const plate = new THREE.Mesh(plateGeo, darkSteelMat);
+      plate.castShadow = true;
+      gripper.add(plate);
+
+      // 4 Suction Cups
+      const cupGeo = new THREE.CylinderGeometry(0.06, 0.04, 0.08, 16);
+      const cupMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.6 });
+      const offsets = [
+        [-0.18, -0.18], [0.18, -0.18],
+        [-0.18, 0.18], [0.18, 0.18]
+      ];
+      offsets.forEach(([cx, cz]) => {
+        const cup = new THREE.Mesh(cupGeo, cupMat);
+        cup.position.set(cx, -0.05, cz);
+        gripper.add(cup);
+      });
+
+      j6Flange.add(gripper);
+      scene.add(robotRoot);
+    }
+
+    // Infeed Roller Conveyor
+    function buildInfeedConveyor() {
+      infeedConveyor = new THREE.Group();
+      infeedConveyor.name = "Infeed Conveyor";
+      infeedConveyor.position.set(-2.8, 0, 0);
+
+      const steelMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5, metalness: 0.8 });
+      const rollerMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.3, metalness: 0.9 });
+
+      // Side Rails (4 meters long)
+      const railGeo = new THREE.BoxGeometry(0.08, 0.18, 4.2);
+      const railL = new THREE.Mesh(railGeo, steelMat);
+      railL.position.set(-0.45, 0.9, 0);
+      railL.castShadow = true;
+      infeedConveyor.add(railL);
+
+      const railR = new THREE.Mesh(railGeo, steelMat);
+      railR.position.set(0.45, 0.9, 0);
+      railR.castShadow = true;
+      infeedConveyor.add(railR);
+
+      // Conveyor Legs
+      const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.9, 16);
+      [-1.8, 0, 1.8].forEach(z => {
+        const leg1 = new THREE.Mesh(legGeo, steelMat);
+        leg1.position.set(-0.45, 0.45, z);
+        leg1.castShadow = true;
+        infeedConveyor.add(leg1);
+
+        const leg2 = new THREE.Mesh(legGeo, steelMat);
+        leg2.position.set(0.45, 0.45, z);
+        leg2.castShadow = true;
+        infeedConveyor.add(leg2);
+      });
+
+      // Rollers (24 cylinders)
+      const rollerGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.85, 16);
+      for (let i = -2; i <= 2; i += 0.18) {
+        const roller = new THREE.Mesh(rollerGeo, rollerMat);
+        roller.rotation.z = Math.PI / 2;
+        roller.position.set(0, 0.92, i);
+        roller.castShadow = true;
+        infeedConveyor.add(roller);
+      }
+
+      // Stopper at the end
+      const stopper = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.22, 0.05), new THREE.MeshStandardMaterial({ color: 0xeab308 }));
+      stopper.position.set(0, 1.0, 2.1);
+      infeedConveyor.add(stopper);
+
+      // Photo-Eye Sensor Bracket (PE-01)
+      const peSensor = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.06), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
+      peSensor.position.set(-0.48, 1.05, 1.85);
+      infeedConveyor.add(peSensor);
+
+      // Red laser indicator beam across conveyor
+      const beamGeo = new THREE.CylinderGeometry(0.005, 0.005, 0.9, 8);
+      const beamMat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.65 });
+      const beam = new THREE.Mesh(beamGeo, beamMat);
+      beam.rotation.z = Math.PI / 2;
+      beam.position.set(0, 1.05, 1.85);
+      infeedConveyor.add(beam);
+
+      scene.add(infeedConveyor);
+    }
+
+    // Build Pallet Station / Turntable
+    function buildPalletStation() {
+      const palletStation = new THREE.Group();
+      palletStation.name = "Pallet Turntable Station";
+      palletStation.position.set(2.4, 0, 0.5);
+
+      // Turntable circular base
+      const tableGeo = new THREE.CylinderGeometry(1.2, 1.3, 0.25, 36);
+      const tableMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.5, metalness: 0.6 });
+      const table = new THREE.Mesh(tableGeo, tableMat);
+      table.position.y = 0.125;
+      table.receiveShadow = true;
+      palletStation.add(table);
+
+      // Wooden Pallet (1200 x 1000 mm Euro Pallet style)
+      palletMesh = new THREE.Group();
+      palletMesh.position.y = 0.25;
+
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.85 });
+
+      // 3 Bottom Blocks / Stringers
+      [-0.48, 0, 0.48].forEach(x => {
+        const str = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 1.2), woodMat);
+        str.position.set(x, 0.06, 0);
+        str.castShadow = true;
+        palletMesh.add(str);
+      });
+
+      // Top Deck Boards (7 boards)
+      for (let z = -0.55; z <= 0.55; z += 0.18) {
+        const board = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.025, 0.14), woodMat);
+        board.position.set(0, 0.135, z);
+        board.castShadow = true;
+        board.receiveShadow = true;
+        palletMesh.add(board);
+      }
+
+      palletStation.add(palletMesh);
+      scene.add(palletStation);
+    }
+
+    // Yellow Safety Fence Enclosure
+    function buildSafetyFencing() {
+      safetyFenceGroup = new THREE.Group();
+      safetyFenceGroup.name = "Safety Enclosure";
+
+      const postMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.4 });
+      const meshMat = new THREE.MeshStandardMaterial({ color: 0x334155, wireframe: true });
+
+      function createFenceSegment(w, h, x, z, rotY) {
+        const seg = new THREE.Group();
+        seg.position.set(x, 0, z);
+        seg.rotation.y = rotY;
+
+        // Posts
+        const postGeo = new THREE.BoxGeometry(0.08, h, 0.08);
+        const p1 = new THREE.Mesh(postGeo, postMat);
+        p1.position.set(-w / 2, h / 2, 0);
+        seg.add(p1);
+
+        const p2 = new THREE.Mesh(postGeo, postMat);
+        p2.position.set(w / 2, h / 2, 0);
+        seg.add(p2);
+
+        // Wire mesh panel
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(w, h * 0.85, 12, 8), meshMat);
+        panel.position.set(0, h * 0.5, 0);
+        seg.add(panel);
+
+        return seg;
+      }
+
+      // Back fence
+      safetyFenceGroup.add(createFenceSegment(7.5, 2.2, 0, -3.2, 0));
+      // Right fence
+      safetyFenceGroup.add(createFenceSegment(6.5, 2.2, 4.2, 0, Math.PI / 2));
+      // Left fence (behind infeed)
+      safetyFenceGroup.add(createFenceSegment(6.5, 2.2, -4.2, 0, Math.PI / 2));
+      // Front partial fences with operator door
+      safetyFenceGroup.add(createFenceSegment(2.8, 2.2, -2.6, 3.2, 0));
+      safetyFenceGroup.add(createFenceSegment(2.8, 2.2, 2.6, 3.2, 0));
+
+      scene.add(safetyFenceGroup);
+    }
+
+    // ==========================================
+    // 3. BOX CREATION & PALLETIZING KINEMATICS
+    // ==========================================
+    function spawnNewBox() {
+      const boxMat = new THREE.MeshStandardMaterial({
+        color: 0xd97706,
+        roughness: 0.75
+      });
+      const box = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.3, 0.34), boxMat);
+      box.castShadow = true;
+      box.receiveShadow = true;
+
+      // Start at infeed conveyor entry
+      box.position.set(-2.8, 1.1, -1.8);
+      box.userData = {
+        state: 'CONVEYOR', // CONVEYOR -> AT_PICK -> GRIPPED -> PLACED
+        id: ++boxCounter
+      };
+
+      scene.add(box);
+      activeBoxes.push(box);
+
+      document.getElementById('hud-box-count').textContent = `${activeBoxes.filter(b => b.userData.state === 'PLACED').length} / 16 Kiện`;
+    }
+
+    // Target Placed Box Coordinates on Pallet
+    // 2 Layers x 8 Boxes = 16 Boxes
+    function getPalletSlotPosition(index) {
+      const layer = Math.floor(index / 8);
+      const slot = index % 8;
+
+      const layerY = 0.42 + (layer * 0.31);
+      const palletCenter = { x: 2.4, z: 0.5 };
+
+      // 4 boxes along X, 2 rows in Z
+      const col = slot % 4;
+      const row = Math.floor(slot / 4);
+
+      const offsetX = (col - 1.5) * 0.46;
+      const offsetZ = (row - 0.5) * 0.36;
+
+      return {
+        x: palletCenter.x + offsetX,
+        y: layerY,
+        z: palletCenter.z + offsetZ
+      };
+    }
+
+    // ==========================================
+    // 4. ANIMATION LOOP & KINEMATICS UPDATE
+    // ==========================================
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta() * simSpeed;
+
+      if (isPlaying && !eStopActive && !safetyGateOpen) {
+        updateSimulation(delta);
+      }
+
+      // Smooth joint interpolation
+      interpolateJoints(delta);
+
+      // Controls update
+      controls.update();
+
+      // Render 3D Scene
+      renderer.render(scene, camera);
+
+      // Render Compass Gizmo
+      renderCompassGizmo();
+    }
+
+    function updateSimulation(delta) {
+      stateTimer += delta;
+
+      // 1. Update Conveyor Boxes movement
+      let boxAtPickPoint = null;
+      activeBoxes.forEach(b => {
+        if (b.userData.state === 'CONVEYOR') {
+          if (b.position.z < 1.85) {
+            b.position.z += delta * 0.9; // Conveyor speed 0.9 m/s
+          } else {
+            b.userData.state = 'AT_PICK';
+          }
+        }
+        if (b.userData.state === 'AT_PICK') {
+          boxAtPickPoint = b;
+        }
+      });
+
+      // Update Sensor HUD
+      const peActive = boxAtPickPoint !== null;
+      document.getElementById('hud-sensor-state').textContent = peActive ? 'DETECTED (ACTIVE)' : 'WAITING';
+      document.getElementById('hud-sensor-state').style.color = peActive ? '#4ade80' : '#38bdf8';
+
+      // Update Ladder Diagram Sensor Contact status
+      const peLadderEl = document.getElementById('ladder-el-pe');
+      if (peLadderEl) {
+        if (peActive) peLadderEl.classList.remove('active');
+        else peLadderEl.classList.add('active');
+      }
+
+      // 2. Robot State Machine
+      switch (currentRobotState) {
+        case ROBOT_STATES.IDLE:
+          setRobotJoints(WAYPOINTS[0]); // Home
+          if (boxAtPickPoint) {
+            targetBox = boxAtPickPoint;
+            currentRobotState = ROBOT_STATES.MOVE_TO_PICK;
+            stateTimer = 0;
+            updateJobUI('job-1', 'RUNNING');
+          }
+          break;
+
+        case ROBOT_STATES.MOVE_TO_PICK:
+          setRobotJoints(WAYPOINTS[1]); // Above pick
+          if (stateTimer > 0.8) {
+            currentRobotState = ROBOT_STATES.LOWER_PICK;
+            stateTimer = 0;
+          }
+          break;
+
+        case ROBOT_STATES.LOWER_PICK:
+          setRobotJoints(WAYPOINTS[2]); // Pick contact
+          if (stateTimer > 0.6) {
+            currentRobotState = ROBOT_STATES.GRIP_BOX;
+            stateTimer = 0;
+          }
+          break;
+
+        case ROBOT_STATES.GRIP_BOX:
+          if (targetBox && !grippedBox) {
+            grippedBox = targetBox;
+            grippedBox.userData.state = 'GRIPPED';
+            document.getElementById('insp-vacuum-badge').textContent = 'VACUUM ON';
+            document.getElementById('insp-vacuum-badge').style.background = '#0284c7';
+          }
+          if (stateTimer > 0.3) {
+            currentRobotState = ROBOT_STATES.LIFT_PICK;
+            stateTimer = 0;
+          }
+          break;
+
+        case ROBOT_STATES.LIFT_PICK:
+          setRobotJoints(WAYPOINTS[1]); // Lift back above pick
+          if (stateTimer > 0.6) {
+            currentRobotState = ROBOT_STATES.MOVE_TO_PALLET;
+            stateTimer = 0;
+            updateJobUI('job-1', 'DONE');
+            updateJobUI('job-2', 'RUNNING');
+          }
+          break;
+
+        case ROBOT_STATES.MOVE_TO_PALLET:
+          setRobotJoints(WAYPOINTS[3]); // Above pallet
+          if (stateTimer > 1.0) {
+            currentRobotState = ROBOT_STATES.LOWER_PLACE;
+            stateTimer = 0;
+          }
+          break;
+
+        case ROBOT_STATES.LOWER_PLACE:
+          const placedCount = activeBoxes.filter(b => b.userData.state === 'PLACED').length;
+          const isLayer2 = placedCount >= 8;
+          setRobotJoints(isLayer2 ? WAYPOINTS[5] : WAYPOINTS[4]);
+
+          if (stateTimer > 0.8) {
+            currentRobotState = ROBOT_STATES.RELEASE_BOX;
+            stateTimer = 0;
+          }
+          break;
+
+        case ROBOT_STATES.RELEASE_BOX:
+          if (grippedBox) {
+            const placedCount = activeBoxes.filter(b => b.userData.state === 'PLACED').length;
+            const targetPos = getPalletSlotPosition(placedCount);
+
+            // Detach box from robot and fix to pallet position
+            scene.attach(grippedBox);
+            grippedBox.position.set(targetPos.x, targetPos.y, targetPos.z);
+            grippedBox.rotation.set(0, 0, 0);
+            grippedBox.userData.state = 'PLACED';
+            grippedBox = null;
+            targetBox = null;
+
+            // Update Counter
+            const newCount = activeBoxes.filter(b => b.userData.state === 'PLACED').length;
+            document.getElementById('hud-box-count').textContent = `${newCount} / 16 Kiện`;
+            document.getElementById('ladder-cv').textContent = newCount;
+
+            if (newCount >= 16) {
+              document.getElementById('ladder-el-full').classList.add('active');
+              document.getElementById('hud-pallet-count').textContent = 'Pallet #1 HOÀN TẤT!';
+              updateJobUI('job-4', 'COMPLETED');
+            } else if (newCount >= 8) {
+              document.getElementById('hud-pallet-count').textContent = 'Pallet #1 (Layer 2)';
+              updateJobUI('job-2', 'DONE');
+              updateJobUI('job-3', 'RUNNING');
+            }
+
+            document.getElementById('insp-vacuum-badge').textContent = 'VACUUM OFF';
+            document.getElementById('insp-vacuum-badge').style.background = '#334155';
+
+            // Spawn next box on infeed conveyor
+            if (newCount < 16) {
+              setTimeout(spawnNewBox, 600);
+            }
+          }
+
+          if (stateTimer > 0.4) {
+            currentRobotState = ROBOT_STATES.RETRACT;
+            stateTimer = 0;
+          }
+          break;
+
+        case ROBOT_STATES.RETRACT:
+          setRobotJoints(WAYPOINTS[3]); // Lift above pallet
+          if (stateTimer > 0.6) {
+            currentRobotState = ROBOT_STATES.IDLE;
+            stateTimer = 0;
+          }
+          break;
+      }
+
+      // Attach gripped box to robot gripper
+      if (grippedBox && gripper) {
+        gripper.attach(grippedBox);
+        grippedBox.position.set(0, -0.22, 0);
+        grippedBox.rotation.set(0, 0, 0);
+      }
+    }
+
+    function setRobotJoints(wp) {
+      targetJoints.j1 = wp.j1;
+      targetJoints.j2 = wp.j2;
+      targetJoints.j3 = wp.j3;
+      targetJoints.j4 = wp.j4;
+      targetJoints.j5 = wp.j5;
+      targetJoints.j6 = wp.j6;
+    }
+
+    function interpolateJoints(delta) {
+      const speed = 4.0 * simSpeed;
+      joints.j1 += (targetJoints.j1 - joints.j1) * Math.min(1, delta * speed);
+      joints.j2 += (targetJoints.j2 - joints.j2) * Math.min(1, delta * speed);
+      joints.j3 += (targetJoints.j3 - joints.j3) * Math.min(1, delta * speed);
+      joints.j4 += (targetJoints.j4 - joints.j4) * Math.min(1, delta * speed);
+      joints.j5 += (targetJoints.j5 - joints.j5) * Math.min(1, delta * speed);
+      joints.j6 += (targetJoints.j6 - joints.j6) * Math.min(1, delta * speed);
+
+      // Apply to 3D bones / groups
+      if (j1Base) j1Base.rotation.y = joints.j1;
+      if (j2Shoulder) j2Shoulder.rotation.z = joints.j2;
+      if (j3Elbow) j3Elbow.rotation.z = joints.j3;
+      if (j4Wrist1) j4Wrist1.rotation.y = joints.j4;
+      if (j5Wrist2) j5Wrist2.rotation.z = joints.j5;
+      if (j6Flange) j6Flange.rotation.y = joints.j6;
+
+      // Update Inspector Angle Displays
+      document.getElementById('insp-rot-j1').value = Math.round(joints.j1 * (180 / Math.PI)) + '°';
+      document.getElementById('insp-rot-j2').value = Math.round(joints.j2 * (180 / Math.PI)) + '°';
+      document.getElementById('insp-rot-j3').value = Math.round(joints.j3 * (180 / Math.PI)) + '°';
+    }
+
+    // ==========================================
+    // 5. UI CONTROLS & EVENT HANDLERS
+    // ==========================================
+    function simPlay() {
+      isPlaying = true;
+      eStopActive = false;
+      document.getElementById('btn-play').classList.add('active-play');
+      document.getElementById('btn-pause').classList.remove('active-pause');
+      document.getElementById('btn-stop').classList.remove('active-stop');
+      document.getElementById('hud-cell-state').textContent = 'RUNNING';
+      document.getElementById('hud-cell-state').style.color = '#4ade80';
+      document.getElementById('hud-sim-dot').style.background = '#22c55e';
+      document.getElementById('hud-sim-dot').style.boxShadow = '0 0 6px #22c55e';
+    }
+
+    function simPause() {
+      isPlaying = false;
+      document.getElementById('btn-play').classList.remove('active-play');
+      document.getElementById('btn-pause').classList.add('active-pause');
+      document.getElementById('hud-cell-state').textContent = 'PAUSED';
+      document.getElementById('hud-cell-state').style.color = '#fde047';
+      document.getElementById('hud-sim-dot').style.background = '#f59e0b';
+      document.getElementById('hud-sim-dot').style.boxShadow = '0 0 6px #f59e0b';
+    }
+
+    function simStop() {
+      isPlaying = false;
+      currentRobotState = ROBOT_STATES.IDLE;
+      stateTimer = 0;
+      setRobotJoints(WAYPOINTS[0]);
+
+      // Remove boxes on pallet & conveyor
+      activeBoxes.forEach(b => scene.remove(b));
+      activeBoxes = [];
+      grippedBox = null;
+      targetBox = null;
+      boxCounter = 0;
+
+      document.getElementById('btn-play').classList.remove('active-play');
+      document.getElementById('btn-pause').classList.remove('active-pause');
+      document.getElementById('btn-stop').classList.add('active-stop');
+      document.getElementById('hud-cell-state').textContent = 'STOPPED';
+      document.getElementById('hud-cell-state').style.color = '#f87171';
+      document.getElementById('hud-sim-dot').style.background = '#ef4444';
+      document.getElementById('hud-box-count').textContent = '0 / 16 Kiện';
+      document.getElementById('hud-pallet-count').textContent = 'Pallet #1 (Layer 1)';
+      document.getElementById('ladder-cv').textContent = '0';
+      document.getElementById('ladder-el-full').classList.remove('active');
+
+      // Spawn fresh box ready
+      spawnNewBox();
+    }
+
+    function setSimSpeed(val) {
+      simSpeed = parseFloat(val) || 1.0;
+    }
+
+    function triggerEStop() {
+      eStopActive = !eStopActive;
+      const btn = document.getElementById('btn-estop');
+      const rung0 = document.getElementById('rung-0');
+      const rung1 = document.getElementById('rung-1');
+
+      if (eStopActive) {
+        btn.textContent = '⚡ RESET E-STOP';
+        btn.style.background = '#eab308';
+        btn.style.color = '#000';
+        simPause();
+        document.getElementById('hud-cell-state').textContent = 'EMERGENCY STOPPED';
+        document.getElementById('hud-cell-state').style.color = '#ef4444';
+        rung0.classList.remove('powered');
+        rung1.classList.remove('powered');
+      } else {
+        btn.textContent = '🚨 E-STOP';
+        btn.style.background = '#dc2626';
+        btn.style.color = '#fff';
+        rung0.classList.add('powered');
+        rung1.classList.add('powered');
+        simPlay();
+      }
+    }
+
+    function toggleSafetyGate() {
+      safetyGateOpen = !safetyGateOpen;
+      const btn = document.getElementById('btn-safety-gate');
+      if (safetyGateOpen) {
+        btn.textContent = '🚪 Cửa An Toàn: MỞ';
+        btn.style.color = '#f87171';
+        simPause();
+        document.getElementById('hud-cell-state').textContent = 'SAFETY INTERLOCK OPEN';
+      } else {
+        btn.textContent = '🚧 Cửa An Toàn: ĐÓNG';
+        btn.style.color = '#fff';
+        simPlay();
+      }
+    }
+
+    function toggleBitContact(name) {
+      if (name === 'EStop') {
+        triggerEStop();
+      } else if (name === 'PE01') {
+        // Toggle photo eye simulation
+        spawnNewBox();
+      }
+    }
+
+    function resetCamera(mode) {
+      if (mode === 'top') {
+        camera.position.set(0, 14, 0.001);
+        controls.target.set(0, 0, 0);
+      } else if (mode === 'side') {
+        camera.position.set(12, 3, 0);
+        controls.target.set(0, 1.2, 0);
+      } else {
+        camera.position.set(7.5, 6.2, 8.5);
+        controls.target.set(0, 1.2, 0);
+      }
+    }
+
+    function gotoWaypoint(idx) {
+      if (WAYPOINTS[idx]) {
+        setRobotJoints(WAYPOINTS[idx]);
+        document.querySelectorAll('.waypoint-item').forEach((el, i) => {
+          el.classList.toggle('active', i === idx);
+        });
+      }
+    }
+
+    function updateRobotSpeed(v) {
+      document.getElementById('val-speed').textContent = `${v} °/s`;
+    }
+
+    function captureCurrentPose() {
+      alert(`Đã chụp tọa độ Waypoint mới:\nJ1: ${Math.round(joints.j1*180/Math.PI)}°, J2: ${Math.round(joints.j2*180/Math.PI)}°, J3: ${Math.round(joints.j3*180/Math.PI)}°`);
+    }
+
+    function updateJobUI(jobId, status) {
+      const card = document.getElementById(jobId);
+      const badge = document.getElementById(`${jobId}-badge`);
+      if (card && badge) {
+        badge.textContent = status;
+        if (status === 'RUNNING') {
+          card.classList.add('running');
+          badge.className = 'job-badge running';
+        } else {
+          card.classList.remove('running');
+          badge.className = 'job-badge idle';
+        }
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('viewport-container');
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    // ==========================================
+    // 6. TREE VIEW & COMPASS GIZMO
+    // ==========================================
+    const SCENE_PARTS = [
+      { name: "Palletizer cell", type: "Group", depth: 0 },
+      { name: "Palletizer (6-Axis Robot)", type: "Robot", depth: 1 },
+      { name: "Palletizer pedestal", type: "Base", depth: 2 },
+      { name: "J1 Base & Turntable", type: "Joint", depth: 2 },
+      { name: "J2 Shoulder link", type: "Joint", depth: 2 },
+      { name: "J3 Elbow arm", type: "Joint", depth: 2 },
+      { name: "J4 Wrist Pitch", type: "Joint", depth: 2 },
+      { name: "J5 Wrist Yaw", type: "Joint", depth: 2 },
+      { name: "Vacuum Gripper EOAT", type: "Gripper", depth: 2 },
+      { name: "Infeed Roller Conveyor", type: "Conveyor", depth: 1 },
+      { name: "Photo-Eye Sensor (PE-01)", type: "Sensor", depth: 2 },
+      { name: "Build Deck & Pallet Turntable", type: "Turntable", depth: 1 },
+      { name: "Prestage Load (Pallet & Boxes)", type: "Group", depth: 1 },
+      { name: "Build Pallet (1200x1000)", type: "Pallet", depth: 2 },
+      { name: "Cases (Layer 1..2)", type: "Box", depth: 2 },
+      { name: "Safety Enclosure & Gates", type: "Safety", depth: 1 }
+    ];
+
+    function renderSceneTree() {
+      const container = document.getElementById('tree-container');
+      container.innerHTML = SCENE_PARTS.map(p => `
+        <div class="tree-item tree-indent-${p.depth} ${p.depth === 1 ? 'selected' : ''}" onclick="selectTreeItem('${p.name}')">
+          <div class="tree-label">
+            <span>${p.depth === 0 ? '🗂️' : (p.type === 'Robot' ? '🤖' : (p.type === 'Conveyor' ? '🛞' : (p.type === 'Box' ? '📦' : '⚙️')))}</span>
+            <span>${p.name}</span>
+          </div>
+          <span class="tree-eye" title="Ẩn/Hiện">👁️</span>
+        </div>
+      `).join('');
+    }
+
+    function selectTreeItem(name) {
+      document.getElementById('insp-title').textContent = name;
+      document.querySelectorAll('.tree-item').forEach(el => {
+        el.classList.toggle('selected', el.textContent.includes(name));
+      });
+    }
+
+    function renderCompassGizmo() {
+      const canvas = document.getElementById('compass-gizmo');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const radius = 24;
+
+      // Draw cube / orientation axis
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      const rot = controls.getAzimuthalAngle();
+      const tilt = controls.getPolarAngle();
+
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ef4444';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('X', radius * Math.cos(rot), radius * Math.sin(rot));
+
+      ctx.fillStyle = '#22c55e';
+      ctx.fillText('Z', radius * Math.cos(rot + Math.PI/2), radius * Math.sin(rot + Math.PI/2));
+
+      ctx.restore();
+    }
+
+    function switchLeftTab(tab) {
+      document.getElementById('tab-scene').classList.toggle('active', tab === 'scene');
+      document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+    }
+
+    function switchPlcTab(tab) {
+      document.querySelectorAll('.plc-tab-btn').forEach(b => b.classList.remove('active'));
+      if (tab === 'ladder') document.getElementById('btn-tab-ladder').classList.add('active');
+      else if (tab === 'io') document.getElementById('btn-tab-io').classList.add('active');
+      else if (tab === 'alarms') document.getElementById('btn-tab-alarms').classList.add('active');
+    }
+
+    function addNewRung() {
+      alert("Đã thêm Rung logic mới vào chương trình Palletizer!");
+    }
+
+    function insertInstruction(type) {
+      alert(`Đã chèn lệnh tiếp điểm ${type} vào Rung đang chọn.`);
+    }
+
+    // Launch 3D Scene when ready
+    window.addEventListener('DOMContentLoaded', init3D);
+  </script>
+</body>
+</html>
