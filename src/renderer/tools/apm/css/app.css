@@ -27,7 +27,7 @@ button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .5; }
 button:focus-visible, a:focus-visible { outline: 3px solid #93b9ff; }
 button svg, .icon { width: 20px; height: 20px; flex-shrink: 0; vertical-align: middle; }
-svg { fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+svg { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
 
 .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
 .sidebar { background: var(--nav); color: #e5edfa; padding: 28px 16px 18px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; overflow: auto; }
@@ -306,9 +306,10 @@ td small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px
 .check-label input { height: 17px; width: 17px; min-height: 0; accent-color: var(--accent); margin-top: 3px; flex-shrink: 0; }
 .check-label:has(input:checked) { background: #f0faf5; border-color: #c3e6d5; }
 
-.folder-link { display: flex; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 7px; margin: 8px 0; font-size: 13px; }
-.folder-link svg { color: #7295c5; flex-shrink: 0; }
-.folder-link code { flex: 1; min-width: 0; }
+.folder-link { display: flex; gap: 12px; align-items: center; padding: 10px 14px; background: #f8fafc; border: 1px solid var(--border); border-radius: 7px; margin: 8px 0; font-size: 13px; min-height: 44px; }
+.folder-link svg { width: 18px; height: 18px; min-width: 18px; min-height: 18px; color: #3b82f6; flex-shrink: 0; }
+.folder-link code { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: Consolas, 'Courier New', monospace; font-size: 13px; color: var(--ink); background: transparent; padding: 0; }
+.folder-link .btn, .folder-link button { flex-shrink: 0; white-space: nowrap; }
 
 .dictionary-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 22px; }
 .module-nav { padding: 12px; }
