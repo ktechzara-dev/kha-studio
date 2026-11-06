@@ -306,10 +306,20 @@ td small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px
 .check-label input { height: 17px; width: 17px; min-height: 0; accent-color: var(--accent); margin-top: 3px; flex-shrink: 0; }
 .check-label:has(input:checked) { background: #f0faf5; border-color: #c3e6d5; }
 
-.folder-link { display: flex; gap: 12px; align-items: center; padding: 10px 14px; background: #f8fafc; border: 1px solid var(--border); border-radius: 7px; margin: 8px 0; font-size: 13px; min-height: 44px; }
-.folder-link svg { width: 18px; height: 18px; min-width: 18px; min-height: 18px; color: #3b82f6; flex-shrink: 0; }
-.folder-link code { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: Consolas, 'Courier New', monospace; font-size: 13px; color: var(--ink); background: transparent; padding: 0; }
-.folder-link .btn, .folder-link button { flex-shrink: 0; white-space: nowrap; }
+.folder-header-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+.folder-header-bar h3 { margin: 0; }
+.project-folder-badge { margin-top: 4px; font-size: 12px; }
+.project-folder-badge .badge { max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-links-list { display: flex; flex-direction: column; gap: 8px; }
+.folder-link { display: flex; gap: 14px; align-items: center; padding: 12px 16px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; transition: border-color .15s, background .15s; font-size: 13px; min-height: 48px; }
+.folder-link:hover { background: #f1f5f9; border-color: #cbd5e1; }
+.folder-link svg { width: 20px; height: 20px; min-width: 20px; min-height: 20px; color: #2563eb; flex-shrink: 0; }
+.folder-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.folder-code { font-family: Consolas, 'Courier New', monospace; font-size: 13px; font-weight: 600; color: #1e293b; cursor: pointer; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.folder-code:hover { color: #2563eb; text-decoration: underline; }
+.folder-realpath { font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folder-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.folder-actions .btn, .folder-actions button { flex-shrink: 0; white-space: nowrap; }
 
 .dictionary-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 22px; }
 .module-nav { padding: 12px; }

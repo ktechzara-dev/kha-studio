@@ -124,6 +124,117 @@
     return state.projects.find(p => p.id === state.selected) || null;
   }
 
+  // Native bridge helpers (for Kha Studio WPF WebView2 & Electron)
+  function sendNativeMessage(cmd, payload = {}) {
+    const msg = { cmd, ...payload };
+    if (window.chrome && window.chrome.webview) {
+      try { window.chrome.webview.postMessage(msg); return true; } catch (_) {}
+    }
+    if (window.parent && window.parent.chrome && window.parent.chrome.webview) {
+      try { window.parent.chrome.webview.postMessage(msg); return true; } catch (_) {}
+    }
+    if (window.parent && window.parent !== window) {
+      try { window.parent.postMessage(msg, '*'); return true; } catch (_) {}
+    }
+    return false;
+  }
+
+  const pendingReplies = new Map();
+  function onNativeMessage(data) {
+    if (!data || !data.type) return;
+    if (data.id && pendingReplies.has(data.id)) {
+      const resolve = pendingReplies.get(data.id);
+      pendingReplies.delete(data.id);
+      resolve(data);
+    }
+  }
+  window.addEventListener('message', e => onNativeMessage(e.data));
+  if (window.chrome && window.chrome.webview) {
+    try { window.chrome.webview.addEventListener('message', e => onNativeMessage(e.data)); } catch (_) {}
+  }
+
+  function requestNative(cmd, payload = {}) {
+    const id = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    return new Promise(resolve => {
+      pendingReplies.set(id, resolve);
+      setTimeout(() => {
+        if (pendingReplies.has(id)) {
+          pendingReplies.delete(id);
+          resolve({ timeout: true });
+        }
+      }, 30000);
+      sendNativeMessage(cmd, { id, ...payload });
+    });
+  }
+
+  async function pickProjectFolder(p) {
+    if (!p) p = project();
+    if (!p) return;
+    toast('Đang mở hộp thoại chọn thư mục dự án…');
+    const res = await requestNative('dialog.browseFolder', {
+      code: p.code,
+      title: 'Chọn thư mục dự án cho ' + p.code + ' (' + p.name + ')'
+    });
+    if (res && res.path) {
+      p.rootPath = res.path;
+      p.jsonFile = res.matchedJson || (p.code + '.json');
+      connections.set(p.id, { key: p.id, path: res.path, jsonFile: p.jsonFile, hash: '', conflict: false, saving: false });
+      
+      // Auto-save/sync JSON into that folder
+      const jsonFullPath = (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + p.jsonFile);
+      sendNativeMessage('project.save_json', {
+        filePath: jsonFullPath,
+        content: JSON.stringify(p, null, 2)
+      });
+      
+      save(p, true);
+      render();
+      toast('✓ Đã liên kết thư mục: ' + res.path + (res.matchedJson ? ' (File: ' + res.matchedJson + ')' : ''));
+    }
+  }
+
+  function openFolderOnDisk(p, subPath = '') {
+    if (!p) p = project();
+    if (!p) return;
+    if (!p.rootPath) {
+      toast('Dự án chưa liên kết thư mục trên máy. Đang mở hộp thoại chọn thư mục…');
+      pickProjectFolder(p).then(() => {
+        if (p.rootPath) openFolderOnDisk(p, subPath);
+      });
+      return;
+    }
+    const cleanSub = (subPath || '').replace(/\//g, '\\');
+    const fullPath = cleanSub ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + cleanSub) : p.rootPath;
+    sendNativeMessage('project.open_folder', { code: p.code, path: fullPath });
+    toast('Đang mở thư mục: ' + (cleanSub || fullPath));
+  }
+
+  async function autoSyncProjectFolder(p) {
+    if (!p) return;
+    try {
+      const res = await requestNative('project.auto_find_json', {
+        code: p.code,
+        preferredPath: p.rootPath || ''
+      });
+      if (res && res.folderPath) {
+        let changed = false;
+        if (p.rootPath !== res.folderPath) {
+          p.rootPath = res.folderPath;
+          changed = true;
+        }
+        if (res.jsonFile && p.jsonFile !== res.jsonFile) {
+          p.jsonFile = res.jsonFile;
+          changed = true;
+        }
+        connections.set(p.id, { key: p.id, path: res.folderPath, jsonFile: p.jsonFile, hash: '', conflict: false, saving: false });
+        if (changed) {
+          saveLocal();
+          render();
+        }
+      }
+    } catch (_) {}
+  }
+
   function badge(status) {
     const map = {
       completed: 'green', in_progress: 'blue', blocked: 'red',
@@ -551,7 +662,7 @@
     const prog = C.progress(D, p);
 
     return pageTitle('Lộ trình dự án', `${p.code} · ${prog.done}/${prog.total} giai đoạn hoàn tất`, btn('Xuất báo cáo tiến độ', 'export-progress', 'download') + btn('In', 'print', 'print'))
-      + `<div class="roadmap-layout"><section class="panel sticky-panel"><div class="panel-head"><h2>12 giai đoạn</h2><span class="badge blue">${prog.percent}%</span></div><div class="panel-body" style="padding:12px"><div class="stage-list">${D.roadmap.stages.map(x => `<button class="stage-item ${selectedStage === x.id ? 'selected' : ''} ${C.applies(x, p) ? p.stages[x.id].status : 'inactive'}" data-action="stage" data-id="${x.id}"><span class="stage-number">${p.stages[x.id].status === 'completed' && C.applies(x, p) ? icon('check') : String(x.order).padStart(2, '0')}</span><span><strong>${esc(x.title)}</strong><small>${C.applies(x, p) ? esc(C.statuses[p.stages[x.id].status]) : 'Ngoài phạm vi'}</small></span></button>`).join('')}</div></div></section><section class="panel stage-detail"><div class="eyebrow">GIAI ĐOẠN ${String(s.order).padStart(2, '0')} / ${esc(s.lane)}</div><h2>${esc(s.title)}</h2>${active ? badge(st.status) : '<span class="badge gray">Ngoài phạm vi dự án</span>'}<p class="subtext">${esc(s.purpose)}</p>${!active ? notice('Bạn có thể tra cứu giai đoạn này. Checklist và tiến độ chỉ lưu cho phần việc thuộc phạm vi dự án.') : ''}<div class="stage-meta"><label class="field">Trạng thái<select id="stage-status" ${!active ? 'disabled' : ''}>${Object.entries(C.statuses).map(([k, v]) => option(k, v, st.status)).join('')}</select></label><label class="field">Người phụ trách<input id="stage-owner" maxlength="200" value="${esc(st.owner)}" ${!active ? 'disabled' : ''}></label><label class="field">Hạn hoàn thành<input id="stage-due" type="date" value="${esc(st.due)}" ${!active ? 'disabled' : ''}></label></div><div class="detail-section"><h3>DÙNG KHI NÀO</h3><p>${esc(s.when)}</p></div><div class="detail-section"><h3>ĐẦU VÀO CẦN CÓ</h3><ul>${s.entry.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><h3>VIỆC CẦN LÀM</h3><ul>${s.actions.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><div class="result-header"><h3>CHECKLIST CHUYỂN BƯỚC</h3><span class="count-label">${C.relevantChecks(s, p).filter(c => st.checks[c.id]).length}/${C.relevantChecks(s, p).length} xác nhận</span></div><div class="checklist">${C.relevantChecks(s, p).map(c => `<label class="check-label"><input type="checkbox" data-check="${c.id}" ${st.checks[c.id] ? 'checked' : ''} ${!active ? 'disabled' : ''}><span>${esc(c.text)}</span></label>`).join('')}</div></div><div class="detail-section"><label class="field">Ghi chú / lý do không áp dụng<textarea id="stage-note" maxlength="8000" ${!active ? 'disabled' : ''} placeholder="Ghi tình trạng, đầu vào còn thiếu hoặc lý do không áp dụng…">${esc(st.note)}</textarea></label><p class="count-label">Ghi chú, checklist và người phụ trách tự lưu khi thay đổi.</p></div><div class="detail-section"><h3>NƠI LƯU HỒ SƠ</h3>${outputPaths.map(path => `<div class="folder-link" title="${esc(path)}">${icon('folder')}<code title="${esc(path)}">${esc(path)}</code>${connections.has(p.id) ? btn('Mở', 'open-path', null, 'small', `data-path="${esc(path)}"`) : btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(path)}"`)}</div>`).join('') || '<p class="muted">Bộ môn lưu hồ sơ chưa có trong cấu hình.</p>'}</div>${templates.length ? `<div class="detail-section"><h3>BIỂU MẪU LIÊN QUAN</h3><div class="btnrow">${templates.map(t => btn(templateNames[t.id] || t.id, 'download-template', 'file', 'small', `data-id="${t.id}"`)).join('')}</div>${s.id === 'sat' ? '<p class="count-label">Mẫu FAT/SAT dùng chung. Lưu bản SAT đã điền vào 015_COMMISSIONING/06_SAT.</p>' : ''}</div>` : ''}</section></div>`;
+      + `<div class="roadmap-layout"><section class="panel sticky-panel"><div class="panel-head"><h2>12 giai đoạn</h2><span class="badge blue">${prog.percent}%</span></div><div class="panel-body" style="padding:12px"><div class="stage-list">${D.roadmap.stages.map(x => `<button class="stage-item ${selectedStage === x.id ? 'selected' : ''} ${C.applies(x, p) ? p.stages[x.id].status : 'inactive'}" data-action="stage" data-id="${x.id}"><span class="stage-number">${p.stages[x.id].status === 'completed' && C.applies(x, p) ? icon('check') : String(x.order).padStart(2, '0')}</span><span><strong>${esc(x.title)}</strong><small>${C.applies(x, p) ? esc(C.statuses[p.stages[x.id].status]) : 'Ngoài phạm vi'}</small></span></button>`).join('')}</div></div></section><section class="panel stage-detail"><div class="eyebrow">GIAI ĐOẠN ${String(s.order).padStart(2, '0')} / ${esc(s.lane)}</div><h2>${esc(s.title)}</h2>${active ? badge(st.status) : '<span class="badge gray">Ngoài phạm vi dự án</span>'}<p class="subtext">${esc(s.purpose)}</p>${!active ? notice('Bạn có thể tra cứu giai đoạn này. Checklist và tiến độ chỉ lưu cho phần việc thuộc phạm vi dự án.') : ''}<div class="stage-meta"><label class="field">Trạng thái<select id="stage-status" ${!active ? 'disabled' : ''}>${Object.entries(C.statuses).map(([k, v]) => option(k, v, st.status)).join('')}</select></label><label class="field">Người phụ trách<input id="stage-owner" maxlength="200" value="${esc(st.owner)}" ${!active ? 'disabled' : ''}></label><label class="field">Hạn hoàn thành<input id="stage-due" type="date" value="${esc(st.due)}" ${!active ? 'disabled' : ''}></label></div><div class="detail-section"><h3>DÙNG KHI NÀO</h3><p>${esc(s.when)}</p></div><div class="detail-section"><h3>ĐẦU VÀO CẦN CÓ</h3><ul>${s.entry.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><h3>VIỆC CẦN LÀM</h3><ul>${s.actions.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><div class="result-header"><h3>CHECKLIST CHUYỂN BƯỚC</h3><span class="count-label">${C.relevantChecks(s, p).filter(c => st.checks[c.id]).length}/${C.relevantChecks(s, p).length} xác nhận</span></div><div class="checklist">${C.relevantChecks(s, p).map(c => `<label class="check-label"><input type="checkbox" data-check="${c.id}" ${st.checks[c.id] ? 'checked' : ''} ${!active ? 'disabled' : ''}><span>${esc(c.text)}</span></label>`).join('')}</div></div><div class="detail-section"><label class="field">Ghi chú / lý do không áp dụng<textarea id="stage-note" maxlength="8000" ${!active ? 'disabled' : ''} placeholder="Ghi tình trạng, đầu vào còn thiếu hoặc lý do không áp dụng…">${esc(st.note)}</textarea></label><p class="count-label">Ghi chú, checklist và người phụ trách tự lưu khi thay đổi.</p></div><div class="detail-section"><div class="folder-header-bar"><div><h3>NƠI LƯU HỒ SƠ</h3><div class="project-folder-badge">${p.rootPath ? `<span class="badge blue" title="Thư mục đã liên kết trên đĩa: ${esc(p.rootPath)}">📁 Thư mục: <b>${esc(p.rootPath)}</b> ${p.jsonFile ? `<small class="mono">(${esc(p.jsonFile)})</small>` : ''}</span>` : `<span class="badge gray">📁 Chưa liên kết thư mục đĩa cho dự án này</span>`}</div></div><div class="btnrow">${btn(p.rootPath ? 'Đổi thư mục' : 'Chọn thư mục dự án', 'pick-project-folder', 'folder', 'small primary')}${p.rootPath ? btn('Mở thư mục gốc', 'open-root-folder', null, 'small') : ''}</div></div><div class="folder-links-list">${outputPaths.map(path => { const fullPath = p.rootPath ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + path.replace(/\//g, '\\')) : path; return `<div class="folder-link" title="${esc(fullPath)}">${icon('folder')}<div class="folder-info"><code class="folder-code" data-action="open-subfolder" data-path="${esc(path)}" title="Bấm để mở thư mục trên máy">${esc(path)}</code>${p.rootPath ? `<small class="folder-realpath mono">${esc(fullPath)}</small>` : ''}</div><div class="folder-actions">${btn('Mở thư mục', 'open-subfolder', 'folder', 'small primary', `data-path="${esc(path)}"`)}${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(fullPath)}"`)}</div></div>`; }).join('') || '<p class="muted">Bộ môn lưu hồ sơ chưa có trong cấu hình.</p>'}</div></div>${templates.length ? `<div class="detail-section"><h3>BIỂU MẪU LIÊN QUAN</h3><div class="btnrow">${templates.map(t => btn(templateNames[t.id] || t.id, 'download-template', 'file', 'small', `data-id="${t.id}"`)).join('')}</div>${s.id === 'sat' ? '<p class="count-label">Mẫu FAT/SAT dùng chung. Lưu bản SAT đã điền vào 015_COMMISSIONING/06_SAT.</p>' : ''}</div>` : ''}</section></div>`;
   }
 
   function renderFolders() {
@@ -2025,7 +2136,7 @@
       else if (action === 'quick-preset') { wizard = C.makeProject(D, { preset: id }); wizardStep = 0; navigate('create'); }
       else if (action === 'open') await openNative();
       else if (action === 'demo') demoProject();
-      else if (action === 'select-project') { state.selected = id; save(null, false); navigate('dashboard'); }
+      else if (action === 'select-project') { state.selected = id; save(null, false); navigate('dashboard'); const selP = project(); if (selP) autoSyncProjectFolder(selP); }
       else if (action === 'stage') { selectedStage = id; navigate('roadmap'); }
       else if (action.startsWith('go-')) navigate(action.slice(3));
 
@@ -2319,9 +2430,14 @@
           modal('Đường dẫn thư mục', `<textarea readonly>${esc(link.dataset.path)}</textarea>`, btn('Đóng', 'close-modal'));
         }
       }
-      else if (action === 'open-path') {
-        const con = connections.get(p.id);
-        if (con) await api('open-path', { projectId: con.key, relativePath: link.dataset.path });
+      else if (action === 'open-path' || action === 'open-subfolder') {
+        openFolderOnDisk(p, link.dataset.path);
+      }
+      else if (action === 'pick-project-folder') {
+        await pickProjectFolder(p);
+      }
+      else if (action === 'open-root-folder') {
+        openFolderOnDisk(p, '');
       }
       else if (action === 'project-information') {
         const con = connections.get(p.id);
@@ -2471,6 +2587,8 @@
       save(null, false);
       navigate('dashboard');
       refreshPublishStatus();
+      const selP = project();
+      if (selP) autoSyncProjectFolder(selP);
     }
     else if (t.name === 'preset' && view === 'create' && t.closest('#wizard-form')) {
       wizard.preset = t.value;
@@ -2667,6 +2785,9 @@
         }
       });
     }
+
+    const initP = project();
+    if (initP) autoSyncProjectFolder(initP);
 
     // Nút cuộn lên đầu trang
     const btnScrollTop = document.getElementById('apm-btn-back-to-top');

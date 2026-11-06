@@ -1426,10 +1426,19 @@ public class LanWebServer
         {
             var node = JsonNode.Parse(body) as JsonObject;
             var code = node?["code"]?.ToString()?.Trim() ?? "";
-            var safeCode = CleanFileName(code);
-            var projDir = string.IsNullOrWhiteSpace(code)
-                ? Path.Combine(UserDataDir, "projects")
-                : Path.Combine(UserDataDir, "projects", safeCode);
+            var directPath = node?["path"]?.ToString()?.Trim() ?? "";
+            string projDir;
+            if (!string.IsNullOrWhiteSpace(directPath))
+            {
+                projDir = directPath;
+            }
+            else
+            {
+                var safeCode = CleanFileName(code);
+                projDir = string.IsNullOrWhiteSpace(code)
+                    ? Path.Combine(UserDataDir, "projects")
+                    : Path.Combine(UserDataDir, "projects", safeCode);
+            }
 
             if (!Directory.Exists(projDir)) Directory.CreateDirectory(projDir);
 

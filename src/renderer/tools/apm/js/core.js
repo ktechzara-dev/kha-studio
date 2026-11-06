@@ -59,7 +59,9 @@
       createdAt: text(input.createdAt, 40) || now,
       updatedAt: text(input.updatedAt, 40) || now,
       demo: Boolean(input.demo),
-      sourceVersion: text(input.sourceVersion, 30) || '3.0.1'
+      sourceVersion: text(input.sourceVersion, 30) || '3.0.1',
+      rootPath: text(input.rootPath || input.path || input.projectDir, 500) || '',
+      jsonFile: text(input.jsonFile || input.jsonPath, 200) || ''
     };
 
     p.devices = arr(input.devices).slice(0, 500).map(d => ({

@@ -587,15 +587,57 @@ public partial class MainWindow : Window
                     {
                         var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
                         var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        var title = root.TryGetProperty("title", out var tElem) ? tElem.GetString() : "Chọn thư mục";
+                        var targetCode = root.TryGetProperty("code", out var cElem) ? cElem.GetString() ?? "" : "";
                         Dispatcher.Invoke(() =>
                         {
                             var dlg = new Microsoft.Win32.OpenFolderDialog
                             {
-                                Title = "Chọn thư mục lưu dự án Siemens TIA Portal"
+                                Title = string.IsNullOrWhiteSpace(title) ? "Chọn thư mục" : title
                             };
                             if (dlg.ShowDialog() == true)
                             {
-                                Send(new { type = "dialog.browseFolder.reply", id = reqId, path = dlg.FolderName });
+                                string selectedDir = dlg.FolderName;
+                                string? matchedJson = null;
+                                string? jsonContent = null;
+                                string? jsonPath = null;
+                                try
+                                {
+                                    if (Directory.Exists(selectedDir))
+                                    {
+                                        var jsonFiles = Directory.GetFiles(selectedDir, "*.json", SearchOption.TopDirectoryOnly);
+                                        if (!string.IsNullOrWhiteSpace(targetCode))
+                                        {
+                                            matchedJson = jsonFiles.FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(targetCode, StringComparison.OrdinalIgnoreCase));
+                                        }
+                                        if (matchedJson == null)
+                                        {
+                                            matchedJson = jsonFiles.FirstOrDefault(f => Path.GetFileName(f).Equals("_AUTOMATION_APP.json", StringComparison.OrdinalIgnoreCase)
+                                                                                     || Path.GetFileName(f).Equals("_PROJECT_INFO.json", StringComparison.OrdinalIgnoreCase)
+                                                                                     || Path.GetFileName(f).Equals("project.json", StringComparison.OrdinalIgnoreCase));
+                                        }
+                                        if (matchedJson == null && jsonFiles.Length > 0)
+                                        {
+                                            matchedJson = jsonFiles[0];
+                                        }
+                                        if (matchedJson != null && File.Exists(matchedJson))
+                                        {
+                                            jsonPath = matchedJson;
+                                            matchedJson = Path.GetFileName(matchedJson);
+                                            jsonContent = File.ReadAllText(jsonPath, System.Text.Encoding.UTF8);
+                                        }
+                                    }
+                                }
+                                catch { }
+
+                                Send(new { 
+                                    type = "dialog.browseFolder.reply", 
+                                    id = reqId, 
+                                    path = selectedDir,
+                                    matchedJson = matchedJson,
+                                    jsonPath = jsonPath,
+                                    jsonContent = jsonContent
+                                });
                             }
                             else
                             {
@@ -658,8 +700,17 @@ public partial class MainWindow : Window
                         {
                             var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
                             var pCode = root.TryGetProperty("code", out var cElem) ? cElem.GetString() ?? "" : "";
-                            var baseDir = Path.Combine(LanWebServer.UserDataDir, "projects");
-                            var targetDir = string.IsNullOrWhiteSpace(pCode) ? baseDir : Path.Combine(baseDir, LanWebServer.CleanFileName(pCode));
+                            var pPath = root.TryGetProperty("path", out var pElem) ? pElem.GetString() ?? "" : "";
+                            string targetDir;
+                            if (!string.IsNullOrWhiteSpace(pPath))
+                            {
+                                targetDir = pPath;
+                            }
+                            else
+                            {
+                                var baseDir = Path.Combine(LanWebServer.UserDataDir, "projects");
+                                targetDir = string.IsNullOrWhiteSpace(pCode) ? baseDir : Path.Combine(baseDir, LanWebServer.CleanFileName(pCode));
+                            }
                             if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
                             Process.Start(new ProcessStartInfo
                             {
@@ -669,6 +720,119 @@ public partial class MainWindow : Window
                             });
                         }
                         catch { }
+                        break;
+                    }
+                case "project.save_json":
+                    {
+                        try
+                        {
+                            var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                            var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                            var filePath = root.TryGetProperty("filePath", out var fpElem) ? fpElem.GetString() : null;
+                            var content = root.TryGetProperty("content", out var cElem) ? cElem.GetString() : null;
+                            if (!string.IsNullOrWhiteSpace(filePath) && content != null)
+                            {
+                                var dir = Path.GetDirectoryName(filePath);
+                                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                                File.WriteAllText(filePath, content, System.Text.Encoding.UTF8);
+                                Send(new { type = "project.save_json.reply", id = reqId, success = true, path = filePath });
+                            }
+                            else
+                            {
+                                Send(new { type = "project.save_json.reply", id = reqId, success = false, error = "Đường dẫn hoặc nội dung trống" });
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Send(new { type = "project.save_json.reply", success = false, error = ex.Message });
+                        }
+                        break;
+                    }
+                case "project.read_json":
+                    {
+                        try
+                        {
+                            var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                            var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                            var filePath = root.TryGetProperty("filePath", out var fpElem) ? fpElem.GetString() : null;
+                            if (!string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath))
+                            {
+                                var content = File.ReadAllText(filePath, System.Text.Encoding.UTF8);
+                                Send(new { type = "project.read_json.reply", id = reqId, success = true, content = content, path = filePath });
+                            }
+                            else
+                            {
+                                Send(new { type = "project.read_json.reply", id = reqId, success = false, error = "Không tìm thấy file JSON" });
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Send(new { type = "project.read_json.reply", success = false, error = ex.Message });
+                        }
+                        break;
+                    }
+                case "project.auto_find_json":
+                    {
+                        try
+                        {
+                            var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                            var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                            var code = root.TryGetProperty("code", out var cElem) ? cElem.GetString() ?? "" : "";
+                            var preferredPath = root.TryGetProperty("preferredPath", out var ppElem) ? ppElem.GetString() ?? "" : "";
+
+                            string? foundDir = null;
+                            string? foundJson = null;
+                            string? content = null;
+
+                            // 1. Check preferredPath first
+                            if (!string.IsNullOrWhiteSpace(preferredPath) && Directory.Exists(preferredPath))
+                            {
+                                foundDir = preferredPath;
+                            }
+                            // 2. Check UserDataDir/projects/{code}
+                            if (foundDir == null && !string.IsNullOrWhiteSpace(code))
+                            {
+                                var candidate = Path.Combine(LanWebServer.UserDataDir, "projects", LanWebServer.CleanFileName(code));
+                                if (Directory.Exists(candidate)) foundDir = candidate;
+                            }
+
+                            if (foundDir != null)
+                            {
+                                var jsonFiles = Directory.GetFiles(foundDir, "*.json", SearchOption.TopDirectoryOnly);
+                                if (!string.IsNullOrWhiteSpace(code))
+                                {
+                                    foundJson = jsonFiles.FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(code, StringComparison.OrdinalIgnoreCase));
+                                }
+                                if (foundJson == null)
+                                {
+                                    foundJson = jsonFiles.FirstOrDefault(f => Path.GetFileName(f).Equals("_AUTOMATION_APP.json", StringComparison.OrdinalIgnoreCase)
+                                                                           || Path.GetFileName(f).Equals("_PROJECT_INFO.json", StringComparison.OrdinalIgnoreCase)
+                                                                           || Path.GetFileName(f).Equals("project.json", StringComparison.OrdinalIgnoreCase));
+                                }
+                                if (foundJson == null && jsonFiles.Length > 0)
+                                {
+                                    foundJson = jsonFiles[0];
+                                }
+                                if (foundJson != null && File.Exists(foundJson))
+                                {
+                                    content = File.ReadAllText(foundJson, System.Text.Encoding.UTF8);
+                                }
+                            }
+
+                            Send(new { 
+                                type = "project.auto_find_json.reply", 
+                                id = reqId, 
+                                code = code,
+                                folderPath = foundDir, 
+                                jsonPath = foundJson, 
+                                jsonFile = foundJson != null ? Path.GetFileName(foundJson) : null,
+                                content = content 
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Send(new { type = "project.auto_find_json.reply", error = ex.Message });
+                        }
                         break;
                     }
                 case string c when c.StartsWith("tia."):
