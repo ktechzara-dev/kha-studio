@@ -45,7 +45,11 @@
     link: '<path d="M10 7l2-2a5 5 0 0 1 7 7l-3 3M14 17l-2 2a5 5 0 0 1-7-7l3-3M8 16l8-8"/>',
     eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
     diff: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>',
-    refresh: '<path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>'
+    refresh: '<path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+    document: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+    report: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 12h8M8 16h5M8 8h2"/>',
+    clip: '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+    pdf: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M10 12h4M10 15h4M10 18h2"/>'
   };
   const icon = name => '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || ICONS.file) + '</svg>';
 
@@ -56,6 +60,7 @@
     ['folders', 'Cấu trúc & hướng dẫn', 'folder'],
     ['templates', 'Biểu mẫu kỹ thuật', 'file'],
     ['devices', 'Thiết bị & mạng', 'device'],
+    ['docs-reports', 'Tài liệu & Report', 'document'],
     ['issues', 'Theo dõi Issue', 'issue'],
     ['ct', 'Đo Cycle Time', 'clock'],
     ['settings', 'Sao lưu & hướng dẫn', 'help'],
@@ -81,6 +86,12 @@
   let folderOnlyProject = false;
   let templateType = 'all';
   let issueStatus = 'all';
+  let docsSubTab = 'documents'; // 'documents' | 'reports'
+  let docsCategory = 'all';
+  let docsSearch = '';
+  let reportsType = 'all';
+  let reportsCondition = 'all';
+  let reportsSearch = '';
 
   // Publish state
   let publishConfig = null;
@@ -609,6 +620,7 @@
       folders: renderFolders,
       templates: renderTemplates,
       devices: renderDevices,
+      'docs-reports': renderDocsReports,
       issues: renderIssues,
       ct: renderCT,
       settings: renderSettings,
@@ -673,8 +685,8 @@
 
     return pageTitle(p.name, p.code + ' · ' + (p.customer || 'Chưa khai báo khách hàng'), publishBtn + buttons, p.demo ? 'DỰ ÁN MINH HỌA' : 'DỰ ÁN ĐANG CHỌN')
       + (p.demo ? notice('Dữ liệu minh họa để thử ứng dụng. Tạo hoặc mở dự án thực tế trước khi ghi hồ sơ công việc.') : '')
-      + `<div class="metrics">${metric('Tiến độ giai đoạn', prog.percent + '%', `${prog.done}/${prog.total} hoàn tất · ${prog.na} không áp dụng`, 'roadmap')}${metric('Bộ môn trong dự án', p.modules.length, `${plan.directories.length} thư mục theo cấu hình`, 'folder')}${metric('Thiết bị đã khai báo', p.devices.length, `${p.devices.filter(d => d.ip).length} thiết bị có địa chỉ IP`, 'device')}${metric('Issue đang mở', open.length, `${open.filter(i => i.severity === 'High').length} mức ưu tiên cao`, 'issue')}</div>`
-      + `<div class="two-cols"><section class="panel"><div class="panel-head"><h2>Lộ trình thực hiện</h2>${btn('Xem chi tiết', 'go-roadmap', null, 'small')}</div><div class="panel-body"><div class="progress-info"><span>${prog.done} giai đoạn đã xác nhận hoàn tất</span><strong>${prog.percent}%</strong></div><div class="progress-track"><div class="progress-fill" style="width:${prog.percent}%"></div></div><div class="stage-grid">${stagesTiles(p)}</div><p class="count-label">Thiết kế, mô phỏng, mua sắm và lập trình có thể thực hiện song song. Tiến độ tính từ xác nhận checklist.</p></div></section><div><section class="panel"><div class="panel-head"><h2>Thông tin dự án</h2>${btn('Sửa', 'edit-project', 'edit', 'small')}</div><div class="panel-body"><div class="detail-list">${[['Loại dự án', D.presets.presets.find(x => x.id === p.preset)?.label], ['Phạm vi', labels.join(' · ')], ['Quản lý dự án', p.manager || 'Chưa khai báo'], ['Kỹ sư PLC', p.plcEngineer || 'Chưa khai báo'], ['Kỹ sư Robot', p.robotEngineer || 'Chưa khai báo'], ['Revision', p.revision], ['Nơi lưu', conn?.path || 'Hồ sơ trong ứng dụng']].map(([l, v]) => `<div class="detail-row"><small>${esc(l)}</small><strong>${esc(v)}</strong></div>`).join('')}</div><div class="btnrow" style="margin-top:22px">${btn(conn ? 'Mở file thông tin' : 'Tải file thông tin', 'project-information', 'file', 'small')}${btn('Cập nhật lên Drive', 'publish-now', 'upload', 'small primary')}${btn('Xuất hồ sơ JSON', 'export-project', 'download', 'small')}${btn('Xuất gói dự án V4', 'export-zip', 'folder', 'small')}</div></div></section><section class="panel" style="margin-top:22px"><div class="panel-head"><h2>Công việc đang vướng</h2>${btn('Issue', 'go-issues', null, 'small')}</div><div class="panel-body">${open.slice(0, 4).map(i => `<div class="issue-list-item"><div><strong>${esc(i.title)}</strong><small>${esc(i.owner || 'Chưa giao người phụ trách')}${i.due ? ' · ' + esc(i.due) : ''}</small></div>${badge(i.status)}</div>`).join('') || '<div class="empty" style="padding:8px">Chưa có Issue đang mở.</div>'}</div></section></div></div>`
+      + `<div class="metrics">${metric('Tiến độ giai đoạn', prog.percent + '%', `${prog.done}/${prog.total} hoàn tất · ${prog.na} không áp dụng`, 'roadmap')}${metric('Bộ môn trong dự án', p.modules.length, `${plan.directories.length} thư mục theo cấu hình`, 'folder')}${metric('Thiết bị đã khai báo', p.devices.length, `${p.devices.filter(d => d.ip).length} thiết bị có địa chỉ IP`, 'device')}${metric('Hồ sơ & Report', ((p.documents?.length || 0) + (p.reports?.length || 0)), `${p.documents?.length || 0} tài liệu · ${p.reports?.length || 0} báo cáo`, 'document')}${metric('Issue đang mở', open.length, `${open.filter(i => i.severity === 'High').length} mức ưu tiên cao`, 'issue')}</div>`
+      + `<div class="two-cols"><section class="panel"><div class="panel-head"><h2>Lộ trình thực hiện</h2>${btn('Xem chi tiết', 'go-roadmap', null, 'small')}</div><div class="panel-body"><div class="progress-info"><span>${prog.done} giai đoạn đã xác nhận hoàn tất</span><strong>${prog.percent}%</strong></div><div class="progress-track"><div class="progress-fill" style="width:${prog.percent}%"></div></div><div class="stage-grid">${stagesTiles(p)}</div><p class="count-label">Thiết kế, mô phỏng, mua sắm và lập trình có thể thực hiện song song. Tiến độ tính từ xác nhận checklist.</p></div></section><div><section class="panel"><div class="panel-head"><h2>Thông tin dự án</h2>${btn('Sửa', 'edit-project', 'edit', 'small')}</div><div class="panel-body"><div class="detail-list">${[['Loại dự án', D.presets.presets.find(x => x.id === p.preset)?.label], ['Phạm vi', labels.join(' · ')], ['Quản lý dự án', p.manager || 'Chưa khai báo'], ['Kỹ sư PLC', p.plcEngineer || 'Chưa khai báo'], ['Kỹ sư Robot', p.robotEngineer || 'Chưa khai báo'], ['Revision', p.revision], ['Nơi lưu', conn?.path || 'Hồ sơ trong ứng dụng']].map(([l, v]) => `<div class="detail-row"><small>${esc(l)}</small><strong>${esc(v)}</strong></div>`).join('')}</div><div class="btnrow" style="margin-top:22px">${btn('Tài liệu & Report', 'go-docs-reports', 'document', 'small primary')}${btn(conn ? 'Mở file thông tin' : 'Tải file thông tin', 'project-information', 'file', 'small')}${btn('Cập nhật lên Drive', 'publish-now', 'upload', 'small')}${btn('Xuất hồ sơ JSON', 'export-project', 'download', 'small')}${btn('Xuất gói dự án V4', 'export-zip', 'folder', 'small')}</div></div></section><section class="panel" style="margin-top:22px"><div class="panel-head"><h2>Công việc đang vướng</h2>${btn('Issue', 'go-issues', null, 'small')}</div><div class="panel-body">${open.slice(0, 4).map(i => `<div class="issue-list-item"><div><strong>${esc(i.title)}</strong><small>${esc(i.owner || 'Chưa giao người phụ trách')}${i.due ? ' · ' + esc(i.due) : ''}</small></div>${badge(i.status)}</div>`).join('') || '<div class="empty" style="padding:8px">Chưa có Issue đang mở.</div>'}</div></section></div></div>`
       + projectsSection();
   }
 
@@ -728,7 +740,7 @@
     const prog = C.progress(D, p);
 
     return pageTitle('Lộ trình dự án', `${p.code} · ${prog.done}/${prog.total} giai đoạn hoàn tất`, btn('Xuất báo cáo tiến độ', 'export-progress', 'download') + btn('In', 'print', 'print'))
-      + `<div class="roadmap-layout"><section class="panel sticky-panel"><div class="panel-head"><h2>12 giai đoạn</h2><span class="badge blue">${prog.percent}%</span></div><div class="panel-body" style="padding:12px"><div class="stage-list">${D.roadmap.stages.map(x => `<button class="stage-item ${selectedStage === x.id ? 'selected' : ''} ${C.applies(x, p) ? p.stages[x.id].status : 'inactive'}" data-action="stage" data-id="${x.id}"><span class="stage-number">${p.stages[x.id].status === 'completed' && C.applies(x, p) ? icon('check') : String(x.order).padStart(2, '0')}</span><span><strong>${esc(x.title)}</strong><small>${C.applies(x, p) ? esc(C.statuses[p.stages[x.id].status]) : 'Ngoài phạm vi'}</small></span></button>`).join('')}</div></div></section><section class="panel stage-detail"><div class="eyebrow">GIAI ĐOẠN ${String(s.order).padStart(2, '0')} / ${esc(s.lane)}</div><h2>${esc(s.title)}</h2>${active ? badge(st.status) : '<span class="badge gray">Ngoài phạm vi dự án</span>'}<p class="subtext">${esc(s.purpose)}</p>${!active ? notice('Bạn có thể tra cứu giai đoạn này. Checklist và tiến độ chỉ lưu cho phần việc thuộc phạm vi dự án.') : ''}<div class="stage-meta"><label class="field">Trạng thái<select id="stage-status" ${!active ? 'disabled' : ''}>${Object.entries(C.statuses).map(([k, v]) => option(k, v, st.status)).join('')}</select></label><label class="field">Người phụ trách<input id="stage-owner" maxlength="200" value="${esc(st.owner)}" ${!active ? 'disabled' : ''}></label><label class="field">Hạn hoàn thành<input id="stage-due" type="date" value="${esc(st.due)}" ${!active ? 'disabled' : ''}></label></div><div class="detail-section"><h3>DÙNG KHI NÀO</h3><p>${esc(s.when)}</p></div><div class="detail-section"><h3>ĐẦU VÀO CẦN CÓ</h3><ul>${s.entry.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><h3>VIỆC CẦN LÀM</h3><ul>${s.actions.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><div class="result-header"><h3>CHECKLIST CHUYỂN BƯỚC</h3><span class="count-label">${C.relevantChecks(s, p).filter(c => st.checks[c.id]).length}/${C.relevantChecks(s, p).length} xác nhận</span></div><div class="checklist">${C.relevantChecks(s, p).map(c => `<label class="check-label"><input type="checkbox" data-check="${c.id}" ${st.checks[c.id] ? 'checked' : ''} ${!active ? 'disabled' : ''}><span>${esc(c.text)}</span></label>`).join('')}</div></div><div class="detail-section"><label class="field">Ghi chú / lý do không áp dụng<textarea id="stage-note" maxlength="8000" ${!active ? 'disabled' : ''} placeholder="Ghi tình trạng, đầu vào còn thiếu hoặc lý do không áp dụng…">${esc(st.note)}</textarea></label><p class="count-label">Ghi chú, checklist và người phụ trách tự lưu khi thay đổi.</p></div><div class="detail-section"><div class="folder-header-bar"><div><h3>NƠI LƯU HỒ SƠ</h3><div class="project-folder-badge">${p.rootPath ? `<span class="badge blue" title="Thư mục đã liên kết trên đĩa: ${esc(p.rootPath)}">📁 Thư mục: <b>${esc(p.rootPath)}</b> ${p.jsonFile ? `<small class="mono">(${esc(p.jsonFile)})</small>` : ''}</span>` : `<span class="badge gray">📁 Chưa liên kết thư mục đĩa cho dự án này</span>`}</div></div><div class="btnrow">${btn(p.rootPath ? 'Đổi thư mục' : 'Chọn thư mục dự án', 'pick-project-folder', 'folder', 'small primary')}${p.rootPath ? btn('Mở thư mục gốc', 'open-root-folder', null, 'small') : ''}</div></div><div class="folder-links-list">${outputPaths.map(path => { const fullPath = p.rootPath ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + path.replace(/\//g, '\\')) : path; return `<div class="folder-link" title="${esc(fullPath)}">${icon('folder')}<div class="folder-info"><code class="folder-code" data-action="open-subfolder" data-path="${esc(path)}" title="Bấm để mở thư mục trên máy">${esc(path)}</code>${p.rootPath ? `<small class="folder-realpath mono">${esc(fullPath)}</small>` : ''}</div><div class="folder-actions">${btn('Mở thư mục', 'open-subfolder', 'folder', 'small primary', `data-path="${esc(path)}"`)}${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(fullPath)}"`)}</div></div>`; }).join('') || '<p class="muted">Bộ môn lưu hồ sơ chưa có trong cấu hình.</p>'}</div></div>${templates.length ? `<div class="detail-section"><h3>BIỂU MẪU LIÊN QUAN</h3><div class="btnrow">${templates.map(t => btn(templateNames[t.id] || t.id, 'download-template', 'file', 'small', `data-id="${t.id}"`)).join('')}</div>${s.id === 'sat' ? '<p class="count-label">Mẫu FAT/SAT dùng chung. Lưu bản SAT đã điền vào 015_COMMISSIONING/06_SAT.</p>' : ''}</div>` : ''}</section></div>`;
+      + `<div class="roadmap-layout"><section class="panel sticky-panel"><div class="panel-head"><h2>12 giai đoạn</h2><span class="badge blue">${prog.percent}%</span></div><div class="panel-body" style="padding:12px"><div class="stage-list">${D.roadmap.stages.map(x => `<button class="stage-item ${selectedStage === x.id ? 'selected' : ''} ${C.applies(x, p) ? p.stages[x.id].status : 'inactive'}" data-action="stage" data-id="${x.id}"><span class="stage-number">${p.stages[x.id].status === 'completed' && C.applies(x, p) ? icon('check') : String(x.order).padStart(2, '0')}</span><span><strong>${esc(x.title)}</strong><small>${C.applies(x, p) ? esc(C.statuses[p.stages[x.id].status]) : 'Ngoài phạm vi'}</small></span></button>`).join('')}</div></div></section><section class="panel stage-detail"><div class="eyebrow">GIAI ĐOẠN ${String(s.order).padStart(2, '0')} / ${esc(s.lane)}</div><h2>${esc(s.title)}</h2>${active ? badge(st.status) : '<span class="badge gray">Ngoài phạm vi dự án</span>'}<p class="subtext">${esc(s.purpose)}</p>${!active ? notice('Bạn có thể tra cứu giai đoạn này. Checklist và tiến độ chỉ lưu cho phần việc thuộc phạm vi dự án.') : ''}<div class="stage-meta"><label class="field">Trạng thái<select id="stage-status" ${!active ? 'disabled' : ''}>${Object.entries(C.statuses).map(([k, v]) => option(k, v, st.status)).join('')}</select></label><label class="field">Người phụ trách<input id="stage-owner" maxlength="200" value="${esc(st.owner)}" ${!active ? 'disabled' : ''}></label><label class="field">Hạn hoàn thành<input id="stage-due" type="date" value="${esc(st.due)}" ${!active ? 'disabled' : ''}></label></div><div class="detail-section"><h3>DÙNG KHI NÀO</h3><p>${esc(s.when)}</p></div><div class="detail-section"><h3>ĐẦU VÀO CẦN CÓ</h3><ul>${s.entry.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><h3>VIỆC CẦN LÀM</h3><ul>${s.actions.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><div class="result-header"><h3>CHECKLIST CHUYỂN BƯỚC</h3><span class="count-label">${C.relevantChecks(s, p).filter(c => st.checks[c.id]).length}/${C.relevantChecks(s, p).length} xác nhận</span></div><div class="checklist">${C.relevantChecks(s, p).map(c => `<label class="check-label"><input type="checkbox" data-check="${c.id}" ${st.checks[c.id] ? 'checked' : ''} ${!active ? 'disabled' : ''}><span>${esc(c.text)}</span></label>`).join('')}</div></div><div class="detail-section"><label class="field">Ghi chú / lý do không áp dụng<textarea id="stage-note" maxlength="8000" ${!active ? 'disabled' : ''} placeholder="Ghi tình trạng, đầu vào còn thiếu hoặc lý do không áp dụng…">${esc(st.note)}</textarea></label><p class="count-label">Ghi chú, checklist và người phụ trách tự lưu khi thay đổi.</p></div><div class="detail-section"><div class="folder-header-bar"><div><h3>NƠI LƯU HỒ SƠ</h3><div class="project-folder-badge">${p.rootPath ? `<span class="badge blue" title="Thư mục đã liên kết trên đĩa: ${esc(p.rootPath)}">📁 Thư mục: <b>${esc(p.rootPath)}</b> ${p.jsonFile ? `<small class="mono">(${esc(p.jsonFile)})</small>` : ''}</span>` : `<span class="badge gray">📁 Chưa liên kết thư mục đĩa cho dự án này</span>`}</div></div><div class="btnrow">${btn(p.rootPath ? 'Đổi thư mục' : 'Chọn thư mục dự án', 'pick-project-folder', 'folder', 'small primary')}${p.rootPath ? btn('Mở thư mục gốc', 'open-root-folder', null, 'small') : ''}</div></div><div class="folder-links-list">${outputPaths.map(path => { const fullPath = p.rootPath ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + path.replace(/\//g, '\\')) : path; return `<div class="folder-link" title="${esc(fullPath)}">${icon('folder')}<div class="folder-info"><code class="folder-code" data-action="open-subfolder" data-path="${esc(path)}" title="Bấm để mở thư mục trên máy">${esc(path)}</code>${p.rootPath ? `<small class="folder-realpath mono">${esc(fullPath)}</small>` : ''}</div><div class="folder-actions">${btn('Mở thư mục', 'open-subfolder', 'folder', 'small primary', `data-path="${esc(path)}"`)}${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(fullPath)}"`)}</div></div>`; }).join('') || '<p class="muted">Bộ môn lưu hồ sơ chưa có trong cấu hình.</p>'}</div></div>${templates.length ? `<div class="detail-section"><h3>BIỂU MẪU LIÊN QUAN</h3><div class="btnrow">${templates.map(t => btn(templateNames[t.id] || t.id, 'download-template', 'file', 'small', `data-id="${t.id}"`)).join('')}</div>${s.id === 'sat' ? '<p class="count-label">Mẫu FAT/SAT dùng chung. Lưu bản SAT đã điền vào 015_COMMISSIONING/06_SAT.</p>' : ''}</div>` : ''}${renderStageDocsReports(s, p)}</section></div>`;
   }
 
   function renderFolders() {
@@ -889,6 +901,515 @@
             </div>
           </div>
         </section>`;
+  }
+
+  // ==========================================
+  // DOCUMENTS & REPORTS SYSTEM
+  // ==========================================
+
+  const DOC_CATEGORIES = [
+    { id: 'cad', label: 'CAD & Bản vẽ Layout' },
+    { id: 'electrical', label: 'Sơ đồ nguyên lý điện' },
+    { id: 'io', label: 'Danh sách I/O & Thiết bị' },
+    { id: 'spec', label: 'Đặc tả kỹ thuật (URS / FDS)' },
+    { id: 'manual', label: 'Tài liệu hướng dẫn vận hành' },
+    { id: 'contract', label: 'Hợp đồng, Báo giá & Phụ lục' },
+    { id: 'photo', label: 'Hình ảnh hiện trường / Nghiệm thu' },
+    { id: 'other', label: 'Tài liệu kỹ thuật khác' }
+  ];
+
+  const REPORT_TYPES = [
+    { id: 'daily', label: 'Daily Report', class: 'daily' },
+    { id: 'fat', label: 'FAT Report', class: 'fat' },
+    { id: 'sat', label: 'SAT Report', class: 'sat' },
+    { id: 'test', label: 'Commissioning & Test Report', class: 'test' },
+    { id: 'incident', label: 'Báo cáo sự cố / Troubleshooting', class: 'incident' },
+    { id: 'weekly', label: 'Báo cáo tiến độ tuần', class: 'weekly' }
+  ];
+
+  const REPORT_CONDITIONS = [
+    { id: 'Pass', label: 'Đạt (Pass)', class: 'pass' },
+    { id: 'Warning', label: 'Cảnh báo (Warning)', class: 'warning' },
+    { id: 'Fail', label: 'Không đạt (Fail)', class: 'fail' },
+    { id: 'Pending', label: 'Đang theo dõi (Pending)', class: 'pending' }
+  ];
+
+  function formatBytes(bytes) {
+    if (!bytes || isNaN(bytes)) return '';
+    const b = Number(bytes);
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    if (b < 1024 * 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    return (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+
+  function getFileExt(fileName) {
+    if (!fileName || !fileName.includes('.')) return '';
+    return fileName.split('.').pop().toLowerCase();
+  }
+
+  function getFileExtClass(ext) {
+    const e = (ext || '').toLowerCase();
+    if (['pdf'].includes(e)) return 'pdf';
+    if (['dwg', 'dxf', 'step', 'stp', 'iges', 'igs', 'sldprt', 'sldasm'].includes(e)) return 'dwg';
+    if (['xlsx', 'xls', 'csv'].includes(e)) return 'xlsx';
+    if (['docx', 'doc'].includes(e)) return 'docx';
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(e)) return 'zip';
+    if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'].includes(e)) return 'png';
+    return 'other';
+  }
+
+  function generateReportHtml(p, rep) {
+    const typeInfo = REPORT_TYPES.find(t => t.id === rep.type) || { label: rep.type || 'Báo cáo', class: 'daily' };
+    const condInfo = REPORT_CONDITIONS.find(c => c.id === rep.condition) || { label: rep.condition || 'Pending', class: 'pending' };
+    const stage = D.roadmap.stages.find(s => s.id === rep.stage);
+    const dateFormatted = rep.date ? new Date(rep.date).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
+
+    return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>${esc(rep.title)} - ${esc(p.code)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; padding: 30px; background: #f8fafc; color: #0f172a; line-height: 1.5; font-size: 13.5px; }
+    .report-wrap { max-width: 860px; margin: 0 auto; background: #fff; padding: 40px 48px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 24px; }
+    .brand-logo { font-size: 18px; font-weight: 800; letter-spacing: 1px; color: #0f172a; }
+    .brand-sub { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600; }
+    .report-title-box { text-align: center; margin-bottom: 24px; }
+    .report-title { font-size: 22px; font-weight: 800; margin: 0 0 8px 0; text-transform: uppercase; color: #0f172a; }
+    .report-type-chip { display: inline-block; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 12px; background: #0284c7; color: #fff; }
+    table.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    table.meta-table th, table.meta-table td { padding: 9px 12px; border: 1px solid #cbd5e1; text-align: left; }
+    table.meta-table th { background: #f1f5f9; width: 22%; font-weight: 600; color: #334155; }
+    .badge-cond { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 12px; }
+    .badge-cond.pass { background: #dcfce7; color: #166534; }
+    .badge-cond.warning { background: #fef3c7; color: #92400e; }
+    .badge-cond.fail { background: #fee2e2; color: #991b1b; }
+    .badge-cond.pending { background: #e0f2fe; color: #075985; }
+    .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; margin: 24px 0 12px 0; }
+    .content-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; color: #1e293b; }
+    .signatures-block { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 50px; text-align: center; page-break-inside: avoid; }
+    .sig-col { border-top: 1px dashed #94a3b8; padding-top: 10px; margin-top: 60px; font-size: 13px; font-weight: 600; }
+    .sig-col small { display: block; font-weight: normal; color: #64748b; font-size: 11px; margin-top: 3px; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .report-wrap { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-wrap">
+    <div class="header-bar">
+      <div>
+        <div class="brand-logo">K-CORE STUDIO · BUITAPP SYSTEM</div>
+        <div class="brand-sub">AUTOMATION PROJECT MASTER · TECHNICAL REPORT</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700">${esc(p.code)}</div>
+        <div style="font-size:11px;color:#64748b">${esc(p.name)}</div>
+      </div>
+    </div>
+    <div class="report-title-box">
+      <h1 class="report-title">${esc(rep.title)}</h1>
+      <span class="report-type-chip">${esc(typeInfo.label)}</span>
+    </div>
+    <table class="meta-table">
+      <tr>
+        <th>Dự án</th>
+        <td><b>${esc(p.code)}</b> - ${esc(p.name)}</td>
+        <th>Khách hàng</th>
+        <td>${esc(p.customer || '—')}</td>
+      </tr>
+      <tr>
+        <th>Giai đoạn liên quan</th>
+        <td>${stage ? `GĐ ${String(stage.order).padStart(2, '0')}: ${esc(stage.title)}` : 'Chung cho toàn dự án'}</td>
+        <th>Ngày lập</th>
+        <td>${esc(dateFormatted)}</td>
+      </tr>
+      <tr>
+        <th>Người lập báo cáo</th>
+        <td><b>${esc(rep.author || 'Sếp Kha')}</b></td>
+        <th>Địa điểm / Site</th>
+        <td>${esc(rep.location || 'Tại xưởng / Nhà máy khách hàng')}</td>
+      </tr>
+      <tr>
+        <th>Đánh giá / Kết luận</th>
+        <td colspan="3"><span class="badge-cond ${condInfo.class}">${esc(condInfo.label)}</span></td>
+      </tr>
+    </table>
+    <div class="section-title">1. Nội dung chi tiết & Kết quả kiểm tra</div>
+    <div class="content-box">${esc(rep.content || 'Chưa có nội dung ghi nhận.')}</div>
+    ${rep.actionPlan ? `<div class="section-title">2. Kế hoạch hành động & Biện pháp khắc phục</div><div class="content-box" style="border-left:4px solid #f59e0b">${esc(rep.actionPlan)}</div>` : ''}
+    <div class="signatures-block">
+      <div class="sig-col">
+        ${esc(rep.author || 'Kỹ sư phụ trách')}<br>
+        <small>Kỹ sư lập báo cáo (Ký & Ghi rõ họ tên)</small>
+      </div>
+      <div class="sig-col">
+        ${esc(p.manager || 'Quản lý dự án')}<br>
+        <small>Chủ nhiệm kỹ thuật / PM</small>
+      </div>
+      <div class="sig-col">
+        Đại diện Khách hàng<br>
+        <small>Xác nhận nghiệm thu / Site Rep</small>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  function renderDocsReports() {
+    const p = project();
+    if (!p) return requireProject('Tài liệu & Report');
+    const docs = p.documents || [];
+    const reps = p.reports || [];
+    const passCount = reps.filter(r => r.condition === 'Pass').length;
+    const warnFailCount = reps.filter(r => r.condition === 'Warning' || r.condition === 'Fail').length;
+
+    const actionButtons = btn('Thêm tài liệu', 'add-document', 'clip', 'primary')
+      + btn('Tạo báo cáo', 'add-report', 'report', 'primary');
+
+    return pageTitle('Tài liệu & Báo cáo kỹ thuật', `${p.code} · Quản lý hồ sơ bản vẽ CAD, sơ đồ điện, I/O list, URS/FDS và các biên bản nghiệm thu FAT/SAT/Commissioning.`, actionButtons)
+      + `<div class="metrics">
+          ${metric('Tổng tài liệu', docs.length, 'Hồ sơ kỹ thuật đã lưu vào dự án', 'document')}
+          ${metric('Báo cáo kỹ thuật', reps.length, 'Biên bản nghiệm thu & kiểm tra', 'report')}
+          ${metric('Đạt / Nghiệm thu', passCount, `${passCount}/${reps.length} báo cáo đạt tiêu chuẩn`, 'check')}
+          ${metric('Cần lưu ý / Tồn đọng', warnFailCount, 'Báo cáo cảnh báo hoặc lỗi cần khắc phục', 'issue')}
+        </div>`
+      + `<div class="docs-subtabs">
+          <button class="docs-subtab-btn ${docsSubTab === 'documents' ? 'active' : ''}" data-action="docs-subtab" data-id="documents">
+            ${icon('document')} <span>Hồ sơ & Bản vẽ kỹ thuật (${docs.length})</span>
+          </button>
+          <button class="docs-subtab-btn ${docsSubTab === 'reports' ? 'active' : ''}" data-action="docs-subtab" data-id="reports">
+            ${icon('report')} <span>Báo cáo & Nghiệm thu (${reps.length})</span>
+          </button>
+        </div>`
+      + (docsSubTab === 'documents' ? renderDocumentsTab(p) : renderReportsTab(p));
+  }
+
+  function renderDocumentsTab(p) {
+    const q = (docsSearch || '').toLowerCase().trim();
+    const allDocs = p.documents || [];
+    const rows = allDocs.filter(d => {
+      if (docsCategory !== 'all' && d.category !== docsCategory) return false;
+      if (q) {
+        const text = [d.name, d.fileName, d.filePath, d.note, d.category, d.version].join(' ').toLowerCase();
+        if (!text.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const categoryCounts = {};
+    DOC_CATEGORIES.forEach(c => categoryCounts[c.id] = allDocs.filter(d => d.category === c.id).length);
+
+    return `
+      <div class="docs-filter-bar">
+        <div class="searchbox">
+          ${icon('search')}
+          <input id="docs-search-input" placeholder="Tìm kiếm bản vẽ CAD, sơ đồ điện, I/O list, URS..." value="${esc(docsSearch)}" aria-label="Tìm tài liệu">
+        </div>
+        <select id="docs-category-filter" aria-label="Lọc theo danh mục">
+          <option value="all">Tất cả danh mục (${allDocs.length})</option>
+          ${DOC_CATEGORIES.map(c => `<option value="${c.id}" ${docsCategory === c.id ? 'selected' : ''}>${c.label} (${categoryCounts[c.id] || 0})</option>`).join('')}
+        </select>
+        <span class="count-label">${rows.length}/${allDocs.length} tài liệu</span>
+      </div>
+      ${rows.length ? `
+        <div class="docs-grid">
+          ${rows.map(d => {
+            const ext = getFileExt(d.fileName || d.filePath);
+            const extClass = getFileExtClass(ext);
+            const cat = DOC_CATEGORIES.find(c => c.id === d.category)?.label || 'Tài liệu khác';
+            const stage = D.roadmap.stages.find(s => s.id === d.stage);
+            const sizeStr = formatBytes(d.fileSize);
+            const dateStr = d.createdAt ? new Date(d.createdAt).toLocaleDateString('vi-VN') : '';
+            return `
+              <article class="doc-card">
+                <div class="doc-card-head">
+                  <div class="doc-icon-badge ${extClass}" title="${esc(ext.toUpperCase() || 'FILE')}">
+                    ${esc(ext.toUpperCase().slice(0, 4) || 'FILE')}
+                  </div>
+                  <div class="doc-info">
+                    <div class="doc-title" title="${esc(d.name)}">${esc(d.name)}</div>
+                    <div class="doc-meta">
+                      <span class="doc-badge-pill">${esc(cat)}</span>
+                      ${d.version ? `<span class="doc-badge-ver">${esc(d.version)}</span>` : ''}
+                      ${stage ? `<span class="doc-badge-pill" style="background:#e0f2fe;color:#0369a1">GĐ ${String(stage.order).padStart(2, '0')}: ${esc(stage.title)}</span>` : ''}
+                    </div>
+                  </div>
+                </div>
+                ${d.filePath ? `
+                  <div style="margin: 4px 0 8px">
+                    <code class="folder-code" style="font-size:11px;word-break:break-all;display:block" title="${esc(d.filePath)}">
+                      ${esc(d.filePath)}
+                    </code>
+                    ${(sizeStr || dateStr) ? `<div class="count-label" style="margin-top:2px">${[sizeStr, dateStr].filter(Boolean).join(' · ')}</div>` : ''}
+                  </div>
+                ` : '<div class="count-label" style="margin: 4px 0 8px">Chưa đính kèm file vật lý</div>'}
+                ${d.note ? `<div class="doc-note-box">${esc(d.note)}</div>` : ''}
+                <div class="doc-card-actions">
+                  <div class="btnrow">
+                    ${d.filePath ? btn('Mở file', 'open-doc-file', 'file', 'small primary', `data-id="${esc(d.id)}"`) : ''}
+                    ${d.filePath ? btn('Thư mục', 'open-doc-folder', 'folder', 'small', `data-id="${esc(d.id)}"`) : ''}
+                  </div>
+                  <div class="btnrow">
+                    <button class="icon-btn" data-action="edit-doc" data-id="${esc(d.id)}" aria-label="Sửa tài liệu">${icon('edit')}</button>
+                    <button class="icon-btn" data-action="delete-doc" data-id="${esc(d.id)}" aria-label="Xóa tài liệu">${icon('trash')}</button>
+                  </div>
+                </div>
+              </article>
+            `;
+          }).join('')}
+        </div>
+      ` : `
+        <div class="panel empty" style="padding:48px 24px;text-align:center">
+          <div style="font-size:36px;margin-bottom:12px">📁</div>
+          <h3 style="margin-bottom:8px">Chưa có tài liệu hoặc bản vẽ nào phù hợp</h3>
+          <p class="subtext" style="max-width:500px;margin:0 auto 18px">Lưu trữ các bản vẽ DWG/DXF, sơ đồ đấu nối tủ điện, danh sách I/O, tài liệu FDS, manual vận hành hoặc ảnh nghiệm thu.</p>
+          ${btn('Thêm tài liệu ngay', 'add-document', 'clip', 'primary')}
+        </div>
+      `}
+    `;
+  }
+
+  function renderReportsTab(p) {
+    const q = (reportsSearch || '').toLowerCase().trim();
+    const allReps = p.reports || [];
+    const rows = allReps.filter(r => {
+      if (reportsType !== 'all' && r.type !== reportsType) return false;
+      if (reportsCondition !== 'all' && r.condition !== reportsCondition) return false;
+      if (q) {
+        const text = [r.title, r.author, r.location, r.content, r.actionPlan].join(' ').toLowerCase();
+        if (!text.includes(q)) return false;
+      }
+      return true;
+    });
+
+    return `
+      <div class="docs-filter-bar">
+        <div class="searchbox">
+          ${icon('search')}
+          <input id="reports-search-input" placeholder="Tìm kiếm theo tiêu đề, người lập, hiện trường, lỗi…" value="${esc(reportsSearch)}" aria-label="Tìm báo cáo">
+        </div>
+        <select id="reports-type-filter" aria-label="Lọc theo loại báo cáo">
+          <option value="all">Tất cả loại báo cáo (${allReps.length})</option>
+          ${REPORT_TYPES.map(t => `<option value="${t.id}" ${reportsType === t.id ? 'selected' : ''}>${t.label}</option>`).join('')}
+        </select>
+        <select id="reports-condition-filter" aria-label="Lọc theo kết luận">
+          <option value="all">Tất cả đánh giá</option>
+          ${REPORT_CONDITIONS.map(c => `<option value="${c.id}" ${reportsCondition === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}
+        </select>
+        <span class="count-label">${rows.length}/${allReps.length} báo cáo</span>
+      </div>
+      ${rows.length ? `
+        <div class="reports-grid">
+          ${rows.map(r => {
+            const tInfo = REPORT_TYPES.find(t => t.id === r.type) || { label: r.type, class: 'daily' };
+            const condInfo = REPORT_CONDITIONS.find(c => c.id === r.condition) || { label: r.condition, class: 'pending' };
+            const stage = D.roadmap.stages.find(s => s.id === r.stage);
+            const dateStr = r.date ? new Date(r.date).toLocaleDateString('vi-VN') : '';
+            return `
+              <article class="report-card">
+                <div class="report-card-top">
+                  <div>
+                    <h3 class="report-card-title">${esc(r.title)}</h3>
+                    <div class="report-meta-chips">
+                      <span class="report-type-badge ${tInfo.class}">${esc(tInfo.label)}</span>
+                      <span class="condition-badge ${condInfo.class}">${esc(condInfo.label)}</span>
+                      <span>📅 ${esc(dateStr)}</span>
+                      <span>👤 ${esc(r.author || 'Sếp Kha')}</span>
+                      ${r.location ? `<span>📍 ${esc(r.location)}</span>` : ''}
+                      ${stage ? `<span style="color:#0284c7;font-weight:600">GĐ ${String(stage.order).padStart(2, '0')}: ${esc(stage.title)}</span>` : ''}
+                    </div>
+                  </div>
+                  <div class="btnrow">
+                    ${btn('Xem / In PDF', 'view-report', 'print', 'small primary', `data-id="${esc(r.id)}"`)}
+                    ${r.htmlPath ? btn('Mở HTML', 'open-report-file', 'file', 'small', `data-id="${esc(r.id)}"`) : ''}
+                    <button class="icon-btn" data-action="edit-report" data-id="${esc(r.id)}" aria-label="Sửa báo cáo">${icon('edit')}</button>
+                    <button class="icon-btn" data-action="delete-report" data-id="${esc(r.id)}" aria-label="Xóa báo cáo">${icon('trash')}</button>
+                  </div>
+                </div>
+                <div class="report-body-box">${esc((r.content || '').length > 400 ? (r.content.slice(0, 400) + '…') : (r.content || 'Chưa có nội dung'))}</div>
+                ${r.actionPlan ? `<div class="report-plan-box"><strong>Kế hoạch tiếp theo:</strong> ${esc(r.actionPlan)}</div>` : ''}
+                ${r.htmlPath ? `<div class="count-label mono" style="font-size:11px">File đĩa: ${esc(r.htmlPath)}</div>` : ''}
+              </article>
+            `;
+          }).join('')}
+        </div>
+      ` : `
+        <div class="panel empty" style="padding:48px 24px;text-align:center">
+          <div style="font-size:36px;margin-bottom:12px">📋</div>
+          <h3 style="margin-bottom:8px">Chưa có báo cáo kỹ thuật nào</h3>
+          <p class="subtext" style="max-width:500px;margin:0 auto 18px">Ghi chép Daily Report, nghiệm thu FAT tại xưởng, SAT tại nhà máy khách hàng, kiểm tra chạy thử hoặc báo cáo sự cố.</p>
+          ${btn('Tạo báo cáo đầu tiên', 'add-report', 'report', 'primary')}
+        </div>
+      `}
+    `;
+  }
+
+  function renderStageDocsReports(s, p) {
+    const stageDocs = (p.documents || []).filter(d => d.stage === s.id);
+    const stageReps = (p.reports || []).filter(r => r.stage === s.id);
+    return `<div class="detail-section">
+      <div class="result-header">
+        <div>
+          <h3>HỒ SƠ & BÁO CÁO CỦA GIAI ĐOẠN</h3>
+          <span class="count-label">${stageDocs.length} tài liệu · ${stageReps.length} báo cáo</span>
+        </div>
+        <div class="btnrow">
+          ${btn('+ Thêm tài liệu', 'add-stage-doc', 'clip', 'small', `data-id="${s.id}"`)}
+          ${btn('+ Tạo báo cáo', 'add-stage-rep', 'report', 'small', `data-id="${s.id}"`)}
+        </div>
+      </div>
+      ${(!stageDocs.length && !stageReps.length) ? '<p class="muted" style="margin-top:8px">Chưa có tài liệu hoặc biên bản nghiệm thu nào được gắn với giai đoạn này.</p>' : ''}
+      ${stageDocs.length ? `
+        <div style="margin-top:10px">
+          <strong style="font-size:12px;color:var(--muted);text-transform:uppercase">Tài liệu đính kèm:</strong>
+          <div class="folder-links-list" style="margin-top:6px">
+            ${stageDocs.map(d => {
+              const ext = getFileExt(d.fileName || d.filePath);
+              const extClass = getFileExtClass(ext);
+              return `<div class="folder-link">
+                <span class="doc-icon-badge ${extClass}" style="width:28px;height:28px;font-size:9px">${ext.toUpperCase().slice(0, 4) || 'FILE'}</span>
+                <div class="folder-info">
+                  <strong>${esc(d.name)}</strong>
+                  ${d.filePath ? `<small class="mono" style="font-size:11px">${esc(d.filePath)}</small>` : ''}
+                </div>
+                <div class="folder-actions">
+                  ${d.filePath ? btn('Mở file', 'open-doc-file', 'file', 'small primary', `data-id="${esc(d.id)}"`) : ''}
+                  ${btn('Sửa', 'edit-doc', 'edit', 'small', `data-id="${esc(d.id)}" data-stage="${esc(s.id)}" aria-label="Sửa tài liệu"`)}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+      ${stageReps.length ? `
+        <div style="margin-top:14px">
+          <strong style="font-size:12px;color:var(--muted);text-transform:uppercase">Biên bản & Báo cáo kỹ thuật:</strong>
+          <div class="folder-links-list" style="margin-top:6px">
+            ${stageReps.map(r => {
+              const cond = REPORT_CONDITIONS.find(c => c.id === r.condition) || { label: r.condition, class: 'pending' };
+              const tInfo = REPORT_TYPES.find(t => t.id === r.type) || { label: r.type, class: 'daily' };
+              return `<div class="folder-link">
+                <span class="report-type-badge ${tInfo.class}" style="font-size:11px;padding:2px 6px">${esc(tInfo.label)}</span>
+                <div class="folder-info">
+                  <strong>${esc(r.title)}</strong>
+                  <small>${esc(r.date || '')} · ${esc(r.author || '')}</small>
+                </div>
+                <span class="condition-badge ${cond.class}" style="font-size:11px;padding:2px 8px">${esc(cond.label)}</span>
+                <div class="folder-actions">
+                  ${btn('Xem / In', 'view-report', 'print', 'small primary', `data-id="${esc(r.id)}"`)}
+                  ${btn('Sửa', 'edit-report', 'edit', 'small', `data-id="${esc(r.id)}" data-stage="${esc(s.id)}" aria-label="Sửa báo cáo"`)}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>`;
+  }
+
+  async function pickDocFile(p) {
+    if (!p) p = project();
+    let res = null;
+    try {
+      res = await requestNative('dialog.browseDocumentFile', {
+        code: p ? p.code : '',
+        title: 'Chọn file tài liệu kỹ thuật'
+      }, 30000);
+    } catch (_) {}
+
+    if (!res || (!res.path && !res.type && !res.id)) {
+      try {
+        const fetchRes = await fetch('http://127.0.0.1:5055/api/projects/browse-document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: p ? p.code : '',
+            title: 'Chọn file tài liệu kỹ thuật'
+          })
+        });
+        if (fetchRes.ok) {
+          const json = await fetchRes.json();
+          if (json && json.path) res = json;
+        }
+      } catch (_) {}
+    }
+
+    if (res && res.path) {
+      const display = E('doc-filepath-display');
+      const fName = E('doc-filename');
+      const fSize = E('doc-filesize');
+      const fInfo = E('doc-file-info');
+      const nameInput = E('doc-name');
+
+      if (display) display.value = res.path;
+      if (fName) fName.value = res.fileName || '';
+      if (fSize) fSize.value = res.fileSize || 0;
+      if (fInfo) fInfo.textContent = (res.fileName || '') + ' (' + formatBytes(res.fileSize) + ')';
+      if (nameInput && !nameInput.value.trim() && res.fileName) {
+        nameInput.value = res.fileName.replace(/\.[^/.]+$/, '');
+      }
+      toast('Đã chọn file: ' + (res.fileName || res.path));
+    }
+  }
+
+  function openDocFile(doc) {
+    if (!doc || !doc.filePath) {
+      toast('Tài liệu chưa có đường dẫn file trên máy.', true);
+      return;
+    }
+    sendNativeMessage('project.open_file', { filePath: doc.filePath });
+    try {
+      fetch('http://127.0.0.1:5055/api/projects/open-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath: doc.filePath })
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
+  function openDocFolder(doc) {
+    const p = project();
+    let folder = '';
+    if (doc && doc.filePath) {
+      const idx = Math.max(doc.filePath.lastIndexOf('\\'), doc.filePath.lastIndexOf('/'));
+      if (idx > 0) folder = doc.filePath.substring(0, idx);
+    }
+    if (!folder && p && p.rootPath) {
+      folder = p.rootPath + '\\documents';
+    }
+    if (!folder && p) {
+      folder = p.rootPath || '';
+    }
+    sendNativeMessage('project.open_folder', { code: p ? p.code : '', path: folder });
+    try {
+      fetch('http://127.0.0.1:5055/api/projects/open-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: p ? p.code : '', path: folder })
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
+  function openReportFile(rep) {
+    if (!rep || !rep.htmlPath) {
+      toast('Chưa có file HTML trên máy. Bạn có thể bấm Xem chi tiết / In PDF.', true);
+      return;
+    }
+    sendNativeMessage('project.open_file', { filePath: rep.htmlPath });
+    try {
+      fetch('http://127.0.0.1:5055/api/projects/open-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath: rep.htmlPath })
+      }).catch(() => {});
+    } catch (_) {}
   }
 
   // ==========================================
@@ -1582,6 +2103,224 @@
   }
 
   let modalContext = null;
+
+  function documentModal(doc = null, defaultStage = '') {
+    const p = project();
+    if (!p) return;
+    const item = doc || {
+      id: '',
+      name: '',
+      category: 'cad',
+      version: 'Rev 1.0',
+      stage: defaultStage || '',
+      filePath: '',
+      fileName: '',
+      fileSize: 0,
+      note: ''
+    };
+    modalContext = { kind: 'document', original: doc?.id, defaultStage };
+
+    const body = `
+      <form id="doc-form">
+        <div class="form-grid">
+          <label class="field span2">
+            Tên tài liệu / Bản vẽ *
+            <input name="name" id="doc-name" maxlength="250" value="${esc(item.name)}" placeholder="VD: Bản vẽ Layout bố trí dây chuyền Palletizer" required>
+          </label>
+          <label class="field">
+            Danh mục tài liệu
+            <select name="category" id="doc-category">
+              ${DOC_CATEGORIES.map(c => `<option value="${c.id}" ${item.category === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}
+            </select>
+          </label>
+          <label class="field">
+            Phiên bản / Revision
+            <input name="version" maxlength="50" value="${esc(item.version || 'Rev 1.0')}" placeholder="VD: Rev 1.0">
+          </label>
+          <label class="field span2">
+            Giai đoạn lộ trình liên quan
+            <select name="stage" id="doc-stage">
+              <option value="">-- Tài liệu chung cho toàn dự án --</option>
+              ${D.roadmap.stages.map(s => `<option value="${s.id}" ${(item.stage || defaultStage) === s.id ? 'selected' : ''}>Giai đoạn ${String(s.order).padStart(2, '0')}: ${esc(s.title)} (${esc(s.lane)})</option>`).join('')}
+            </select>
+          </label>
+          <label class="field span2">
+            File đính kèm từ máy tính
+            <div style="display:flex;gap:8px">
+              <input id="doc-filepath-display" name="filePath" value="${esc(item.filePath)}" readonly placeholder="Chưa chọn file (Bấm 'Chọn file…' để duyệt)" style="flex:1">
+              ${btn('Chọn file…', 'pick-doc-file', 'clip', 'small primary')}
+            </div>
+            <input type="hidden" id="doc-filename" name="fileName" value="${esc(item.fileName)}">
+            <input type="hidden" id="doc-filesize" name="fileSize" value="${item.fileSize || 0}">
+            <small id="doc-file-info" class="count-label" style="margin-top:4px;display:block">
+              ${item.fileName ? `${esc(item.fileName)} (${formatBytes(item.fileSize)})` : 'Hỗ trợ CAD (.dwg, .dxf), PDF, Excel, Word, ZIP, ảnh...'}
+            </small>
+          </label>
+          <label class="field span2">
+            Mô tả / Ghi chú kỹ thuật
+            <textarea name="note" maxlength="3000" rows="3" placeholder="Ghi chú về phiên bản, ai bàn giao, phạm vi sử dụng hoặc lưu ý đặc biệt…">${esc(item.note)}</textarea>
+          </label>
+        </div>
+      </form>
+    `;
+
+    modal(doc ? 'Sửa tài liệu: ' + doc.name : 'Thêm tài liệu kỹ thuật', body, btn('Hủy', 'close-modal') + btn('Lưu tài liệu', 'save-document', 'save', 'primary'), true);
+  }
+
+  function reportModal(rep = null, defaultStage = '') {
+    const p = project();
+    if (!p) return;
+    const authorDefault = user?.fullName || user?.username || 'Sếp Kha';
+    const today = new Date().toISOString().slice(0, 10);
+    const item = rep || {
+      id: '',
+      title: '',
+      type: 'daily',
+      stage: defaultStage || (p.stages ? Object.keys(p.stages)[0] : 'commissioning_sat'),
+      author: authorDefault,
+      date: today,
+      location: p.customer ? `Nhà máy ${p.customer}` : 'Tại xưởng / Hiện trường',
+      condition: 'Pass',
+      content: '',
+      actionPlan: ''
+    };
+    modalContext = { kind: 'report', original: rep?.id, defaultStage };
+
+    const body = `
+      <form id="report-form">
+        <div class="form-grid">
+          <label class="field span2">
+            Tiêu đề báo cáo / Biên bản *
+            <input name="title" id="report-title" maxlength="300" value="${esc(item.title)}" placeholder="VD: Biên bản nghiệm thu SAT Robot & Hệ thống đóng thùng" required>
+          </label>
+          <label class="field">
+            Loại báo cáo
+            <select name="type" id="report-type">
+              ${REPORT_TYPES.map(t => `<option value="${t.id}" ${item.type === t.id ? 'selected' : ''}>${t.label}</option>`).join('')}
+            </select>
+          </label>
+          <label class="field">
+            Đánh giá / Kết luận
+            <select name="condition" id="report-condition">
+              ${REPORT_CONDITIONS.map(c => `<option value="${c.id}" ${item.condition === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}
+            </select>
+          </label>
+          <label class="field">
+            Giai đoạn liên quan
+            <select name="stage" id="report-stage">
+              ${D.roadmap.stages.map(s => `<option value="${s.id}" ${(item.stage || defaultStage) === s.id ? 'selected' : ''}>Giai đoạn ${String(s.order).padStart(2, '0')}: ${esc(s.title)}</option>`).join('')}
+            </select>
+          </label>
+          <label class="field">
+            Ngày lập báo cáo
+            <input type="date" name="date" value="${esc(item.date || today)}">
+          </label>
+          <label class="field">
+            Người lập báo cáo
+            <input name="author" maxlength="150" value="${esc(item.author || authorDefault)}" placeholder="Họ và tên / Kỹ sư phụ trách">
+          </label>
+          <label class="field">
+            Địa điểm / Hiện trường
+            <input name="location" maxlength="250" value="${esc(item.location || '')}" placeholder="VD: Nhà máy Bia Sài Gòn Củ Chi">
+          </label>
+          <label class="field span2">
+            Nội dung chi tiết & Kết quả kiểm tra *
+            <textarea name="content" maxlength="12000" rows="6" placeholder="Ghi nhận các hạng mục đã kiểm tra, thông số vận hành thực tế, lỗi phát sinh, kết quả so với tiêu chuẩn..." required>${esc(item.content)}</textarea>
+          </label>
+          <label class="field span2">
+            Kế hoạch hành động & Biện pháp xử lý tiếp theo
+            <textarea name="actionPlan" maxlength="6000" rows="3" placeholder="Các đầu việc cần làm tiếp, người chịu trách nhiệm và hạn hoàn thành...">${esc(item.actionPlan)}</textarea>
+          </label>
+        </div>
+      </form>
+    `;
+
+    modal(rep ? 'Sửa báo cáo: ' + rep.title : 'Tạo báo cáo kỹ thuật mới', body, btn('Hủy', 'close-modal') + btn('Lưu báo cáo', 'save-report', 'save', 'primary'), true);
+  }
+
+  function viewReportModal(rep) {
+    const p = project();
+    if (!p || !rep) return;
+    const typeInfo = REPORT_TYPES.find(t => t.id === rep.type) || { label: rep.type, class: 'daily' };
+    const condInfo = REPORT_CONDITIONS.find(c => c.id === rep.condition) || { label: rep.condition, class: 'pending' };
+    const stage = D.roadmap.stages.find(s => s.id === rep.stage);
+    const dateFormatted = rep.date ? new Date(rep.date).toLocaleDateString('vi-VN') : '';
+
+    const previewBody = `
+      <div class="report-print-preview" id="report-print-area">
+        <div class="print-brand-head">
+          <div>
+            <h2>K-CORE STUDIO · BUITAPP SYSTEM</h2>
+            <small>AUTOMATION PROJECT MASTER · TECHNICAL REPORT</small>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:700">${esc(p.code)}</div>
+            <small>${esc(p.name)}</small>
+          </div>
+        </div>
+        <div class="print-title-center">
+          <h1>${esc(rep.title)}</h1>
+          <span class="report-type-badge ${typeInfo.class}" style="font-size:13px;padding:4px 14px">${esc(typeInfo.label)}</span>
+        </div>
+        <table class="print-table">
+          <tr>
+            <th>Mã dự án</th>
+            <td><b>${esc(p.code)}</b> - ${esc(p.name)}</td>
+            <th>Khách hàng</th>
+            <td>${esc(p.customer || '—')}</td>
+          </tr>
+          <tr>
+            <th>Giai đoạn</th>
+            <td>${stage ? `GĐ ${String(stage.order).padStart(2, '0')}: ${esc(stage.title)}` : 'Chung cho toàn dự án'}</td>
+            <th>Ngày lập</th>
+            <td>${esc(dateFormatted)}</td>
+          </tr>
+          <tr>
+            <th>Người lập</th>
+            <td><b>${esc(rep.author || 'Sếp Kha')}</b></td>
+            <th>Hiện trường</th>
+            <td>${esc(rep.location || 'Tại xưởng')}</td>
+          </tr>
+          <tr>
+            <th>Kết luận</th>
+            <td colspan="3"><span class="condition-badge ${condInfo.class}">${esc(condInfo.label)}</span></td>
+          </tr>
+        </table>
+        <div class="print-section-title">1. Nội dung chi tiết & Kết quả kiểm tra</div>
+        <div class="print-content-block">${esc(rep.content || 'Chưa có nội dung ghi nhận.')}</div>
+        ${rep.actionPlan ? `
+          <div class="print-section-title">2. Kế hoạch hành động & Khắc phục</div>
+          <div class="print-content-block" style="border-left:4px solid #f59e0b">${esc(rep.actionPlan)}</div>
+        ` : ''}
+        <div class="print-signatures">
+          <div>
+            <div class="sign-box">
+              ${esc(rep.author || 'Kỹ sư phụ trách')}<br>
+              <small>Kỹ sư lập báo cáo</small>
+            </div>
+          </div>
+          <div>
+            <div class="sign-box">
+              ${esc(p.manager || 'Quản lý dự án')}<br>
+              <small>Chủ nhiệm kỹ thuật / PM</small>
+            </div>
+          </div>
+          <div>
+            <div class="sign-box">
+              Đại diện Khách hàng<br>
+              <small>Xác nhận nghiệm thu</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const footer = btn('In báo cáo / Xuất PDF', 'print-report', 'print', 'primary', `data-id="${esc(rep.id)}"`)
+      + (rep.htmlPath ? btn('Mở file HTML', 'open-report-file', 'file', null, `data-id="${esc(rep.id)}"`) : '')
+      + btn('Đóng', 'close-modal');
+
+    modal('Xem & In Báo cáo kỹ thuật', previewBody, footer, true);
+  }
 
   function deviceModal(p, d = null, forWizard = false) {
     const groups = D.catalog.softwareGroups.filter(g => g.perDevice && p.modules.includes(g.module));
@@ -2635,6 +3374,218 @@
         refreshPublishStatus();
       }
       else if (action === 'print') window.print();
+
+      // Documents & Reports Actions
+      else if (action === 'docs-subtab') {
+        docsSubTab = id;
+        render();
+      }
+      else if (action === 'add-document') {
+        documentModal(null);
+      }
+      else if (action === 'edit-doc') {
+        documentModal(p.documents.find(d => d.id === id), link.dataset.stage);
+      }
+      else if (action === 'delete-doc') {
+        confirmAction('Xóa tài liệu', 'Xóa tài liệu này khỏi hồ sơ dự án?', 'confirm-delete-doc', id);
+      }
+      else if (action === 'confirm-delete-doc') {
+        p.documents = (p.documents || []).filter(d => d.id !== id);
+        save(p, true);
+        closeModal();
+        render();
+        toast('Đã xóa tài liệu.');
+      }
+      else if (action === 'pick-doc-file') {
+        await pickDocFile(p);
+      }
+      else if (action === 'save-document') {
+        const form = E('doc-form');
+        if (!form) return;
+        const fd = formData('doc-form');
+        const name = (fd.name || '').trim();
+        if (!name) {
+          E('modal-error').textContent = 'Vui lòng nhập tên tài liệu / bản vẽ.';
+          return;
+        }
+
+        let docItem = p.documents.find(d => d.id === modalContext.original);
+        const isNew = !docItem;
+        if (isNew) {
+          docItem = {
+            id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            createdAt: new Date().toISOString()
+          };
+          p.documents.push(docItem);
+        }
+
+        docItem.name = name;
+        docItem.category = fd.category || 'other';
+        docItem.version = (fd.version || '').trim();
+        docItem.stage = fd.stage || '';
+        docItem.filePath = (fd.filePath || '').trim();
+        docItem.fileName = (fd.fileName || '').trim() || (docItem.filePath ? docItem.filePath.split(/[\\\/]/).pop() : '');
+        docItem.fileSize = Number(fd.fileSize || 0);
+        docItem.note = (fd.note || '').trim();
+        docItem.updatedAt = new Date().toISOString();
+
+        // Copy file to project folder/documents if project has rootPath
+        if (p.rootPath && docItem.filePath) {
+          try {
+            sendNativeMessage('project.copy_document', {
+              sourcePath: docItem.filePath,
+              projectDir: p.rootPath,
+              subDir: 'documents'
+            });
+            fetch('http://127.0.0.1:5055/api/projects/copy-document', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sourcePath: docItem.filePath,
+                projectDir: p.rootPath,
+                subDir: 'documents'
+              })
+            }).catch(() => {});
+          } catch (_) {}
+        }
+
+        save(p, true);
+        closeModal();
+        render();
+        toast('Đã lưu tài liệu: ' + name);
+      }
+      else if (action === 'open-doc-file') {
+        openDocFile(p.documents.find(d => d.id === id));
+      }
+      else if (action === 'open-doc-folder') {
+        openDocFolder(p.documents.find(d => d.id === id));
+      }
+      else if (action === 'add-report') {
+        reportModal(null);
+      }
+      else if (action === 'edit-report') {
+        reportModal(p.reports.find(r => r.id === id), link.dataset.stage);
+      }
+      else if (action === 'delete-report') {
+        confirmAction('Xóa báo cáo', 'Xóa báo cáo kỹ thuật này khỏi hồ sơ dự án?', 'confirm-delete-report', id);
+      }
+      else if (action === 'confirm-delete-report') {
+        p.reports = (p.reports || []).filter(r => r.id !== id);
+        save(p, true);
+        closeModal();
+        render();
+        toast('Đã xóa báo cáo.');
+      }
+      else if (action === 'view-report') {
+        viewReportModal(p.reports.find(r => r.id === id));
+      }
+      else if (action === 'print-report') {
+        window.print();
+      }
+      else if (action === 'open-report-file') {
+        openReportFile(p.reports.find(r => r.id === id));
+      }
+      else if (action === 'save-report') {
+        const form = E('report-form');
+        if (!form) return;
+        const fd = formData('report-form');
+        const title = (fd.title || '').trim();
+        const content = (fd.content || '').trim();
+        if (!title) {
+          E('modal-error').textContent = 'Vui lòng nhập tiêu đề báo cáo.';
+          return;
+        }
+        if (!content) {
+          E('modal-error').textContent = 'Vui lòng nhập nội dung chi tiết & kết quả kiểm tra.';
+          return;
+        }
+
+        let repItem = p.reports.find(r => r.id === modalContext.original);
+        const isNew = !repItem;
+        if (isNew) {
+          repItem = {
+            id: 'rep_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            createdAt: new Date().toISOString()
+          };
+          p.reports.push(repItem);
+        }
+
+        repItem.title = title;
+        repItem.type = fd.type || 'daily';
+        repItem.stage = fd.stage || '';
+        repItem.author = (fd.author || '').trim() || (user?.fullName || user?.username || 'Sếp Kha');
+        repItem.date = fd.date || new Date().toISOString().slice(0, 10);
+        repItem.location = (fd.location || '').trim();
+        repItem.condition = fd.condition || 'Pass';
+        repItem.content = content;
+        repItem.actionPlan = (fd.actionPlan || '').trim();
+        repItem.updatedAt = new Date().toISOString();
+
+        // Generate Standalone HTML Report and save to disk
+        const htmlContent = generateReportHtml(p, repItem);
+        const targetProjDir = p.rootPath || '';
+
+        // Save report file on disk via native IPC or LAN HTTP fallback
+        let saveRes = null;
+        try {
+          saveRes = await requestNative('project.save_report_file', {
+            projectDir: targetProjDir,
+            reportId: repItem.id,
+            htmlContent: htmlContent
+          }, 8000);
+        } catch (_) {}
+
+        if (!saveRes || !saveRes.path) {
+          try {
+            const fetchRes = await fetch('http://127.0.0.1:5055/api/projects/save-report-file', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                projectDir: targetProjDir,
+                reportId: repItem.id,
+                htmlContent: htmlContent
+              })
+            });
+            if (fetchRes.ok) {
+              saveRes = await fetchRes.json();
+            }
+          } catch (_) {}
+        }
+
+        if (saveRes && saveRes.path) {
+          repItem.htmlPath = saveRes.path;
+        }
+
+        // Also sync to LanWebServer field reports
+        try {
+          fetch('http://127.0.0.1:5055/api/projects/report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: p.code,
+              reportId: repItem.id,
+              title: repItem.title,
+              type: repItem.type,
+              author: repItem.author,
+              date: repItem.date,
+              condition: repItem.condition,
+              content: repItem.content,
+              actionPlan: repItem.actionPlan
+            })
+          }).catch(() => {});
+        } catch (_) {}
+
+        save(p, true);
+        closeModal();
+        render();
+        toast('Đã lưu báo cáo kỹ thuật: ' + title);
+      }
+      else if (action === 'add-stage-doc') {
+        documentModal(null, id);
+      }
+      else if (action === 'add-stage-rep') {
+        reportModal(null, id);
+      }
     } catch (e) {
       toast(e.message, true);
       if (link.isConnected) link.disabled = false;
@@ -2706,6 +3657,18 @@
     else if (t.id === 'admin-history-picker') {
       adminSelectedHistory = adminHistoryList.find(h => h.filePath === t.value) || null;
     }
+    else if (t.id === 'docs-category-filter') {
+      docsCategory = t.value;
+      render();
+    }
+    else if (t.id === 'reports-type-filter') {
+      reportsType = t.value;
+      render();
+    }
+    else if (t.id === 'reports-condition-filter') {
+      reportsCondition = t.value;
+      render();
+    }
     else if (view === 'roadmap' && p && C.applies(D.roadmap.stages.find(s => s.id === selectedStage), p)) {
       const st = p.stages[selectedStage];
       if (t.id === 'stage-status') {
@@ -2741,8 +3704,10 @@
       if (t.name === 'code') E('summary-code').textContent = t.value || 'Chưa nhập';
       if (t.name === 'name') E('summary-name').textContent = t.value || 'Chưa nhập';
     }
-    if (['folder-search', 'template-search', 'issue-search', 'admin-search-input'].includes(t.id)) {
+    if (['folder-search', 'template-search', 'issue-search', 'admin-search-input', 'docs-search-input', 'reports-search-input'].includes(t.id)) {
       if (t.id === 'admin-search-input') adminSearch = t.value;
+      else if (t.id === 'docs-search-input') docsSearch = t.value;
+      else if (t.id === 'reports-search-input') reportsSearch = t.value;
       else filter = t.value;
       const sel = t.selectionStart;
       clearTimeout(searchTimer);
@@ -2789,8 +3754,8 @@
     const isAdmin = !user || user.role === 'admin';
     const visibleViews = views.filter(v => v[0] !== 'admin' || isAdmin);
 
-    E('nav').innerHTML = visibleViews.map((v, i) =>
-      `${i === 2 ? '<div class="nav-label">HỒ SƠ DỰ ÁN</div>' : i === 6 ? '<div class="nav-label">COMMISSIONING</div>' : i === 8 ? '<div class="nav-label">ỨNG DỤNG</div>' : (v[0] === 'admin' ? '<div class="nav-label">QUẢN LÝ TỔNG HỢP</div>' : '')}<button class="nav-btn" data-view="${v[0]}">${icon(v[2])}<span>${v[1]}</span></button>`
+    E('nav').innerHTML = visibleViews.map(v =>
+      `${v[0] === 'roadmap' ? '<div class="nav-label">HỒ SƠ DỰ ÁN</div>' : v[0] === 'issues' ? '<div class="nav-label">COMMISSIONING</div>' : v[0] === 'settings' ? '<div class="nav-label">ỨNG DỤNG</div>' : (v[0] === 'admin' ? '<div class="nav-label">QUẢN LÝ TỔNG HỢP</div>' : '')}<button class="nav-btn ${view === v[0] ? 'active' : ''}" data-view="${v[0]}">${icon(v[2])}<span>${v[1]}</span></button>`
     ).join('');
   }
 

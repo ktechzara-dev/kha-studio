@@ -703,6 +703,130 @@ public partial class MainWindow : Window
                         });
                         break;
                     }
+                case "dialog.browseDocumentFile":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        var title = root.TryGetProperty("title", out var tElem) ? tElem.GetString() : "Chọn file tài liệu đính kèm";
+                        Dispatcher.Invoke(() =>
+                        {
+                            try
+                            {
+                                var dlg = new Microsoft.Win32.OpenFileDialog
+                                {
+                                    Title = string.IsNullOrWhiteSpace(title) ? "Chọn file tài liệu dự án" : title,
+                                    Filter = "Tài liệu kỹ thuật (*.pdf;*.dwg;*.dxf;*.xlsx;*.xls;*.docx;*.doc;*.pptx;*.png;*.jpg;*.zip;*.csv)|*.pdf;*.dwg;*.dxf;*.xlsx;*.xls;*.docx;*.doc;*.pptx;*.png;*.jpg;*.zip;*.csv|Tất cả tệp (*.*)|*.*",
+                                    Multiselect = false
+                                };
+                                if (dlg.ShowDialog(this) == true)
+                                {
+                                    var fi = new FileInfo(dlg.FileName);
+                                    Send(new
+                                    {
+                                        type = "dialog.browseDocumentFile.reply",
+                                        id = reqId,
+                                        path = dlg.FileName,
+                                        fileName = fi.Name,
+                                        fileSize = fi.Length,
+                                        fileExt = fi.Extension
+                                    });
+                                }
+                                else
+                                {
+                                    Send(new { type = "dialog.browseDocumentFile.reply", id = reqId, path = (string?)null });
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Send(new { type = "dialog.browseDocumentFile.reply", id = reqId, error = ex.Message });
+                            }
+                        });
+                        break;
+                    }
+                case "project.open_file":
+                    {
+                        try
+                        {
+                            var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                            var fPath = root.TryGetProperty("path", out var pElem) ? pElem.GetString() ?? "" : "";
+                            if (!string.IsNullOrWhiteSpace(fPath) && File.Exists(fPath))
+                            {
+                                Process.Start(new ProcessStartInfo(fPath) { UseShellExecute = true });
+                            }
+                        }
+                        catch { }
+                        break;
+                    }
+                case "project.copy_document":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        var srcPath = root.TryGetProperty("sourcePath", out var sElem) ? sElem.GetString() ?? "" : "";
+                        var projDir = root.TryGetProperty("projectDir", out var pdElem) ? pdElem.GetString() ?? "" : "";
+                        var subDir = root.TryGetProperty("subDir", out var sdElem) ? sdElem.GetString() ?? "documents" : "documents";
+                        try
+                        {
+                            if (!File.Exists(srcPath)) throw new FileNotFoundException("Không tìm thấy tệp nguồn", srcPath);
+                            if (string.IsNullOrWhiteSpace(projDir))
+                            {
+                                projDir = Path.Combine(LanWebServer.UserDataDir, "projects");
+                            }
+                            var destFolder = Path.Combine(projDir, subDir);
+                            if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
+                            var fileName = Path.GetFileName(srcPath);
+                            var destPath = Path.Combine(destFolder, fileName);
+                            File.Copy(srcPath, destPath, true);
+                            var fi = new FileInfo(destPath);
+                            Send(new
+                            {
+                                type = "project.copy_document.reply",
+                                id = reqId,
+                                status = "ok",
+                                path = destPath,
+                                fileName = fi.Name,
+                                fileSize = fi.Length,
+                                fileExt = fi.Extension
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Send(new { type = "project.copy_document.reply", id = reqId, error = ex.Message });
+                        }
+                        break;
+                    }
+                case "project.save_report_file":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        var projDir = root.TryGetProperty("projectDir", out var pdElem) ? pdElem.GetString() ?? "" : "";
+                        var reportId = root.TryGetProperty("reportId", out var rElem) ? rElem.GetString() ?? "" : "";
+                        var htmlContent = root.TryGetProperty("htmlContent", out var hcElem) ? hcElem.GetString() ?? "" : "";
+                        try
+                        {
+                            if (string.IsNullOrWhiteSpace(projDir))
+                            {
+                                projDir = Path.Combine(LanWebServer.UserDataDir, "projects");
+                            }
+                            var reportsFolder = Path.Combine(projDir, "reports");
+                            if (!Directory.Exists(reportsFolder)) Directory.CreateDirectory(reportsFolder);
+                            var safeName = LanWebServer.CleanFileName(string.IsNullOrWhiteSpace(reportId) ? ("Report_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")) : reportId) + ".html";
+                            var destPath = Path.Combine(reportsFolder, safeName);
+                            File.WriteAllText(destPath, htmlContent, System.Text.Encoding.UTF8);
+                            Send(new
+                            {
+                                type = "project.save_report_file.reply",
+                                id = reqId,
+                                status = "ok",
+                                path = destPath,
+                                fileName = safeName
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Send(new { type = "project.save_report_file.reply", id = reqId, error = ex.Message });
+                        }
+                        break;
+                    }
                 case "project.open_folder":
                     {
                         try

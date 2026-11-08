@@ -126,6 +126,31 @@ function runCoreTests() {
   assert.ok(csvOutput.includes("\"'@sum\""), 'Should escape @');
   console.log('✓ CSV injection protection passed');
 
+  // Test Documents & Reports in Core Model
+  const pDocRep = APMCore.makeProject(D, {
+    code: 'DOC_REP_TEST',
+    name: 'Doc and Report Test',
+    preset: 'full_line',
+    documents: [
+      { id: 'doc1', name: 'Bản vẽ Layout CAD', category: 'cad', filePath: 'C:\\test\\layout.dwg' }
+    ],
+    reports: [
+      { id: 'rep1', title: 'Biên bản nghiệm thu SAT', type: 'sat', condition: 'Pass' }
+    ]
+  });
+  assert.ok(Array.isArray(pDocRep.documents), 'documents should be an array');
+  assert.strictEqual(pDocRep.documents.length, 1);
+  assert.strictEqual(pDocRep.documents[0].name, 'Bản vẽ Layout CAD');
+  assert.ok(Array.isArray(pDocRep.reports), 'reports should be an array');
+  assert.strictEqual(pDocRep.reports.length, 1);
+  assert.strictEqual(pDocRep.reports[0].condition, 'Pass');
+
+  // Test normalizeImport with legacy and new documents/reports
+  const imported = APMCore.normalizeImport(D, [pDocRep]);
+  assert.strictEqual(imported[0].documents.length, 1);
+  assert.strictEqual(imported[0].reports.length, 1);
+  console.log('✓ Documents & Reports core data integrity passed');
+
   console.log('✓ All APMCore unit tests passed!');
 }
 

@@ -56,6 +56,8 @@
       stages: {},
       issues: [],
       ct: [],
+      documents: [],
+      reports: [],
       createdAt: text(input.createdAt, 40) || now,
       updatedAt: text(input.updatedAt, 40) || now,
       demo: Boolean(input.demo),
@@ -106,6 +108,45 @@
       note: text(c.note, 1000),
       measurements: Array.from({ length: 5 }, (_, i) => numeric(c.measurements?.[i]))
     })).filter(c => c.station);
+
+    p.documents = arr(input.documents).slice(0, 1000).map(d => ({
+      id: text(d.id, 60) || uid(),
+      name: text(d.name || d.title, 300),
+      title: text(d.title || d.name, 300),
+      category: text(d.category || d.type, 100) || 'other',
+      fileName: text(d.fileName || d.filename || d.name, 300),
+      filePath: text(d.filePath || d.path, 1000),
+      fileSize: numeric(d.fileSize || d.size),
+      fileExt: text(d.fileExt || d.ext, 20),
+      version: text(d.version, 30) || 'Rev 1.0',
+      author: text(d.author || d.uploadedBy, 100),
+      note: text(d.note || d.description, 3000),
+      stage: text(d.stage || d.stageId, 60),
+      stageId: text(d.stageId || d.stage, 60),
+      createdAt: text(d.createdAt, 40) || now,
+      updatedAt: text(d.updatedAt, 40) || now
+    })).filter(d => d.name || d.title || d.fileName);
+
+    p.reports = arr(input.reports).slice(0, 1000).map(r => ({
+      id: text(r.id, 60) || uid(),
+      title: text(r.title, 300),
+      type: text(r.type || r.reportType, 100) || 'daily',
+      reportType: text(r.reportType || r.type, 100) || 'daily',
+      stage: text(r.stage || r.stageId, 60),
+      stageId: text(r.stageId || r.stage, 60),
+      author: text(r.author || r.reporter || r.username, 100),
+      reporter: text(r.reporter || r.author || r.username, 100),
+      location: text(r.location || r.site, 250),
+      date: text(r.date || r.reportDate, 10) || now.slice(0, 10),
+      reportDate: text(r.reportDate || r.date, 10) || now.slice(0, 10),
+      condition: ['Pass', 'Warning', 'Fail', 'Pending'].includes(r.condition) ? r.condition : 'Pass',
+      content: text(r.content || r.description || r.body, 20000),
+      actionPlan: text(r.actionPlan || r.nextSteps, 6000),
+      htmlPath: text(r.htmlPath || r.filePath || r.path, 1000),
+      attachments: arr(r.attachments).slice(0, 50).map(a => typeof a === 'string' ? a : text(a.name || a.url || a.path, 500)),
+      createdAt: text(r.createdAt, 40) || now,
+      updatedAt: text(r.updatedAt, 40) || now
+    })).filter(r => r.title);
 
     return p;
   }
@@ -323,8 +364,9 @@ ${sections.map(([title, rows]) => `<section><h2>${escape(title)}</h2><div class=
   }
 
   function normalizeImport(D, raw, config) {
-    if (raw.format === 'automation-project-master-backup') return arr(raw.projects).map(p => makeProject(D, p));
-    const r = raw.project || raw;
+    if (Array.isArray(raw)) return raw.flatMap(p => normalizeImport(D, p, config));
+    if (raw && raw.format === 'automation-project-master-backup') return arr(raw.projects).map(p => makeProject(D, p));
+    const r = (raw && raw.project) || raw || {};
     const c = config || r.configuration || r.config || r.projectConfig || r;
     const first = (...vs) => vs.find(x => x !== undefined && x !== null);
     const stages = r.stages || r.progress?.stages || r.roadmap?.stages;
@@ -349,6 +391,8 @@ ${sections.map(([title, rows]) => `<section><h2>${escape(title)}</h2><div class=
       modules: mods,
       software: first(c.software, c.Software, r.software),
       devices: first(c.devices, c.Devices, r.devices),
+      documents: first(c.documents, r.documents),
+      reports: first(c.reports, r.reports),
       stages: normalizedStages,
       sourceVersion: first(r.masterVersion, r.sourceVersion, r.master?.version, '3.x')
     })];

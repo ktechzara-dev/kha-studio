@@ -555,6 +555,38 @@ public class LanWebServer
                     return;
                 }
 
+                // 1j. API: /api/projects/browse-document (Hộp thoại chọn file tài liệu)
+                if (cleanPath == "/api/projects/browse-document" && method == "POST")
+                {
+                    var res = BrowseProjectDocument(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
+                // 1k. API: /api/projects/open-file (Mở file bằng phần mềm mặc định trên Windows)
+                if (cleanPath == "/api/projects/open-file" && method == "POST")
+                {
+                    var res = OpenProjectFile(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
+                // 1l. API: /api/projects/copy-document (Sao chép tài liệu vào thư mục dự án)
+                if (cleanPath == "/api/projects/copy-document" && method == "POST")
+                {
+                    var res = CopyProjectDocument(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
+                // 1m. API: /api/projects/save-report-file (Lưu file HTML báo cáo kỹ thuật vào thư mục dự án)
+                if (cleanPath == "/api/projects/save-report-file" && method == "POST")
+                {
+                    var res = SaveProjectReportFile(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
                 // 2. API: /api/work_plans (Kế hoạch công việc bảo trì & kiểm tra)
                 if (cleanPath == "/api/work_plans")
                 {
@@ -1579,6 +1611,165 @@ public class LanWebServer
             return $"{{\"status\":\"error\",\"message\":{JsonSerializer.Serialize(ex.Message)}}}";
         }
         return "{\"status\":\"error\",\"message\":\"Invalid parameters\"}";
+    }
+
+    private string BrowseProjectDocument(string body)
+    {
+        string? selectedFile = null;
+        string title = "Chọn file tài liệu dự án";
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                var node = JsonNode.Parse(body) as JsonObject;
+                title = node?["title"]?.ToString()?.Trim() ?? "Chọn file tài liệu dự án";
+            }
+        }
+        catch { }
+
+        try
+        {
+            System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
+            {
+                try
+                {
+                    var dlg = new Microsoft.Win32.OpenFileDialog
+                    {
+                        Title = string.IsNullOrWhiteSpace(title) ? "Chọn file tài liệu dự án" : title,
+                        Filter = "Tài liệu kỹ thuật (*.pdf;*.dwg;*.dxf;*.xlsx;*.xls;*.docx;*.doc;*.pptx;*.png;*.jpg;*.zip;*.csv)|*.pdf;*.dwg;*.dxf;*.xlsx;*.xls;*.docx;*.doc;*.pptx;*.png;*.jpg;*.zip;*.csv|Tất cả tệp (*.*)|*.*",
+                        Multiselect = false
+                    };
+                    var win = System.Windows.Application.Current.MainWindow;
+                    if (dlg.ShowDialog(win) == true)
+                    {
+                        selectedFile = dlg.FileName;
+                    }
+                }
+                catch { }
+            });
+        }
+        catch { }
+
+        if (!string.IsNullOrWhiteSpace(selectedFile) && File.Exists(selectedFile))
+        {
+            try
+            {
+                var fi = new FileInfo(selectedFile);
+                var resObj = new
+                {
+                    status = "ok",
+                    path = selectedFile,
+                    fileName = fi.Name,
+                    fileSize = fi.Length,
+                    fileExt = fi.Extension
+                };
+                return JsonSerializer.Serialize(resObj);
+            }
+            catch { }
+        }
+
+        return "{\"status\":\"cancelled\",\"path\":null}";
+    }
+
+    private string OpenProjectFile(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body) as JsonObject;
+            var path = node?["path"]?.ToString()?.Trim() ?? "";
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = path,
+                    UseShellExecute = true
+                });
+                return "{\"status\":\"ok\"}";
+            }
+            return "{\"status\":\"error\",\"message\":\"Không tìm thấy file trên đĩa\"}";
+        }
+        catch (Exception ex)
+        {
+            return $"{{\"status\":\"error\",\"message\":{JsonSerializer.Serialize(ex.Message)}}}";
+        }
+    }
+
+    private string CopyProjectDocument(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body) as JsonObject;
+            var srcPath = node?["sourcePath"]?.ToString()?.Trim() ?? "";
+            var projDir = node?["projectDir"]?.ToString()?.Trim() ?? "";
+            var subDir = node?["subDir"]?.ToString()?.Trim() ?? "documents";
+
+            if (string.IsNullOrWhiteSpace(srcPath) || !File.Exists(srcPath))
+            {
+                return "{\"status\":\"error\",\"message\":\"Không tìm thấy file nguồn\"}";
+            }
+
+            if (string.IsNullOrWhiteSpace(projDir))
+            {
+                projDir = Path.Combine(UserDataDir, "projects");
+            }
+
+            var destFolder = Path.Combine(projDir, subDir);
+            if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
+
+            var fileName = Path.GetFileName(srcPath);
+            var destPath = Path.Combine(destFolder, fileName);
+            File.Copy(srcPath, destPath, true);
+
+            var fi = new FileInfo(destPath);
+            var resObj = new
+            {
+                status = "ok",
+                path = destPath,
+                fileName = fi.Name,
+                fileSize = fi.Length,
+                fileExt = fi.Extension
+            };
+            return JsonSerializer.Serialize(resObj);
+        }
+        catch (Exception ex)
+        {
+            return $"{{\"status\":\"error\",\"message\":{JsonSerializer.Serialize(ex.Message)}}}";
+        }
+    }
+
+    private string SaveProjectReportFile(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body) as JsonObject;
+            var projDir = node?["projectDir"]?.ToString()?.Trim() ?? "";
+            var reportId = node?["reportId"]?.ToString()?.Trim() ?? "";
+            var htmlContent = node?["htmlContent"]?.ToString() ?? "";
+
+            if (string.IsNullOrWhiteSpace(projDir))
+            {
+                projDir = Path.Combine(UserDataDir, "projects");
+            }
+
+            var reportsFolder = Path.Combine(projDir, "reports");
+            if (!Directory.Exists(reportsFolder)) Directory.CreateDirectory(reportsFolder);
+
+            var safeName = CleanFileName(string.IsNullOrWhiteSpace(reportId) ? ("Report_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")) : reportId) + ".html";
+            var destPath = Path.Combine(reportsFolder, safeName);
+            File.WriteAllText(destPath, htmlContent, Encoding.UTF8);
+
+            var resObj = new
+            {
+                status = "ok",
+                path = destPath,
+                fileName = safeName
+            };
+            return JsonSerializer.Serialize(resObj);
+        }
+        catch (Exception ex)
+        {
+            return $"{{\"status\":\"error\",\"message\":{JsonSerializer.Serialize(ex.Message)}}}";
+        }
     }
 
     private static string GetDefaultProjectsJson()
