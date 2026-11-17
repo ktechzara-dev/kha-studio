@@ -539,10 +539,28 @@ public class LanWebServer
                     return;
                 }
 
+                // 1f2. API: /api/apm/ (Proxy APM Bridge API qua HTTP)
+                if (cleanPath.StartsWith("/api/apm/") && method == "POST")
+                {
+                    var apmRoute = cleanPath.Substring("/api/apm/".Length);
+                    var bDoc = string.IsNullOrWhiteSpace(body) ? JsonDocument.Parse("{}") : JsonDocument.Parse(body);
+                    var resObj = await ApmBridgeHandler.HandleApmApiAsync(apmRoute, bDoc.RootElement);
+                    await SendJsonResponseAsync(stream, JsonSerializer.Serialize(resObj));
+                    return;
+                }
+
                 // 1g. API: /api/projects/open-folder (Mở Windows Explorer tại folder dự án)
                 if (cleanPath == "/api/projects/open-folder" && method == "POST")
                 {
                     var res = OpenProjectFolder(body);
+                    await SendJsonResponseAsync(stream, res);
+                    return;
+                }
+
+                // 1g2. API: /api/projects/auto-find-json (Tự động tìm folder và file json dự án)
+                if (cleanPath == "/api/projects/auto-find-json" && method == "POST")
+                {
+                    var res = AutoFindProjectJson(body);
                     await SendJsonResponseAsync(stream, res);
                     return;
                 }
@@ -1484,16 +1502,25 @@ public class LanWebServer
             var code = node?["code"]?.ToString()?.Trim() ?? "";
             var directPath = node?["path"]?.ToString()?.Trim() ?? "";
             string projDir;
-            if (!string.IsNullOrWhiteSpace(directPath))
+            if (!string.IsNullOrWhiteSpace(directPath) && (Path.IsPathRooted(directPath) || directPath.Contains(':')))
             {
                 projDir = directPath;
             }
             else
             {
-                var safeCode = CleanFileName(code);
-                projDir = string.IsNullOrWhiteSpace(code)
-                    ? Path.Combine(UserDataDir, "projects")
-                    : Path.Combine(UserDataDir, "projects", safeCode);
+                var foundRoot = ApmBridgeHandler.FindProjectRootByCode(code);
+                if (!string.IsNullOrWhiteSpace(foundRoot))
+                {
+                    projDir = ApmBridgeHandler.ResolveActualSubfolder(foundRoot, directPath);
+                }
+                else
+                {
+                    var safeCode = CleanFileName(code);
+                    var fallbackRoot = string.IsNullOrWhiteSpace(safeCode)
+                        ? Path.Combine(UserDataDir, "projects")
+                        : Path.Combine(UserDataDir, "projects", safeCode);
+                    projDir = ApmBridgeHandler.ResolveActualSubfolder(fallbackRoot, directPath);
+                }
             }
 
             if (!Directory.Exists(projDir)) Directory.CreateDirectory(projDir);
@@ -1510,6 +1537,71 @@ public class LanWebServer
         catch (Exception ex)
         {
             return $"{{\"status\":\"error\",\"message\":\"{ex.Message}\"}}";
+        }
+    }
+
+    private string AutoFindProjectJson(string body)
+    {
+        try
+        {
+            var node = JsonNode.Parse(body) as JsonObject;
+            var code = node?["code"]?.ToString()?.Trim() ?? "";
+            var preferredPath = node?["preferredPath"]?.ToString()?.Trim() ?? "";
+
+            string? foundDir = null;
+            if (!string.IsNullOrWhiteSpace(preferredPath) && Directory.Exists(preferredPath))
+            {
+                foundDir = preferredPath;
+            }
+            if (foundDir == null && !string.IsNullOrWhiteSpace(code))
+            {
+                foundDir = ApmBridgeHandler.FindProjectRootByCode(code);
+            }
+            if (foundDir == null && !string.IsNullOrWhiteSpace(code))
+            {
+                var candidate = Path.Combine(UserDataDir, "projects", CleanFileName(code));
+                if (Directory.Exists(candidate)) foundDir = candidate;
+            }
+
+            string? foundJson = null;
+            string? content = null;
+            if (foundDir != null && Directory.Exists(foundDir))
+            {
+                var jsonFiles = Directory.GetFiles(foundDir, "*.json", SearchOption.TopDirectoryOnly);
+                if (!string.IsNullOrWhiteSpace(code))
+                {
+                    foundJson = jsonFiles.FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(code, StringComparison.OrdinalIgnoreCase));
+                }
+                if (foundJson == null)
+                {
+                    foundJson = jsonFiles.FirstOrDefault(f => Path.GetFileName(f).Equals("_AUTOMATION_APP.json", StringComparison.OrdinalIgnoreCase)
+                                                           || Path.GetFileName(f).Equals("_PROJECT_INFO.json", StringComparison.OrdinalIgnoreCase)
+                                                           || Path.GetFileName(f).Equals("project.json", StringComparison.OrdinalIgnoreCase));
+                }
+                if (foundJson == null && jsonFiles.Length > 0)
+                {
+                    foundJson = jsonFiles[0];
+                }
+                if (foundJson != null && File.Exists(foundJson))
+                {
+                    content = File.ReadAllText(foundJson, Encoding.UTF8);
+                }
+            }
+
+            var res = new JsonObject
+            {
+                ["status"] = "ok",
+                ["code"] = code,
+                ["folderPath"] = foundDir,
+                ["jsonPath"] = foundJson,
+                ["jsonFile"] = foundJson != null ? Path.GetFileName(foundJson) : null,
+                ["content"] = content
+            };
+            return res.ToJsonString();
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { status = "error", message = ex.Message });
         }
     }
 

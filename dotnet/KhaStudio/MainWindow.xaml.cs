@@ -835,14 +835,24 @@ public partial class MainWindow : Window
                             var pCode = root.TryGetProperty("code", out var cElem) ? cElem.GetString() ?? "" : "";
                             var pPath = root.TryGetProperty("path", out var pElem) ? pElem.GetString() ?? "" : "";
                             string targetDir;
-                            if (!string.IsNullOrWhiteSpace(pPath))
+                            if (!string.IsNullOrWhiteSpace(pPath) && (Path.IsPathRooted(pPath) || pPath.Contains(':')))
                             {
                                 targetDir = pPath;
                             }
                             else
                             {
-                                var baseDir = Path.Combine(LanWebServer.UserDataDir, "projects");
-                                targetDir = string.IsNullOrWhiteSpace(pCode) ? baseDir : Path.Combine(baseDir, LanWebServer.CleanFileName(pCode));
+                                var foundRoot = ApmBridgeHandler.FindProjectRootByCode(pCode);
+                                if (!string.IsNullOrWhiteSpace(foundRoot))
+                                {
+                                    targetDir = ApmBridgeHandler.ResolveActualSubfolder(foundRoot, pPath);
+                                }
+                                else
+                                {
+                                    var baseDir = Path.Combine(LanWebServer.UserDataDir, "projects");
+                                    var safeCode = LanWebServer.CleanFileName(pCode);
+                                    var fallbackRoot = string.IsNullOrWhiteSpace(safeCode) ? baseDir : Path.Combine(baseDir, safeCode);
+                                    targetDir = ApmBridgeHandler.ResolveActualSubfolder(fallbackRoot, pPath);
+                                }
                             }
                             if (!Directory.Exists(targetDir)) Directory.CreateDirectory(targetDir);
                             Process.Start(new ProcessStartInfo
@@ -922,7 +932,12 @@ public partial class MainWindow : Window
                             {
                                 foundDir = preferredPath;
                             }
-                            // 2. Check UserDataDir/projects/{code}
+                            // 2. Auto-find project root from disk / OneDrive
+                            if (foundDir == null && !string.IsNullOrWhiteSpace(code))
+                            {
+                                foundDir = ApmBridgeHandler.FindProjectRootByCode(code);
+                            }
+                            // 3. Check UserDataDir/projects/{code}
                             if (foundDir == null && !string.IsNullOrWhiteSpace(code))
                             {
                                 var candidate = Path.Combine(LanWebServer.UserDataDir, "projects", LanWebServer.CleanFileName(code));

@@ -68,36 +68,46 @@
   }
 
   // Cầu nối hệ thống APM Bridge (Electron / Kha Studio WPF WebView2 / Universal)
-  let apmBridge = window.apm || (window.parent && window.parent.apm);
-  if (!apmBridge || typeof apmBridge.api !== 'function') {
-    apmBridge = {
-      api: async function (route, body = {}) {
-        try {
-          const res = await requestNative('apm.api', { route, body }, 25000);
-          if (res && res.status === 'ok') {
-            return res.data;
-          }
-          if (res && res.error) {
-            throw new Error(res.error);
-          }
-        } catch (err) {
-          console.warn('[APM Bridge] Native IPC thất bại cho ' + route + ':', err.message);
+  let apmBridge = {
+    api: async function (route, body = {}) {
+      try {
+        const res = await requestNative('apm.api', { route, body }, 10000);
+        if (res && res.status === 'ok') {
+          return res.data;
         }
-        return handleClientApmFallback(route, body);
-      },
-      onEvent: function (channel, cb) {
-        const handler = e => {
-          if (e.data && (e.data.channel === channel || e.data.type === 'apm:event:' + channel)) {
-            cb(e.data.data);
-          }
-        };
-        window.addEventListener('message', handler);
-        return () => window.removeEventListener('message', handler);
+        if (res && res.error) {
+          console.warn('[APM Bridge] Native IPC trả lỗi cho ' + route + ':', res.error);
+        }
+      } catch (err) {
+        console.warn('[APM Bridge] Native IPC thất bại cho ' + route + ':', err.message);
       }
-    };
-    try { window.apm = apmBridge; } catch (_) {}
-    try { if (window.parent && !window.parent.apm) window.parent.apm = apmBridge; } catch (_) {}
-  }
+
+      // Thử gọi HTTP LAN WebServer (127.0.0.1:5055) proxy
+      try {
+        const fetchRes = await fetch('http://127.0.0.1:5055/api/apm/' + route, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (fetchRes.ok) {
+          const data = await fetchRes.json();
+          return data;
+        }
+      } catch (_) {}
+
+      return handleClientApmFallback(route, body);
+    },
+    onEvent: function (channel, cb) {
+      const handler = e => {
+        if (e.data && (e.data.channel === channel || e.data.type === 'apm:event:' + channel)) {
+          cb(e.data.data);
+        }
+      };
+      window.addEventListener('message', handler);
+      return () => window.removeEventListener('message', handler);
+    }
+  };
+  try { window.apm = apmBridge; } catch (_) {}
 
   const desktop = true;
   const nativeShell = desktop;
@@ -453,26 +463,24 @@
   async function openFolderOnDisk(p, subPath = '') {
     if (!p) p = project();
     if (!p) return;
+    
+    // Tự động tìm thư mục trên đĩa nếu chưa liên kết
+    if (!p.rootPath) {
+      await autoSyncProjectFolder(p);
+    }
+
     if (!p.rootPath) {
       toast('Dự án chưa liên kết thư mục trên máy. Đang mở hộp thoại chọn thư mục…');
       await pickProjectFolder(p);
       if (p.rootPath) {
-        openFolderOnDisk(p, subPath);
-      } else {
-        // Nếu người dùng không chọn hoặc huỷ, mở thư mục dự án mặc định của app
-        sendNativeMessage('project.open_folder', { code: p.code, path: '' });
-        try {
-          fetch('http://127.0.0.1:5055/api/projects/open-folder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: p.code, path: '' })
-          }).catch(() => {});
-        } catch (_) {}
+        return openFolderOnDisk(p, subPath);
       }
-      return;
     }
     const cleanSub = (subPath || '').replace(/\//g, '\\');
-    const fullPath = cleanSub ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + cleanSub) : p.rootPath;
+    const fullPath = p.rootPath 
+      ? (cleanSub ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + cleanSub) : p.rootPath)
+      : cleanSub;
+
     sendNativeMessage('project.open_folder', { code: p.code, path: fullPath });
     try {
       fetch('http://127.0.0.1:5055/api/projects/open-folder', {
@@ -481,33 +489,154 @@
         body: JSON.stringify({ code: p.code, path: fullPath })
       }).catch(() => {});
     } catch (_) {}
-    toast('Đang mở thư mục: ' + (cleanSub || fullPath));
+    toast('✓ Đang mở thư mục: ' + (cleanSub || fullPath || p.code));
   }
 
   async function autoSyncProjectFolder(p) {
     if (!p) return;
+    let res = null;
     try {
-      const res = await requestNative('project.auto_find_json', {
+      res = await requestNative('project.auto_find_json', {
         code: p.code,
         preferredPath: p.rootPath || ''
-      });
-      if (res && res.folderPath) {
-        let changed = false;
-        if (p.rootPath !== res.folderPath) {
-          p.rootPath = res.folderPath;
-          changed = true;
+      }, 5000);
+    } catch (_) {}
+
+    if (!res || !res.folderPath) {
+      try {
+        const fetchRes = await fetch('http://127.0.0.1:5055/api/projects/auto-find-json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: p.code, preferredPath: p.rootPath || '' })
+        });
+        if (fetchRes.ok) {
+          const json = await fetchRes.json();
+          if (json && json.folderPath) res = json;
         }
-        if (res.jsonFile && p.jsonFile !== res.jsonFile) {
-          p.jsonFile = res.jsonFile;
-          changed = true;
-        }
-        connections.set(p.id, { key: p.id, path: res.folderPath, jsonFile: p.jsonFile, hash: '', conflict: false, saving: false });
-        if (changed) {
+      } catch (_) {}
+    }
+
+    if (res && res.folderPath) {
+      let changed = false;
+      if (p.rootPath !== res.folderPath) {
+        p.rootPath = res.folderPath;
+        changed = true;
+      }
+      if (res.jsonFile && p.jsonFile !== res.jsonFile) {
+        p.jsonFile = res.jsonFile;
+        changed = true;
+      }
+      if (res.content) {
+        try {
+          const remote = typeof res.content === 'string' ? JSON.parse(res.content) : res.content;
+          if (remote.name && remote.name !== p.name) { p.name = remote.name; changed = true; }
+          if (remote.customer && remote.customer !== p.customer) { p.customer = remote.customer; changed = true; }
+          if (remote.stages && Array.isArray(remote.stages)) { p.stages = remote.stages; changed = true; }
+          if (remote.devices && Array.isArray(remote.devices)) { p.devices = remote.devices; changed = true; }
+          if (remote.issues && Array.isArray(remote.issues)) { p.issues = remote.issues; changed = true; }
+          if (remote.ct && Array.isArray(remote.ct)) { p.ct = remote.ct; changed = true; }
+          if (remote.documents && Array.isArray(remote.documents)) { p.documents = remote.documents; changed = true; }
+        } catch (_) {}
+      }
+      connections.set(p.id, { key: p.id, path: res.folderPath, jsonFile: p.jsonFile, hash: '', conflict: false, saving: false });
+      if (changed) {
+        saveLocal();
+        render();
+      }
+    }
+  }
+
+  // ==========================================
+  // LIVE ONEDRIVE / DISK SYNC SYSTEM
+  // ==========================================
+  let isSyncingFromDisk = false;
+  async function syncProjectFromDisk(p, silent = false) {
+    if (isSyncingFromDisk) return;
+    if (!p) p = project();
+    if (!p || p.demo) return;
+
+    isSyncingFromDisk = true;
+    try {
+      const res = await api('reload-project-disk', { code: p.code, rootPath: p.rootPath || '' });
+      if (res && res.ok && res.project) {
+        const remote = res.project;
+        const conn = connections.get(p.id) || {};
+        
+        const currentHash = conn.hash || '';
+        const newHash = res.hash || '';
+        const hasHashChanged = Boolean(newHash && currentHash && newHash !== currentHash);
+        const hasTimeChanged = Boolean(remote.updatedAt && p.updatedAt && remote.updatedAt !== p.updatedAt);
+        const hasDiff = hasHashChanged || hasTimeChanged || (!currentHash && newHash);
+
+        if (hasDiff || !silent) {
+          if (remote.name) p.name = remote.name;
+          if (remote.customer) p.customer = remote.customer;
+          if (remote.stages && Array.isArray(remote.stages)) p.stages = remote.stages;
+          if (remote.devices && Array.isArray(remote.devices)) p.devices = remote.devices;
+          if (remote.issues && Array.isArray(remote.issues)) p.issues = remote.issues;
+          if (remote.ct && Array.isArray(remote.ct)) p.ct = remote.ct;
+          if (remote.documents && Array.isArray(remote.documents)) p.documents = remote.documents;
+          if (remote.scopes && Array.isArray(remote.scopes)) p.scopes = remote.scopes;
+          if (remote.updatedAt) p.updatedAt = remote.updatedAt;
+          if (res.path && !p.rootPath) p.rootPath = res.path;
+          if (res.jsonFile && !p.jsonFile) p.jsonFile = res.jsonFile;
+
+          connections.set(p.id, {
+            key: p.id,
+            path: p.rootPath || res.path || '',
+            jsonFile: p.jsonFile || res.jsonFile || '',
+            hash: newHash,
+            conflict: false,
+            saving: false
+          });
+
           saveLocal();
           render();
+
+          if (hasDiff) {
+            toast('⚡ [OneDrive] Đã cập nhật thay đổi mới nhất từ máy khác!');
+          } else if (!silent) {
+            toast('✓ Dữ liệu dự án đang là mới nhất từ thư mục OneDrive / ổ đĩa.');
+          }
+        }
+      } else if (!silent) {
+        toast(res?.message || 'Không thể đồng bộ từ đĩa.', true);
+      }
+    } catch (err) {
+      if (!silent) toast('Lỗi đồng bộ từ đĩa: ' + err.message, true);
+    } finally {
+      isSyncingFromDisk = false;
+    }
+  }
+
+  let liveDiskSyncTimer = null;
+  function startLiveDiskSync() {
+    if (liveDiskSyncTimer) clearInterval(liveDiskSyncTimer);
+    liveDiskSyncTimer = setInterval(() => {
+      if (document.visibilityState === 'visible' && state.selected) {
+        const p = project();
+        if (p && !p.demo && !saveTimers.has(p.id)) {
+          syncProjectFromDisk(p, true);
         }
       }
-    } catch (_) {}
+    }, 5000);
+  }
+
+  window.addEventListener('focus', () => {
+    const p = project();
+    if (p && !p.demo && !saveTimers.has(p.id)) {
+      syncProjectFromDisk(p, true);
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      const p = project();
+      if (p && !p.demo && !saveTimers.has(p.id)) {
+        syncProjectFromDisk(p, true);
+      }
+    }
+  });
   }
 
   function badge(status) {
@@ -596,10 +725,15 @@
   }
 
   async function api(route, body = {}) {
-    if (!apmBridge || !apmBridge.api) {
-      throw new Error('Cầu nối hệ thống Kha Studio chưa sẵn sàng.');
+    if (!apmBridge || typeof apmBridge.api !== 'function') {
+      return handleClientApmFallback(route, body);
     }
-    return await apmBridge.api(route, body);
+    try {
+      return await apmBridge.api(route, body);
+    } catch (err) {
+      console.warn('[APM Bridge] Lỗi gọi api:', err);
+      return handleClientApmFallback(route, body);
+    }
   }
 
   function scheduleNative(p) {
@@ -882,8 +1016,9 @@
     const conn = connections.get(p.id), labels = D.scopes.scopes.filter(s => p.scopes.includes(s.id)).map(s => s.label);
 
     const publishBtn = btn('Cập nhật lên', 'publish-now', 'upload', 'primary');
+    const syncDiskBtn = btn('Đồng bộ từ đĩa / OneDrive', 'sync-from-disk', 'refresh', 'secondary');
 
-    return pageTitle(p.name, p.code + ' · ' + (p.customer || 'Chưa khai báo khách hàng'), publishBtn + buttons, p.demo ? 'DỰ ÁN MINH HỌA' : 'DỰ ÁN ĐANG CHỌN')
+    return pageTitle(p.name, p.code + ' · ' + (p.customer || 'Chưa khai báo khách hàng'), publishBtn + syncDiskBtn + buttons, p.demo ? 'DỰ ÁN MINH HỌA' : 'DỰ ÁN ĐANG CHỌN')
       + (p.demo ? notice('Dữ liệu minh họa để thử ứng dụng. Tạo hoặc mở dự án thực tế trước khi ghi hồ sơ công việc.') : '')
       + `<div class="metrics">${metric('Tiến độ giai đoạn', prog.percent + '%', `${prog.done}/${prog.total} hoàn tất · ${prog.na} không áp dụng`, 'roadmap')}${metric('Bộ môn trong dự án', p.modules.length, `${plan.directories.length} thư mục theo cấu hình`, 'folder')}${metric('Thiết bị đã khai báo', p.devices.length, `${p.devices.filter(d => d.ip).length} thiết bị có địa chỉ IP`, 'device')}${metric('Hồ sơ & Report', ((p.documents?.length || 0) + (p.reports?.length || 0)), `${p.documents?.length || 0} tài liệu · ${p.reports?.length || 0} báo cáo`, 'document')}${metric('Issue đang mở', open.length, `${open.filter(i => i.severity === 'High').length} mức ưu tiên cao`, 'issue')}</div>`
       + `<div class="two-cols"><section class="panel"><div class="panel-head"><h2>Lộ trình thực hiện</h2>${btn('Xem chi tiết', 'go-roadmap', null, 'small')}</div><div class="panel-body"><div class="progress-info"><span>${prog.done} giai đoạn đã xác nhận hoàn tất</span><strong>${prog.percent}%</strong></div><div class="progress-track"><div class="progress-fill" style="width:${prog.percent}%"></div></div><div class="stage-grid">${stagesTiles(p)}</div><p class="count-label">Thiết kế, mô phỏng, mua sắm và lập trình có thể thực hiện song song. Tiến độ tính từ xác nhận checklist.</p></div></section><div><section class="panel"><div class="panel-head"><h2>Thông tin dự án</h2><div class="btnrow">${isCurrentUserAdmin() ? btn('Phân quyền xem', 'manage-permissions', 'user', 'small') : ''}${btn('Sửa', 'edit-project', 'edit', 'small')}</div></div><div class="panel-body"><div class="detail-list">${[['Loại dự án', D.presets.presets.find(x => x.id === p.preset)?.label], ['Phạm vi', labels.join(' · ')], ['Quản lý dự án', p.manager || 'Chưa khai báo'], ['Kỹ sư PLC', p.plcEngineer || 'Chưa khai báo'], ['Kỹ sư Robot', p.robotEngineer || 'Chưa khai báo'], ['Quyền xem', formatAllowedUsers(p.allowedUsers)], ['Revision', p.revision], ['Nơi lưu', conn?.path || 'Hồ sơ trong ứng dụng']].map(([l, v]) => `<div class="detail-row"><small>${esc(l)}</small><strong>${esc(v)}</strong></div>`).join('')}</div><div class="btnrow" style="margin-top:22px">${btn('Tài liệu & Report', 'go-docs-reports', 'document', 'small primary')}${btn(conn ? 'Mở file thông tin' : 'Tải file thông tin', 'project-information', 'file', 'small')}${btn('Cập nhật lên Drive', 'publish-now', 'upload', 'small')}${btn('Xuất hồ sơ JSON', 'export-project', 'download', 'small')}${btn('Xuất gói dự án V4', 'export-zip', 'folder', 'small')}</div></div></section><section class="panel" style="margin-top:22px"><div class="panel-head"><h2>Công việc đang vướng</h2>${btn('Issue', 'go-issues', null, 'small')}</div><div class="panel-body">${open.slice(0, 4).map(i => `<div class="issue-list-item"><div><strong>${esc(i.title)}</strong><small>${esc(i.owner || 'Chưa giao người phụ trách')}${i.due ? ' · ' + esc(i.due) : ''}</small></div>${badge(i.status)}</div>`).join('') || '<div class="empty" style="padding:8px">Chưa có Issue đang mở.</div>'}</div></section></div></div>`
@@ -984,7 +1119,7 @@
     const prog = C.progress(D, p);
 
     return pageTitle('Lộ trình dự án', `${p.code} · ${prog.done}/${prog.total} giai đoạn hoàn tất`, btn('Xuất báo cáo tiến độ', 'export-progress', 'download') + btn('In', 'print', 'print'))
-      + `<div class="roadmap-layout"><section class="panel sticky-panel"><div class="panel-head"><h2>12 giai đoạn</h2><span class="badge blue">${prog.percent}%</span></div><div class="panel-body" style="padding:12px"><div class="stage-list">${D.roadmap.stages.map(x => `<button class="stage-item ${selectedStage === x.id ? 'selected' : ''} ${C.applies(x, p) ? p.stages[x.id].status : 'inactive'}" data-action="stage" data-id="${x.id}"><span class="stage-number">${p.stages[x.id].status === 'completed' && C.applies(x, p) ? icon('check') : String(x.order).padStart(2, '0')}</span><span><strong>${esc(x.title)}</strong><small>${C.applies(x, p) ? esc(C.statuses[p.stages[x.id].status]) : 'Ngoài phạm vi'}</small></span></button>`).join('')}</div></div></section><section class="panel stage-detail"><div class="eyebrow">GIAI ĐOẠN ${String(s.order).padStart(2, '0')} / ${esc(s.lane)}</div><h2>${esc(s.title)}</h2>${active ? badge(st.status) : '<span class="badge gray">Ngoài phạm vi dự án</span>'}<p class="subtext">${esc(s.purpose)}</p>${!active ? notice('Bạn có thể tra cứu giai đoạn này. Checklist và tiến độ chỉ lưu cho phần việc thuộc phạm vi dự án.') : ''}<div class="stage-meta"><label class="field">Trạng thái<select id="stage-status" ${!active ? 'disabled' : ''}>${Object.entries(C.statuses).map(([k, v]) => option(k, v, st.status)).join('')}</select></label><label class="field">Người phụ trách<input id="stage-owner" maxlength="200" value="${esc(st.owner)}" ${!active ? 'disabled' : ''}></label><label class="field">Hạn hoàn thành<input id="stage-due" type="date" value="${esc(st.due)}" ${!active ? 'disabled' : ''}></label></div><div class="detail-section"><h3>DÙNG KHI NÀO</h3><p>${esc(s.when)}</p></div><div class="detail-section"><h3>ĐẦU VÀO CẦN CÓ</h3><ul>${s.entry.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><h3>VIỆC CẦN LÀM</h3><ul>${s.actions.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><div class="result-header"><h3>CHECKLIST CHUYỂN BƯỚC</h3><span class="count-label">${C.relevantChecks(s, p).filter(c => st.checks[c.id]).length}/${C.relevantChecks(s, p).length} xác nhận</span></div><div class="checklist">${C.relevantChecks(s, p).map(c => `<label class="check-label"><input type="checkbox" data-check="${c.id}" ${st.checks[c.id] ? 'checked' : ''} ${!active ? 'disabled' : ''}><span>${esc(c.text)}</span></label>`).join('')}</div></div><div class="detail-section"><label class="field">Ghi chú / lý do không áp dụng<textarea id="stage-note" maxlength="8000" ${!active ? 'disabled' : ''} placeholder="Ghi tình trạng, đầu vào còn thiếu hoặc lý do không áp dụng…">${esc(st.note)}</textarea></label><p class="count-label">Ghi chú, checklist và người phụ trách tự lưu khi thay đổi.</p></div><div class="detail-section"><div class="folder-header-bar"><div><h3>NƠI LƯU HỒ SƠ</h3><div class="project-folder-badge">${p.rootPath ? `<span class="badge blue" title="Thư mục đã liên kết trên đĩa: ${esc(p.rootPath)}">📁 Thư mục: <b>${esc(p.rootPath)}</b> ${p.jsonFile ? `<small class="mono">(${esc(p.jsonFile)})</small>` : ''}</span>` : `<span class="badge gray">📁 Chưa liên kết thư mục đĩa cho dự án này</span>`}</div></div><div class="btnrow">${btn(p.rootPath ? 'Đổi thư mục' : 'Chọn thư mục dự án', 'pick-project-folder', 'folder', 'small primary')}${p.rootPath ? btn('Mở thư mục gốc', 'open-root-folder', null, 'small') : ''}</div></div><div class="folder-links-list">${outputPaths.map(path => { const fullPath = p.rootPath ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + path.replace(/\//g, '\\')) : path; return `<div class="folder-link" title="${esc(fullPath)}">${icon('folder')}<div class="folder-info"><code class="folder-code" data-action="open-subfolder" data-path="${esc(path)}" title="Bấm để mở thư mục trên máy">${esc(path)}</code>${p.rootPath ? `<small class="folder-realpath mono">${esc(fullPath)}</small>` : ''}</div><div class="folder-actions">${btn('Mở thư mục', 'open-subfolder', 'folder', 'small primary', `data-path="${esc(path)}"`)}${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(fullPath)}"`)}</div></div>`; }).join('') || '<p class="muted">Bộ môn lưu hồ sơ chưa có trong cấu hình.</p>'}</div></div>${templates.length ? `<div class="detail-section"><h3>BIỂU MẪU LIÊN QUAN</h3><div class="btnrow">${templates.map(t => btn(templateNames[t.id] || t.id, 'download-template', 'file', 'small', `data-id="${t.id}"`)).join('')}</div>${s.id === 'sat' ? '<p class="count-label">Mẫu FAT/SAT dùng chung. Lưu bản SAT đã điền vào 015_COMMISSIONING/06_SAT.</p>' : ''}</div>` : ''}${renderStageDocsReports(s, p)}</section></div>`;
+      + `<div class="roadmap-layout"><section class="panel sticky-panel"><div class="panel-head"><h2>12 giai đoạn</h2><span class="badge blue">${prog.percent}%</span></div><div class="panel-body" style="padding:12px"><div class="stage-list">${D.roadmap.stages.map(x => `<button class="stage-item ${selectedStage === x.id ? 'selected' : ''} ${C.applies(x, p) ? p.stages[x.id].status : 'inactive'}" data-action="stage" data-id="${x.id}"><span class="stage-number">${p.stages[x.id].status === 'completed' && C.applies(x, p) ? icon('check') : String(x.order).padStart(2, '0')}</span><span><strong>${esc(x.title)}</strong><small>${C.applies(x, p) ? esc(C.statuses[p.stages[x.id].status]) : 'Ngoài phạm vi'}</small></span></button>`).join('')}</div></div></section><section class="panel stage-detail"><div class="eyebrow">GIAI ĐOẠN ${String(s.order).padStart(2, '0')} / ${esc(s.lane)}</div><h2>${esc(s.title)}</h2>${active ? badge(st.status) : '<span class="badge gray">Ngoài phạm vi dự án</span>'}<p class="subtext">${esc(s.purpose)}</p>${!active ? notice('Bạn có thể tra cứu giai đoạn này. Checklist và tiến độ chỉ lưu cho phần việc thuộc phạm vi dự án.') : ''}<div class="stage-meta"><label class="field">Trạng thái<select id="stage-status" ${!active ? 'disabled' : ''}>${Object.entries(C.statuses).map(([k, v]) => option(k, v, st.status)).join('')}</select></label><label class="field">Người phụ trách<input id="stage-owner" maxlength="200" value="${esc(st.owner)}" ${!active ? 'disabled' : ''}></label><label class="field">Hạn hoàn thành<input id="stage-due" type="date" value="${esc(st.due)}" ${!active ? 'disabled' : ''}></label></div><div class="detail-section"><h3>DÙNG KHI NÀO</h3><p>${esc(s.when)}</p></div><div class="detail-section"><h3>ĐẦU VÀO CẦN CÓ</h3><ul>${s.entry.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><h3>VIỆC CẦN LÀM</h3><ul>${s.actions.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><div class="result-header"><h3>CHECKLIST CHUYỂN BƯỚC</h3><span class="count-label">${C.relevantChecks(s, p).filter(c => st.checks[c.id]).length}/${C.relevantChecks(s, p).length} xác nhận</span></div><div class="checklist">${C.relevantChecks(s, p).map(c => `<label class="check-label"><input type="checkbox" data-check="${c.id}" ${st.checks[c.id] ? 'checked' : ''} ${!active ? 'disabled' : ''}><span>${esc(c.text)}</span></label>`).join('')}</div></div><div class="detail-section"><label class="field">Ghi chú / lý do không áp dụng<textarea id="stage-note" maxlength="8000" ${!active ? 'disabled' : ''} placeholder="Ghi tình trạng, đầu vào còn thiếu hoặc lý do không áp dụng…">${esc(st.note)}</textarea></label><p class="count-label">Ghi chú, checklist và người phụ trách tự lưu khi thay đổi.</p></div><div class="detail-section"><div class="folder-header-bar"><div><h3>NƠI LƯU HỒ SƠ</h3><div class="project-folder-badge">${p.rootPath ? `<span class="badge blue" title="Thư mục đã liên kết trên đĩa: ${esc(p.rootPath)}">📁 Thư mục: <b>${esc(p.rootPath)}</b> ${p.jsonFile ? `<small class="mono">(${esc(p.jsonFile)})</small>` : ''}</span>` : `<span class="badge gray">📁 Chưa liên kết thư mục đĩa cho dự án này</span>`}</div></div><div class="btnrow">${btn(p.rootPath ? 'Đổi thư mục' : 'Chọn thư mục dự án', 'pick-project-folder', 'folder', 'small primary')}${p.rootPath ? btn('Mở thư mục gốc', 'open-root-folder', null, 'small') : ''}${btn('Đồng bộ từ đĩa / OneDrive', 'sync-from-disk', 'refresh', 'small')}</div></div><div class="folder-links-list">${outputPaths.map(path => { const fullPath = p.rootPath ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + path.replace(/\//g, '\\')) : path; return `<div class="folder-link" title="${esc(fullPath)}">${icon('folder')}<div class="folder-info"><code class="folder-code" data-action="open-subfolder" data-path="${esc(path)}" title="Bấm để mở thư mục trên máy">${esc(path)}</code>${p.rootPath ? `<small class="folder-realpath mono">${esc(fullPath)}</small>` : ''}</div><div class="folder-actions">${btn('Mở thư mục', 'open-subfolder', 'folder', 'small primary', `data-path="${esc(path)}"`)}${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(fullPath)}"`)}</div></div>`; }).join('') || '<p class="muted">Bộ môn lưu hồ sơ chưa có trong cấu hình.</p>'}</div></div>${templates.length ? `<div class="detail-section"><h3>BIỂU MẪU LIÊN QUAN</h3><div class="btnrow">${templates.map(t => btn(templateNames[t.id] || t.id, 'download-template', 'file', 'small', `data-id="${t.id}"`)).join('')}</div>${s.id === 'sat' ? '<p class="count-label">Mẫu FAT/SAT dùng chung. Lưu bản SAT đã điền vào 015_COMMISSIONING/06_SAT.</p>' : ''}</div>` : ''}${renderStageDocsReports(s, p)}</section></div>`;
   }
 
   function renderFolders() {
@@ -2713,13 +2848,17 @@
       return;
     }
     await flushNative().catch(() => {});
-    toast('Chọn thư mục gốc có _PROJECT_INFO.json hoặc _AUTOMATION_APP.json.');
-    const r = await api('open-project');
-    if (r.cancelled) return;
-    acceptNative(r);
+    try {
+      const r = await api('open-project');
+      if (!r || r.cancelled) return;
+      acceptNative(r);
+    } catch (err) {
+      toast('Không thể mở dự án: ' + err.message, true);
+    }
   }
 
   function acceptNative(r, select = true, notify = true) {
+    if (!r || r.cancelled) return;
     const p = r.project ? C.makeProject(D, r.project) : C.normalizeImport(D, r.info || {}, r.config)[0];
     if (!r.project && r.roadmap) {
       const stages = r.roadmap.stages || r.roadmap.progress?.stages;
@@ -2727,9 +2866,23 @@
         p.stages = C.makeProject(D, { ...p, stages }).stages;
       }
     }
-    if (!p.code || !p.name) throw new Error('Metadata chưa có mã/tên dự án. Nhập cấu hình JSON để kiểm tra trước.');
+    if (!p.code || !p.name) {
+      if (r.project && r.project.code) p.code = r.project.code;
+      if (r.project && r.project.name) p.name = r.project.name;
+      if (r.path && (!p.code || !p.name)) {
+        const folderName = r.path.split(/[\\\/]/).filter(Boolean).pop() || 'DU_AN';
+        p.code = p.code || folderName.split('_')[0] || folderName;
+        p.name = p.name || folderName.replace(/^[^_]+_/, '').replace(/_/g, ' ') || p.code;
+      }
+    }
+    if (!p.code) p.code = 'PROJECT_' + Date.now().toString(36);
+    if (!p.name) p.name = p.code;
+    if (r.path && !p.rootPath) p.rootPath = r.path;
+
     const errors = C.validateProject(D, p);
-    if (errors.length) throw new Error(errors.join(' '));
+    if (errors.length) {
+      console.warn('[APM] Validate project warnings:', errors);
+    }
     const same = state.projects.find(x => x.id === p.id) || state.projects.find(x => x.code === p.code && !x.demo);
     if (same) {
       p.id = same.id;
@@ -2737,7 +2890,7 @@
     } else {
       state.projects.push(p);
     }
-    connections.set(p.id, { key: r.projectId, path: r.path, hash: r.hash, conflict: false, saving: false });
+    connections.set(p.id, { key: r.projectId || p.id, path: r.path || p.rootPath || '', hash: r.hash || '', conflict: false, saving: false });
     if (select) state.selected = p.id;
     saveLocal();
     scheduleNative(p);
@@ -3464,6 +3617,10 @@
       }
       else if (action === 'open-publish-folder') {
         await api('publish:open-folder', { targetPath: publishConfig?.publishFolder });
+      }
+      else if (action === 'sync-from-disk') {
+        const p = id ? state.projects.find(x => x.id === id) : project();
+        await syncProjectFromDisk(p, false);
       }
 
       // Phase P3: Admin actions
@@ -4305,8 +4462,10 @@
       render();
       checkCoachMark();
       await refreshPublishStatus();
+      startLiveDiskSync();
       await api('ui-ready').catch(() => {});
     }).catch(e => {
+      startLiveDiskSync();
       toast(e.message, true);
       workspaceFailed = true;
       updateHeader();

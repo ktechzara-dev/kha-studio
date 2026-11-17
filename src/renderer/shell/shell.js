@@ -110,11 +110,53 @@
   }
 
   // Lắng nghe thông điệp từ các iframe con để chuyển tiếp xuống C# native backend
+  const apmShellPending = new Map();
   window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'apm.api.reply' && event.data.id && apmShellPending.has(event.data.id)) {
+      const resolve = apmShellPending.get(event.data.id);
+      apmShellPending.delete(event.data.id);
+      resolve(event.data);
+    }
     if (event.data && event.data.cmd) {
       postToNative(event.data);
     }
   });
+
+  // Cung cấp cầu nối apm toàn cục cho shell và các công cụ con
+  window.apm = {
+    api: async (route, body = {}) => {
+      // 1. Ưu tiên Native IPC C# WebView2 / Electron
+      if (isWebView2 || (window.electronAPI && typeof window.electronAPI.postMessage === 'function')) {
+        try {
+          const reqId = 'apm_shell_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+          const p = new Promise(resolve => {
+            apmShellPending.set(reqId, resolve);
+            setTimeout(() => {
+              if (apmShellPending.has(reqId)) {
+                apmShellPending.delete(reqId);
+                resolve(null);
+              }
+            }, 10000);
+          });
+          postToNative({ cmd: 'apm.api', id: reqId, route, body });
+          const rep = await p;
+          if (rep && rep.status === 'ok') return rep.data;
+        } catch (_) {}
+      }
+
+      // 2. Thử qua HTTP LAN WebServer (127.0.0.1:5055)
+      try {
+        const res = await fetch('http://127.0.0.1:5055/api/apm/' + route, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (res.ok) return await res.json();
+      } catch (_) {}
+
+      return { ok: true };
+    }
+  };
 
   // ---------- Áp dụng Theme, Accent & Giao diện ----------
   function applyTheme() {
