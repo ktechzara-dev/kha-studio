@@ -637,7 +637,6 @@
       }
     }
   });
-  }
 
   function badge(status) {
     const map = {
