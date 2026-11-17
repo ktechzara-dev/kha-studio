@@ -14,11 +14,67 @@ internal static class Bootstrap
 
         bool isMcp = false;
         bool isIpc = false;
+        string? dumpDir = null;
 
-        foreach (var arg in args)
+        for (int i = 0; i < args.Length; i++)
         {
+            var arg = args[i];
             if (arg.Equals("--mcp", StringComparison.OrdinalIgnoreCase)) isMcp = true;
             if (arg.Equals("--ipc", StringComparison.OrdinalIgnoreCase)) isIpc = true;
+            if (arg.Equals("--dump", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+            {
+                dumpDir = args[i + 1];
+            }
+        }
+
+        if (!string.IsNullOrEmpty(dumpDir))
+        {
+            Directory.CreateDirectory(dumpDir);
+            var instList = await service.ListInstancesAsync();
+            if (instList.Count == 0)
+            {
+                Console.WriteLine("No TIA Portal instances found.");
+                return 1;
+            }
+            var target = instList[0];
+            Console.WriteLine($"Connecting to PID {target.ProcessId} ({target.MainWindowTitle})...");
+            var conn = await service.ConnectAsync(target.ProcessId, null);
+            if (!conn.Success)
+            {
+                Console.WriteLine($"Connect failed: {conn.Error}");
+                return 1;
+            }
+            Console.WriteLine("Connected! Listing devices...");
+            var devices = await service.ListDevicesAsync();
+            File.WriteAllText(Path.Combine(dumpDir, "devices.json"), JsonSerializer.Serialize(devices, new JsonSerializerOptions { WriteIndented = true }));
+
+            foreach (var dev in devices)
+            {
+                Console.WriteLine($"Device: {dev.Name} ({dev.Category})");
+                var tagTables = await service.ListTagTablesAsync(dev.Name);
+                File.WriteAllText(Path.Combine(dumpDir, $"{dev.Name}_tags.json"), JsonSerializer.Serialize(tagTables, new JsonSerializerOptions { WriteIndented = true }));
+
+                var blocks = await service.ListBlocksAsync(dev.Name);
+                File.WriteAllText(Path.Combine(dumpDir, $"{dev.Name}_blocks.json"), JsonSerializer.Serialize(blocks, new JsonSerializerOptions { WriteIndented = true }));
+
+                var blocksXmlDir = Path.Combine(dumpDir, $"{dev.Name}_blocks_xml");
+                Directory.CreateDirectory(blocksXmlDir);
+                foreach (var b in blocks)
+                {
+                    try
+                    {
+                        var outXml = Path.Combine(blocksXmlDir, $"{b.Name}.xml");
+                        var exp = await service.ExportBlockXmlAsync(dev.Name, b.Name, outXml);
+                        Console.WriteLine($"  Block {b.Name} ({b.BlockType}): {(exp.Success ? "Exported" : exp.Error)}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"  Block {b.Name} failed: {ex.Message}");
+                    }
+                }
+            }
+            Console.WriteLine("Dump complete!");
+            return 0;
         }
 
         if (isMcp)
@@ -132,6 +188,7 @@ internal static class Bootstrap
                     "tia.tagTables" => await service.ListTagTablesAsync(device),
                     "tia.createTag" => await service.CreateOrUpdateTagAsync(device, table, name ?? "", dataType ?? "Bool", address ?? "", comment),
                     "tia.blocks" => await service.ListBlocksAsync(device),
+                    "tia.deleteBlock" => await service.DeleteBlockAsync(device, blockName ?? name ?? ""),
                     "tia.exportBlock" => await service.ExportBlockXmlAsync(device, blockName ?? name ?? "", string.IsNullOrWhiteSpace(target) ? (path ?? "") : target),
                     "tia.importBlock" => await service.ImportBlockXmlAsync(device, (string.IsNullOrWhiteSpace(path) ? target : path) ?? "", group),
                     "tia.compile" => await service.CompileDeviceAsync(device),

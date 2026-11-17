@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 
@@ -19,8 +20,38 @@ public static class OpennessResolver
     {
         if (_isRegistered) return;
 
-        // Quét các phiên bản TIA Portal phổ biến (ưu tiên phiên bản cao nhất trước)
-        var versions = new[] { "V21", "V20", "V19", "V18", "V17", "V16", "V15.1", "V15" };
+        // Tự động kiểm tra xem có phiên bản TIA Portal nào đang chạy để ưu tiên kết nối trước
+        string? activeRunningVersion = null;
+        try
+        {
+            var processes = Process.GetProcessesByName("Siemens.Automation.Portal");
+            foreach (var proc in processes)
+            {
+                try
+                {
+                    var mainModulePath = proc.MainModule?.FileName;
+                    if (!string.IsNullOrEmpty(mainModulePath))
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(mainModulePath, @"Portal\s+(V[0-9]+(\.[0-9]+)?)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (match.Success)
+                        {
+                            activeRunningVersion = match.Groups[1].Value.ToUpperInvariant();
+                            break;
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+        catch { }
+
+        // Quét các phiên bản TIA Portal phổ biến (ưu tiên phiên bản đang chạy hoặc cao nhất)
+        var versions = new List<string> { "V21", "V20", "V19", "V18", "V17", "V16", "V15.1", "V15" };
+        if (!string.IsNullOrEmpty(activeRunningVersion) && versions.Contains(activeRunningVersion))
+        {
+            versions.Remove(activeRunningVersion);
+            versions.Insert(0, activeRunningVersion);
+        }
         var basePath = @"C:\Program Files\Siemens\Automation";
 
         foreach (var v in versions)

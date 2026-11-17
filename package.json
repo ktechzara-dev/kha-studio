@@ -1,12 +1,12 @@
 {
   "name": "pallet-studio",
   "productName": "K-Core Studio",
-  "version": "1.5.8",
+  "version": "1.5.9",
   "description": "K-Core Studio — Hệ thống Quản trị Kỹ thuật, Tự động hóa & Thị giác máy",
   "main": "src/main.js",
   "scripts": {
     "postinstall": "node scripts/copy-libs.js",
-    "test": "node tests/fs-safe.test.js && node tests/core.test.js && node tests/e2e-p1.test.js && node tests/publish.test.js && node tests/e2e-p2.test.js && node tests/admin.test.js && node tests/e2e-p3.test.js && node tests/auth.test.js",
+    "test": "node tests/fs-safe.test.js && node tests/core.test.js && node tests/e2e-p1.test.js && node tests/publish.test.js && node tests/e2e-p2.test.js && node tests/admin.test.js && node tests/e2e-p3.test.js && node tests/auth.test.js && node tests/project-permissions.test.js",
     "start": "electron .",
     "optiflow": "electron optiflow-vision/frontend/electron/main.cjs",
     "optiflow:build": "vite build --config optiflow-vision/frontend/vite.config.ts",

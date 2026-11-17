@@ -64,12 +64,14 @@ public sealed class TiaCompileResult
     public int WarningCount { get; set; }
     public string State { get; set; } = "";
     public string Message { get; set; } = "";
+    public List<string> Details { get; set; } = new List<string>();
 }
 
 public sealed class TiaActionResult
 {
     public bool Success { get; set; }
     public string Message { get; set; } = "";
+    public List<string> Details { get; set; } = new List<string>();
     public object? Data { get; set; }
     public string? Error { get; set; }
 

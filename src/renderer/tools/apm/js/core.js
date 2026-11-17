@@ -58,6 +58,10 @@
       ct: [],
       documents: [],
       reports: [],
+      allowedUsers: Array.isArray(input.allowedUsers) && input.allowedUsers.length
+        ? input.allowedUsers.map(x => String(x).trim()).filter(Boolean)
+        : (input.allowedUsers ? [String(input.allowedUsers).trim()] : ['all']),
+      createdBy: text(input.createdBy, 100) || '',
       createdAt: text(input.createdAt, 40) || now,
       updatedAt: text(input.updatedAt, 40) || now,
       demo: Boolean(input.demo),
@@ -393,6 +397,8 @@ ${sections.map(([title, rows]) => `<section><h2>${escape(title)}</h2><div class=
       devices: first(c.devices, c.Devices, r.devices),
       documents: first(c.documents, r.documents),
       reports: first(c.reports, r.reports),
+      allowedUsers: first(c.allowedUsers, r.allowedUsers, ['all']),
+      createdBy: first(c.createdBy, r.createdBy, ''),
       stages: normalizedStages,
       sourceVersion: first(r.masterVersion, r.sourceVersion, r.master?.version, '3.x')
     })];

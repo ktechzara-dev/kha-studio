@@ -983,6 +983,23 @@ public partial class MainWindow : Window
                         }
                         break;
                     }
+                case "apm.api":
+                    {
+                        var root = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var reqId = root.TryGetProperty("id", out var idElem) ? idElem.GetString() : null;
+                        var route = root.TryGetProperty("route", out var rElem) ? rElem.GetString() ?? "" : "";
+                        var bodyElem = root.TryGetProperty("body", out var bElem) ? bElem : root;
+                        try
+                        {
+                            var res = await ApmBridgeHandler.HandleApmApiAsync(route, bodyElem);
+                            Send(new { type = "apm.api.reply", id = reqId, status = "ok", data = res });
+                        }
+                        catch (Exception ex)
+                        {
+                            Send(new { type = "apm.api.reply", id = reqId, status = "error", error = ex.Message });
+                        }
+                        break;
+                    }
             }
         }
         catch (Exception ex)

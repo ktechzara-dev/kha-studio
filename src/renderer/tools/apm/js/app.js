@@ -13,8 +13,93 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch]));
 
-  const apmBridge = window.apm || (window.parent && window.parent.apm);
-  const desktop = Boolean(apmBridge && apmBridge.api);
+  function handleClientApmFallback(route, body = {}) {
+    if (route === 'admin:get-config') {
+      let cfg = { enabled: true, adminRoot: 'KhaStudio\\apm_shared', staleDays: 7, autoSync: true };
+      try {
+        const saved = localStorage.getItem('apm_admin_config');
+        if (saved) cfg = { ...cfg, ...JSON.parse(saved) };
+      } catch (_) {}
+      return cfg;
+    }
+    if (route === 'admin:set-config') {
+      const cfg = body.config || body;
+      try { localStorage.setItem('apm_admin_config', JSON.stringify(cfg)); } catch (_) {}
+      return cfg;
+    }
+    if (route === 'admin:scan') {
+      return { ok: true, projects: [], publishers: [], totalCount: 0 };
+    }
+    if (route === 'admin:pick-root') {
+      return { cancelled: true };
+    }
+    if (route === 'publish:get-config') {
+      let cfg = { publisherName: 'Sếp Kha', publishFolder: '', maxHistory: 30, includeHtml: true, staleDays: 7, setupCompleted: true };
+      try {
+        const saved = localStorage.getItem('apm_publish_config');
+        if (saved) cfg = { ...cfg, ...JSON.parse(saved) };
+      } catch (_) {}
+      return cfg;
+    }
+    if (route === 'publish:set-config') {
+      const cfg = body.config || body;
+      try { localStorage.setItem('apm_publish_config', JSON.stringify(cfg)); } catch (_) {}
+      return cfg;
+    }
+    if (route === 'publish:pick-folder') {
+      return { cancelled: true };
+    }
+    if (route === 'publish:detect-drive') {
+      return { found: false, bestRoot: null, roots: [] };
+    }
+    if (route === 'publish:push') {
+      return { ok: true, snapshotId: 'snap_' + Date.now(), publishedAt: new Date().toISOString(), hash: 'fallback' };
+    }
+    if (route === 'publish:status') {
+      return { lastPublishedAt: null, dirty: false, isStale: false };
+    }
+    if (route === 'startup') {
+      return { ok: true, workspace: { projects: {}, nativeRoots: {} }, initialProject: null };
+    }
+    if (route === 'save-workspace' || route === 'save-project' || route === 'ui-ready' || route === 'close-ready') {
+      return { ok: true };
+    }
+    return { ok: true };
+  }
+
+  // Cầu nối hệ thống APM Bridge (Electron / Kha Studio WPF WebView2 / Universal)
+  let apmBridge = window.apm || (window.parent && window.parent.apm);
+  if (!apmBridge || typeof apmBridge.api !== 'function') {
+    apmBridge = {
+      api: async function (route, body = {}) {
+        try {
+          const res = await requestNative('apm.api', { route, body }, 25000);
+          if (res && res.status === 'ok') {
+            return res.data;
+          }
+          if (res && res.error) {
+            throw new Error(res.error);
+          }
+        } catch (err) {
+          console.warn('[APM Bridge] Native IPC thất bại cho ' + route + ':', err.message);
+        }
+        return handleClientApmFallback(route, body);
+      },
+      onEvent: function (channel, cb) {
+        const handler = e => {
+          if (e.data && (e.data.channel === channel || e.data.type === 'apm:event:' + channel)) {
+            cb(e.data.data);
+          }
+        };
+        window.addEventListener('message', handler);
+        return () => window.removeEventListener('message', handler);
+      }
+    };
+    try { window.apm = apmBridge; } catch (_) {}
+    try { if (window.parent && !window.parent.apm) window.parent.apm = apmBridge; } catch (_) {}
+  }
+
+  const desktop = true;
   const nativeShell = desktop;
 
   const STORE = 'automation-project-master-v4';
@@ -131,8 +216,121 @@
     storageFailed = true;
   }
 
+  let cachedSystemUsers = null;
+
+  function getCurrentUser() {
+    try {
+      if (window.parent && window.parent.Auth && typeof window.parent.Auth.getCurrentUser === 'function') {
+        const u = window.parent.Auth.getCurrentUser();
+        if (u) return u;
+      }
+    } catch (_) {}
+    try {
+      const raw = sessionStorage.getItem('ks_session') || localStorage.getItem('ks_session');
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
+    return null;
+  }
+
+  function isCurrentUserAdmin() {
+    const u = getCurrentUser();
+    if (!u) return true;
+    return u.role === 'admin' || (u.username && u.username.toLowerCase() === 'kha');
+  }
+
+  function canUserAccessProject(p, user = null) {
+    if (!p) return false;
+    const u = user || getCurrentUser();
+    if (!u || u.role === 'admin' || (u.username && u.username.toLowerCase() === 'kha')) {
+      return true;
+    }
+    const myUname = (u.username || '').toLowerCase().trim();
+    const myFullName = (u.fullName || u.name || '').toLowerCase().trim();
+
+    if (p.createdBy && p.createdBy.toLowerCase().trim() === myUname) return true;
+    if (p.author) {
+      const a = p.author.toLowerCase().trim();
+      if (a === myUname || (myFullName && a === myFullName)) return true;
+    }
+
+    const allowed = Array.isArray(p.allowedUsers) && p.allowedUsers.length ? p.allowedUsers : ['all'];
+    if (allowed.includes('all') || allowed.includes('*')) {
+      return true;
+    }
+
+    return allowed.some(item => {
+      const s = String(item).toLowerCase().trim();
+      return s === myUname || (u.id && s === String(u.id).toLowerCase().trim());
+    });
+  }
+
+  function getVisibleProjects() {
+    const u = getCurrentUser();
+    return state.projects.filter(p => canUserAccessProject(p, u));
+  }
+
+  function getSystemUsersSync() {
+    if (cachedSystemUsers && cachedSystemUsers.length) return cachedSystemUsers;
+    try {
+      if (window.parent && window.parent.Auth && typeof window.parent.Auth.getUsers === 'function') {
+        const list = window.parent.Auth.getUsers();
+        if (Array.isArray(list) && list.length) {
+          cachedSystemUsers = list;
+          return list;
+        }
+      }
+    } catch (_) {}
+    try {
+      const raw = localStorage.getItem('ks_users');
+      if (raw) {
+        const list = JSON.parse(raw);
+        if (Array.isArray(list) && list.length) {
+          cachedSystemUsers = list;
+          return list;
+        }
+      }
+    } catch (_) {}
+    return [
+      { username: 'kha', name: 'Sếp Kha', role: 'admin', department: 'Ban Giám Đốc' },
+      { username: 'dieu', name: 'Diệu', role: 'engineer', department: 'PLC' },
+      { username: 'kiet.dt', name: 'Đỗ Tuấn Kiệt', role: 'engineer', department: 'Robot' }
+    ];
+  }
+
+  async function getSystemUsers() {
+    const syncUsers = getSystemUsersSync();
+    if (syncUsers && syncUsers.length > 3) return syncUsers;
+    try {
+      const res = await api('users:list');
+      if (res && res.ok && Array.isArray(res.users) && res.users.length) {
+        cachedSystemUsers = res.users;
+        return res.users;
+      }
+    } catch (_) {}
+    return syncUsers;
+  }
+
+  function formatAllowedUsers(allowedUsers) {
+    const allowed = Array.isArray(allowedUsers) && allowedUsers.length ? allowedUsers : ['all'];
+    if (allowed.includes('all') || allowed.includes('*')) {
+      return '🟢 Tất cả nhân viên (Công khai)';
+    }
+    const names = allowed.map(u => {
+      if (u === 'kha') return 'Sếp Kha';
+      if (u === 'dieu') return 'Diệu';
+      if (u === 'kiet.dt') return 'Đỗ Tuấn Kiệt';
+      return u;
+    });
+    return `🔒 Giới hạn (${names.join(', ')})`;
+  }
+
   function project() {
-    return state.projects.find(p => p.id === state.selected) || null;
+    const p = state.projects.find(p => p.id === state.selected) || null;
+    if (p && !canUserAccessProject(p)) {
+      state.selected = null;
+      return null;
+    }
+    return p;
   }
 
   // Native bridge helpers (for Kha Studio WPF WebView2 & Electron)
@@ -597,7 +795,8 @@
 
   function updateHeader() {
     E('current-view').textContent = views.find(x => x[0] === view)?.[1] || 'Tổng quan';
-    E('project-picker').innerHTML = '<option value="">Chọn dự án</option>' + state.projects.map(p => option(p.id, p.code + ' · ' + p.name + (p.demo ? ' (mẫu)' : ''), state.selected)).join('');
+    const visible = getVisibleProjects();
+    E('project-picker').innerHTML = '<option value="">Chọn dự án</option>' + visible.map(p => option(p.id, p.code + ' · ' + p.name + (p.demo ? ' (mẫu)' : ''), state.selected)).join('');
     const p = project(), conn = p && connections.get(p.id);
     E('save-status').innerHTML = icon(storageFailed || workspaceFailed || conn?.conflict ? 'issue' : 'check') +
       (workspaceFailed ? 'Chưa lưu danh sách dự án' :
@@ -643,9 +842,10 @@
         return;
       }
       await loadAdminConfig();
-      if (adminConfig?.adminRoot) {
-        await scanAdminProjects();
-      }
+      await scanAdminProjects();
+      startAdminAutoScan();
+    } else {
+      stopAdminAutoScan();
     }
     view = next;
     filter = '';
@@ -686,13 +886,14 @@
     return pageTitle(p.name, p.code + ' · ' + (p.customer || 'Chưa khai báo khách hàng'), publishBtn + buttons, p.demo ? 'DỰ ÁN MINH HỌA' : 'DỰ ÁN ĐANG CHỌN')
       + (p.demo ? notice('Dữ liệu minh họa để thử ứng dụng. Tạo hoặc mở dự án thực tế trước khi ghi hồ sơ công việc.') : '')
       + `<div class="metrics">${metric('Tiến độ giai đoạn', prog.percent + '%', `${prog.done}/${prog.total} hoàn tất · ${prog.na} không áp dụng`, 'roadmap')}${metric('Bộ môn trong dự án', p.modules.length, `${plan.directories.length} thư mục theo cấu hình`, 'folder')}${metric('Thiết bị đã khai báo', p.devices.length, `${p.devices.filter(d => d.ip).length} thiết bị có địa chỉ IP`, 'device')}${metric('Hồ sơ & Report', ((p.documents?.length || 0) + (p.reports?.length || 0)), `${p.documents?.length || 0} tài liệu · ${p.reports?.length || 0} báo cáo`, 'document')}${metric('Issue đang mở', open.length, `${open.filter(i => i.severity === 'High').length} mức ưu tiên cao`, 'issue')}</div>`
-      + `<div class="two-cols"><section class="panel"><div class="panel-head"><h2>Lộ trình thực hiện</h2>${btn('Xem chi tiết', 'go-roadmap', null, 'small')}</div><div class="panel-body"><div class="progress-info"><span>${prog.done} giai đoạn đã xác nhận hoàn tất</span><strong>${prog.percent}%</strong></div><div class="progress-track"><div class="progress-fill" style="width:${prog.percent}%"></div></div><div class="stage-grid">${stagesTiles(p)}</div><p class="count-label">Thiết kế, mô phỏng, mua sắm và lập trình có thể thực hiện song song. Tiến độ tính từ xác nhận checklist.</p></div></section><div><section class="panel"><div class="panel-head"><h2>Thông tin dự án</h2>${btn('Sửa', 'edit-project', 'edit', 'small')}</div><div class="panel-body"><div class="detail-list">${[['Loại dự án', D.presets.presets.find(x => x.id === p.preset)?.label], ['Phạm vi', labels.join(' · ')], ['Quản lý dự án', p.manager || 'Chưa khai báo'], ['Kỹ sư PLC', p.plcEngineer || 'Chưa khai báo'], ['Kỹ sư Robot', p.robotEngineer || 'Chưa khai báo'], ['Revision', p.revision], ['Nơi lưu', conn?.path || 'Hồ sơ trong ứng dụng']].map(([l, v]) => `<div class="detail-row"><small>${esc(l)}</small><strong>${esc(v)}</strong></div>`).join('')}</div><div class="btnrow" style="margin-top:22px">${btn('Tài liệu & Report', 'go-docs-reports', 'document', 'small primary')}${btn(conn ? 'Mở file thông tin' : 'Tải file thông tin', 'project-information', 'file', 'small')}${btn('Cập nhật lên Drive', 'publish-now', 'upload', 'small')}${btn('Xuất hồ sơ JSON', 'export-project', 'download', 'small')}${btn('Xuất gói dự án V4', 'export-zip', 'folder', 'small')}</div></div></section><section class="panel" style="margin-top:22px"><div class="panel-head"><h2>Công việc đang vướng</h2>${btn('Issue', 'go-issues', null, 'small')}</div><div class="panel-body">${open.slice(0, 4).map(i => `<div class="issue-list-item"><div><strong>${esc(i.title)}</strong><small>${esc(i.owner || 'Chưa giao người phụ trách')}${i.due ? ' · ' + esc(i.due) : ''}</small></div>${badge(i.status)}</div>`).join('') || '<div class="empty" style="padding:8px">Chưa có Issue đang mở.</div>'}</div></section></div></div>`
+      + `<div class="two-cols"><section class="panel"><div class="panel-head"><h2>Lộ trình thực hiện</h2>${btn('Xem chi tiết', 'go-roadmap', null, 'small')}</div><div class="panel-body"><div class="progress-info"><span>${prog.done} giai đoạn đã xác nhận hoàn tất</span><strong>${prog.percent}%</strong></div><div class="progress-track"><div class="progress-fill" style="width:${prog.percent}%"></div></div><div class="stage-grid">${stagesTiles(p)}</div><p class="count-label">Thiết kế, mô phỏng, mua sắm và lập trình có thể thực hiện song song. Tiến độ tính từ xác nhận checklist.</p></div></section><div><section class="panel"><div class="panel-head"><h2>Thông tin dự án</h2><div class="btnrow">${isCurrentUserAdmin() ? btn('Phân quyền xem', 'manage-permissions', 'user', 'small') : ''}${btn('Sửa', 'edit-project', 'edit', 'small')}</div></div><div class="panel-body"><div class="detail-list">${[['Loại dự án', D.presets.presets.find(x => x.id === p.preset)?.label], ['Phạm vi', labels.join(' · ')], ['Quản lý dự án', p.manager || 'Chưa khai báo'], ['Kỹ sư PLC', p.plcEngineer || 'Chưa khai báo'], ['Kỹ sư Robot', p.robotEngineer || 'Chưa khai báo'], ['Quyền xem', formatAllowedUsers(p.allowedUsers)], ['Revision', p.revision], ['Nơi lưu', conn?.path || 'Hồ sơ trong ứng dụng']].map(([l, v]) => `<div class="detail-row"><small>${esc(l)}</small><strong>${esc(v)}</strong></div>`).join('')}</div><div class="btnrow" style="margin-top:22px">${btn('Tài liệu & Report', 'go-docs-reports', 'document', 'small primary')}${btn(conn ? 'Mở file thông tin' : 'Tải file thông tin', 'project-information', 'file', 'small')}${btn('Cập nhật lên Drive', 'publish-now', 'upload', 'small')}${btn('Xuất hồ sơ JSON', 'export-project', 'download', 'small')}${btn('Xuất gói dự án V4', 'export-zip', 'folder', 'small')}</div></div></section><section class="panel" style="margin-top:22px"><div class="panel-head"><h2>Công việc đang vướng</h2>${btn('Issue', 'go-issues', null, 'small')}</div><div class="panel-body">${open.slice(0, 4).map(i => `<div class="issue-list-item"><div><strong>${esc(i.title)}</strong><small>${esc(i.owner || 'Chưa giao người phụ trách')}${i.due ? ' · ' + esc(i.due) : ''}</small></div>${badge(i.status)}</div>`).join('') || '<div class="empty" style="padding:8px">Chưa có Issue đang mở.</div>'}</div></section></div></div>`
       + projectsSection();
   }
 
   function projectsSection() {
-    if (!state.projects.length) return '';
-    return `<section class="section-gap"><div class="result-header"><h2>Danh sách dự án</h2><span class="count-label">${state.projects.length} dự án trên máy này</span></div><div class="project-cards">${state.projects.map(p => {
+    const visible = getVisibleProjects();
+    if (!visible.length) return '';
+    return `<section class="section-gap"><div class="result-header"><h2>Danh sách dự án</h2><span class="count-label">${visible.length} dự án trên máy này</span></div><div class="project-cards">${visible.map(p => {
       const prog = C.progress(D, p);
       return `<button class="project-card" data-action="select-project" data-id="${esc(p.id)}"><div class="code">${esc(p.code)}${p.demo ? ' / MINH HỌA' : ''}</div><h3>${esc(p.name)}</h3><div class="subtext" style="margin:0">${esc(p.customer || D.presets.presets.find(x => x.id === p.preset)?.label)}</div><div class="progress-track"><div class="progress-fill" style="width:${prog.percent}%"></div></div><div class="card-bottom"><span>${prog.done}/${prog.total} giai đoạn</span><span>${p.devices.length} thiết bị</span></div></button>`;
     }).join('')}</div></section>`;
@@ -703,7 +904,50 @@
     const names = ['Thông tin', 'Phạm vi & bộ môn', 'Hãng & thiết bị', 'Kiểm tra & tạo'];
     let body = '';
     if (wizardStep === 0) {
-      body = `<div class="form-section"><h3>Thông tin hồ sơ</h3><div class="form-grid">${inputField('Mã dự án *', 'code', wizard.code, 'maxlength="40" placeholder="VD: ETEK.2026-015_01"', 'Mã ổn định; chấp nhận chữ, số và các dấu - _ , .')}${inputField('Tên dự án *', 'name', wizard.name, 'maxlength="100" placeholder="VD: Casepacker Line Glass"')}${inputField('Khách hàng / nhà máy', 'customer', wizard.customer, 'maxlength="200"')}${inputField('Revision', 'revision', wizard.revision, 'maxlength="30"')}${inputField('Ngày bắt đầu', 'startDate', wizard.startDate, 'type="date"')}${inputField('Ngày dự kiến hoàn tất', 'dueDate', wizard.dueDate, 'type="date"')}</div></div><div class="form-section"><h3>Nhân sự kỹ thuật</h3><div class="form-grid">${inputField('Quản lý dự án', 'manager', wizard.manager, 'maxlength="200"')}${inputField('Người lập hồ sơ', 'author', wizard.author, 'maxlength="200"')}${inputField('Kỹ sư lập trình PLC', 'plcEngineer', wizard.plcEngineer, 'maxlength="200"')}${inputField('Kỹ sư lập trình Robot', 'robotEngineer', wizard.robotEngineer, 'maxlength="200"')}</div></div>`;
+      const users = getSystemUsersSync().filter(u => u.username && u.username.toLowerCase() !== 'kha');
+      const curAllowed = Array.isArray(wizard.allowedUsers) && wizard.allowedUsers.length ? wizard.allowedUsers : ['all'];
+      const isAll = curAllowed.includes('all') || curAllowed.includes('*');
+
+      const userCheckboxes = users.map(u => {
+        const checked = isAll || curAllowed.some(a => a.toLowerCase() === u.username.toLowerCase() || (u.id && a === u.id));
+        return `
+          <label class="select-option" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer">
+            <input type="checkbox" name="allowed_users" value="${esc(u.username)}" ${checked ? 'checked' : ''} style="width:16px;height:16px">
+            <span><strong>${esc(u.name || u.fullName || u.username)}</strong> <small style="color:var(--muted)">(@${esc(u.username)} · ${esc(u.department || 'Kỹ sư')})</small></span>
+          </label>
+        `;
+      }).join('');
+
+      const permHtml = `
+        <div class="form-section">
+          <h3>Quyền xem dự án trên máy nhân viên</h3>
+          <p class="count-label" style="margin-bottom:12px">Chọn những nhân viên được phép xem và đồng bộ dự án này trên máy tính của họ (Admin luôn có toàn quyền xem).</p>
+          <div class="option-grid" style="grid-template-columns:1fr 1fr;margin-bottom:12px">
+            <label class="select-option" style="padding:10px 14px;cursor:pointer">
+              <input type="radio" name="perm_scope_type" value="all" ${isAll ? 'checked' : ''}>
+              <span><strong>🟢 Tất cả nhân viên</strong><small style="display:block;color:var(--muted)">Toàn bộ nhân viên đều xem được</small></span>
+            </label>
+            <label class="select-option" style="padding:10px 14px;cursor:pointer">
+              <input type="radio" name="perm_scope_type" value="custom" ${!isAll ? 'checked' : ''}>
+              <span><strong>🔒 Chỉ định nhân viên</strong><small style="display:block;color:var(--muted)">Chỉ những nhân viên được chọn</small></span>
+            </label>
+          </div>
+          <div id="wizard-perm-users" style="display:${isAll ? 'none' : 'block'};margin-top:10px;border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg-subtle)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:13px;font-weight:600">Danh sách nhân viên được xem:</span>
+              <div class="btnrow" style="gap:6px">
+                <button type="button" class="btn small" data-action="perm-select-all" style="padding:2px 8px;font-size:11px">Chọn tất cả</button>
+                <button type="button" class="btn small" data-action="perm-unselect-all" style="padding:2px 8px;font-size:11px">Bỏ chọn hết</button>
+              </div>
+            </div>
+            <div class="module-grid" style="grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:8px">
+              ${userCheckboxes}
+            </div>
+          </div>
+        </div>
+      `;
+
+      body = `<div class="form-section"><h3>Thông tin hồ sơ</h3><div class="form-grid">${inputField('Mã dự án *', 'code', wizard.code, 'maxlength="40" placeholder="VD: ETEK.2026-015_01"', 'Mã ổn định; chấp nhận chữ, số và các dấu - _ , .')}${inputField('Tên dự án *', 'name', wizard.name, 'maxlength="100" placeholder="VD: Casepacker Line Glass"')}${inputField('Khách hàng / nhà máy', 'customer', wizard.customer, 'maxlength="200"')}${inputField('Revision', 'revision', wizard.revision, 'maxlength="30"')}${inputField('Ngày bắt đầu', 'startDate', wizard.startDate, 'type="date"')}${inputField('Ngày dự kiến hoàn tất', 'dueDate', wizard.dueDate, 'type="date"')}</div></div><div class="form-section"><h3>Nhân sự kỹ thuật</h3><div class="form-grid">${inputField('Quản lý dự án', 'manager', wizard.manager, 'maxlength="200"')}${inputField('Người lập hồ sơ', 'author', wizard.author, 'maxlength="200"')}${inputField('Kỹ sư lập trình PLC', 'plcEngineer', wizard.plcEngineer, 'maxlength="200"')}${inputField('Kỹ sư lập trình Robot', 'robotEngineer', wizard.robotEngineer, 'maxlength="200"')}</div></div>` + permHtml;
     }
     if (wizardStep === 1) {
       body = `<div class="form-section"><h3>Loại dự án</h3><div class="option-grid">${D.presets.presets.map(p => `<label class="select-option"><input type="radio" name="preset" value="${p.id}" ${wizard.preset === p.id ? 'checked' : ''}><span>${esc(p.label)}</span></label>`).join('')}</div></div><div class="form-section"><h3>Phạm vi thực hiện</h3><div class="option-grid scope-grid">${D.scopes.scopes.map(s => `<label class="select-option"><input type="checkbox" name="scope" value="${s.id}" ${wizard.scopes.includes(s.id) ? 'checked' : ''}><span>${esc(s.label)}</span></label>`).join('')}</div><p class="count-label">Thay đổi loại dự án hoặc phạm vi sẽ áp dụng lại bộ môn gợi ý.</p></div><div class="form-section"><div class="result-header"><h3>Bộ môn thực tế · ${wizard.modules.length}/26</h3>${btn('Áp dụng gợi ý', 'suggest-modules', null, 'small')}</div><div class="module-grid">${D.catalog.modules.map(m => `<label class="select-option"><input type="checkbox" name="module" value="${m.id}" ${wizard.modules.includes(m.id) ? 'checked' : ''}><span>${esc(m.name)}<small class="mono">${esc(m.folder)}</small></span></label>`).join('')}</div></div>`;
@@ -723,7 +967,7 @@
       : btn('Tiếp tục', 'wizard-next', null, 'primary');
 
     return pageTitle('Tạo dự án mới', 'Cấu hình hồ sơ trước khi sinh thư mục và biểu mẫu.', btn('Nhập cấu hình JSON', 'import-config', 'upload'))
-      + `<div class="steps">${names.map((n, i) => `<div class="step ${i === wizardStep ? 'active' : i < wizardStep ? 'done' : ''}"><b>${i + 1}</b><span>${n}</span></div>`).join('')}</div><div class="wizard"><section class="panel"><div class="panel-body"><form id="wizard-form" autocomplete="off">${body}</form><div id="wizard-error" class="form-error" role="alert"></div><div class="wizard-footer"><div>${wizardStep ? btn('Quay lại', 'wizard-back', null) : btn('Hủy tạo mới', 'cancel-wizard', null)}</div><div class="btnrow">${buttons}</div></div></div></section><aside class="panel wizard-summary"><div class="panel-body"><h3>Cấu hình hiện tại</h3><div class="detail-list"><div class="detail-row"><small>Mã dự án</small><strong id="summary-code">${esc(wizard.code || 'Chưa nhập')}</strong></div><div class="detail-row"><small>Tên dự án</small><strong id="summary-name">${esc(wizard.name || 'Chưa nhập')}</strong></div><div class="detail-row"><small>Loại dự án</small><strong>${esc(D.presets.presets.find(p => p.id === wizard.preset)?.label)}</strong></div><div class="detail-row"><small>Bộ môn</small><strong>${wizard.modules.length} bộ môn</strong></div><div class="detail-row"><small>Thiết bị</small><strong>${wizard.devices.length} thiết bị</strong></div></div><div class="connection">Cấu trúc theo Catalog V${esc(D.catalog.version)}.<br>Biểu mẫu V4 được dựng từ danh mục Master V3.</div></div></aside></div>`;
+      + `<div class="steps">${names.map((n, i) => `<div class="step ${i === wizardStep ? 'active' : i < wizardStep ? 'done' : ''}"><b>${i + 1}</b><span>${n}</span></div>`).join('')}</div><div class="wizard"><section class="panel"><div class="panel-body"><form id="wizard-form" autocomplete="off">${body}</form><div id="wizard-error" class="form-error" role="alert"></div><div class="wizard-footer"><div>${wizardStep ? btn('Quay lại', 'wizard-back', null) : btn('Hủy tạo mới', 'cancel-wizard', null)}</div><div class="btnrow">${buttons}</div></div></div></section><aside class="panel wizard-summary"><div class="panel-body"><h3>Cấu hình hiện tại</h3><div class="detail-list"><div class="detail-row"><small>Mã dự án</small><strong id="summary-code">${esc(wizard.code || 'Chưa nhập')}</strong></div><div class="detail-row"><small>Tên dự án</small><strong id="summary-name">${esc(wizard.name || 'Chưa nhập')}</strong></div><div class="detail-row"><small>Loại dự án</small><strong>${esc(D.presets.presets.find(p => p.id === wizard.preset)?.label)}</strong></div><div class="detail-row"><small>Bộ môn</small><strong>${wizard.modules.length} bộ môn</strong></div><div class="detail-row"><small>Thiết bị</small><strong>${wizard.devices.length} thiết bị</strong></div><div class="detail-row"><small>Quyền xem</small><strong>${esc(formatAllowedUsers(wizard.allowedUsers))}</strong></div></div><div class="connection">Cấu trúc theo Catalog V${esc(D.catalog.version)}.<br>Biểu mẫu V4 được dựng từ danh mục Master V3.</div></div></aside></div>`;
   }
 
   function renderRoadmap() {
@@ -1423,16 +1667,58 @@
     } catch (_) {}
   }
 
-  async function scanAdminProjects() {
+  let adminAutoScanTimer = null;
+  let adminAutoSyncEnabled = true;
+
+  function startAdminAutoScan() {
+    stopAdminAutoScan();
+    if (!adminAutoSyncEnabled) return;
+    adminAutoScanTimer = setInterval(async () => {
+      if (view === 'admin' && !adminSelectedProject) {
+        await scanAdminProjects(true);
+      }
+    }, 15000);
+  }
+
+  function stopAdminAutoScan() {
+    if (adminAutoScanTimer) {
+      clearInterval(adminAutoScanTimer);
+      adminAutoScanTimer = null;
+    }
+  }
+
+  async function scanAdminProjects(silent = false) {
     if (!desktop) return;
     try {
       const res = await api('admin:scan');
-      if (res.ok) {
-        adminProjects = res.projects || [];
-        adminPublishers = res.publishers || [];
+      if (res && res.ok) {
+        const prevProjectsMap = new Map((adminProjects || []).map(p => [p.projectCode, p.lastPublishedAt || '']));
+        const newProjects = res.projects || [];
+        const newPublishers = res.publishers || [];
+
+        // Phát hiện các dự án mới hoặc cập nhật từ các máy khác
+        const updatedList = [];
+        for (const np of newProjects) {
+          const prevPub = prevProjectsMap.get(np.projectCode);
+          if (!prevProjectsMap.has(np.projectCode)) {
+            updatedList.push(`${np.projectCode} (${np.projectName || 'Dự án'}) từ ${np.publisherName}`);
+          } else if (prevPub && np.lastPublishedAt && prevPub !== np.lastPublishedAt) {
+            updatedList.push(`${np.projectCode} (cập nhật mới từ ${np.publisherName})`);
+          }
+        }
+
+        adminProjects = newProjects;
+        adminPublishers = newPublishers;
+
+        if (updatedList.length > 0 && silent) {
+          toast(`⚡ [Tự động cập nhật] Đã cập nhật ${updatedList.length} dự án từ máy khác: ${updatedList.slice(0, 2).join(', ')}${updatedList.length > 2 ? '...' : ''}`);
+          render();
+        } else if (!silent) {
+          render();
+        }
       }
     } catch (e) {
-      toast('Lỗi khi quét thư mục Admin: ' + e.message, true);
+      if (!silent) toast('Lỗi khi quét thư mục Admin: ' + e.message, true);
     }
   }
 
@@ -1474,6 +1760,8 @@
           <span>${rootPath ? `Thư mục gốc: <code>${esc(rootPath)}</code>` : '<span style="color:#f87171">Chưa thiết lập thư mục gốc Admin</span>'}</span>
         </div>
         <div class="admin-banner-actions">
+          ${btn(adminAutoSyncEnabled ? '🟢 Tự động đồng bộ: BẬT (15s)' : '⚪ Tự động đồng bộ: TẮT', 'admin-toggle-autosync', 'clock', 'small')}
+          ${btn('Đồng bộ Cloud ngay', 'admin-cloud-sync', 'refresh', 'small')}
           ${btn('Quét lại', 'admin-rescan', 'refresh', 'small')}
           ${btn('Chọn thư mục…', 'admin-pick-root', 'folder', 'small')}
           ${btn('Chẩn đoán', 'admin-diagnose', 'check', 'small')}
@@ -1605,6 +1893,7 @@
                     </td>
                     <td>
                       <div class="btnrow" style="justify-content:flex-end">
+                        ${btn('Phân quyền', 'admin-perm-project', 'user', 'small', `data-id="${esc(p.id)}" data-code="${esc(p.projectCode)}"`)}
                         ${btn('Xem chi tiết', 'admin-select-project', 'eye', 'small', `data-id="${esc(p.id)}"`)}
                         ${(p.isStale || p.isCorrupt) ? btn('Nhắc nhở', 'admin-copy-reminder', 'copy', 'small', `data-id="${esc(p.id)}" title="Sao chép tin nhắn nhắc nhở nhân viên"`) : ''}
                       </div>
@@ -1642,6 +1931,8 @@
         </strong>
         <div class="btnrow">
           ${btn('← Trở về bảng tổng hợp', 'admin-back-list', null, 'small')}
+          ${btn('Phân quyền xem', 'admin-perm-project', 'user', 'small', `data-code="${esc(p.projectCode)}"`)}
+          ${btn('📥 Nhập / Đồng bộ vào dự án máy này', 'admin-import-project', 'download', 'small primary')}
         </div>
       </div>
     `;
@@ -2493,7 +2784,8 @@
       schemaVersion: 2, projectCode: p.code, projectName: p.name, customer: p.customer,
       projectManager: p.manager, author: p.author, plcEngineer: p.plcEngineer, robotEngineer: p.robotEngineer,
       revision: p.revision, startDate: p.startDate, dueDate: p.dueDate, preset: p.preset,
-      scopes: p.scopes, modules: p.modules, software: plan.software, devices: p.devices, destination: ''
+      scopes: p.scopes, modules: p.modules, software: plan.software, devices: p.devices, destination: '',
+      allowedUsers: p.allowedUsers || ['all'], createdBy: p.createdBy || ''
     };
     const info = {
       schemaVersion: 4, masterName: 'Automation Project Master', masterVersion: C.VERSION,
@@ -2504,6 +2796,7 @@
       informationFolder: C.INFO_DIRECTORY, informationFiles: C.informationFiles(D, p).map(f => f.path),
       createdAt: p.createdAt, preset: p.preset, scopes: p.scopes, modules: p.modules,
       software: plan.software, devices: p.devices, devicePaths: plan.devicePaths,
+      allowedUsers: p.allowedUsers || ['all'], createdBy: p.createdBy || '',
       templates: register, configuration: config, applicationState: '_AUTOMATION_APP.json'
     };
     const json = x => JSON.stringify(x, null, 2);
@@ -2544,6 +2837,11 @@
     state.selected = next.id;
     wizard = null;
     save(next, false);
+    api('publish:push', {
+      projectId: next.id,
+      project: next,
+      cleanCheck: false
+    }).catch(() => {});
     navigate('dashboard');
     return next;
   }
@@ -2846,6 +3144,83 @@
     modal('Trình hướng dẫn thiết lập cập nhật Google Drive', body, footerButtons, true);
   }
 
+  let permModalTargetProject = null;
+
+  async function openPermissionsModal(p = null) {
+    const target = p || project();
+    if (!target) {
+      toast('Chưa chọn dự án để phân quyền.', true);
+      return;
+    }
+    if (!isCurrentUserAdmin()) {
+      toast('Chỉ Quản trị viên (Sếp Kha) mới có quyền phân quyền xem dự án.', true);
+      return;
+    }
+
+    permModalTargetProject = target;
+    const users = await getSystemUsers();
+    const currentAllowed = Array.isArray(target.allowedUsers) && target.allowedUsers.length ? target.allowedUsers : ['all'];
+    const isAll = currentAllowed.includes('all') || currentAllowed.includes('*');
+
+    const userCheckboxes = users
+      .filter(u => u.username && u.username.toLowerCase() !== 'kha')
+      .map(u => {
+        const uName = (u.username || '').toLowerCase();
+        const checked = isAll || currentAllowed.some(a => String(a).toLowerCase() === uName || (u.id && String(a) === String(u.id)));
+        return `
+          <label class="select-option" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;margin-bottom:6px">
+            <input type="checkbox" name="allowed_users" value="${esc(u.username)}" ${checked ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer">
+            <div style="flex:1">
+              <strong>${esc(u.name || u.fullName || u.username)}</strong>
+              <small style="display:block;color:var(--muted)">@${esc(u.username)} · ${esc(u.department || (u.role === 'admin' ? 'Quản trị' : 'Kỹ sư'))}</small>
+            </div>
+          </label>
+        `;
+      }).join('');
+
+    const body = `
+      <form id="perm-form" autocomplete="off">
+        <div style="margin-bottom:14px;padding:10px 14px;background:var(--bg-subtle);border-radius:8px">
+          <strong>Dự án:</strong> <span class="badge blue">${esc(target.code)}</span> <b>${esc(target.name)}</b>
+        </div>
+        <p class="count-label" style="margin-bottom:16px">Chọn những nhân viên được phép xem và đồng bộ dự án này trên máy tính của họ. Quản trị viên (Sếp Kha) luôn có toàn quyền xem tất cả dự án.</p>
+
+        <div class="option-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+          <label class="select-option" style="padding:10px 14px;cursor:pointer">
+            <input type="radio" name="perm_scope_type" value="all" ${isAll ? 'checked' : ''}>
+            <div>
+              <strong>🟢 Tất cả nhân viên (Công khai)</strong>
+              <small style="display:block;color:var(--muted)">Mọi kỹ sư đều xem và đồng bộ được</small>
+            </div>
+          </label>
+
+          <label class="select-option" style="padding:10px 14px;cursor:pointer">
+            <input type="radio" name="perm_scope_type" value="custom" ${!isAll ? 'checked' : ''}>
+            <div>
+              <strong>🔒 Chỉ định nhân viên cụ thể</strong>
+              <small style="display:block;color:var(--muted)">Chỉ những người được tích chọn dưới đây</small>
+            </div>
+          </label>
+        </div>
+
+        <div id="perm-users-container" style="display:${isAll ? 'none' : 'block'};margin-top:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:600">Danh sách nhân viên được xem:</span>
+            <div class="btnrow" style="gap:6px">
+              <button type="button" class="btn small" data-action="perm-select-all" style="padding:2px 8px;font-size:11px">Chọn tất cả</button>
+              <button type="button" class="btn small" data-action="perm-unselect-all" style="padding:2px 8px;font-size:11px">Bỏ chọn hết</button>
+            </div>
+          </div>
+          <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px">
+            ${userCheckboxes}
+          </div>
+        </div>
+      </form>
+    `;
+
+    modal('🔐 Phân quyền xem dự án', body, btn('Hủy', 'close-modal') + btn('Lưu & Đồng bộ ngay', 'save-permissions', 'check', 'primary'));
+  }
+
   async function openShareHealthModal() {
     const p = project();
     const conn = connections.get(p?.id);
@@ -2941,7 +3316,14 @@
       else if (action === 'quick-preset') { wizard = C.makeProject(D, { preset: id }); wizardStep = 0; navigate('create'); }
       else if (action === 'open') await openNative();
       else if (action === 'demo') demoProject();
-      else if (action === 'select-project') { state.selected = id; save(null, false); navigate('dashboard'); const selP = project(); if (selP) autoSyncProjectFolder(selP); }
+      else if (action === 'select-project') {
+        const target = state.projects.find(x => x.id === id);
+        if (target && !canUserAccessProject(target)) {
+          toast('Bạn không có quyền truy cập dự án này. Vui lòng liên hệ Sếp Kha để được cấp quyền xem.', true);
+          return;
+        }
+        state.selected = id; save(null, false); navigate('dashboard'); const selP = project(); if (selP) autoSyncProjectFolder(selP);
+      }
       else if (action === 'stage') { selectedStage = id; navigate('roadmap'); }
       else if (action.startsWith('go-')) navigate(action.slice(3));
 
@@ -3119,6 +3501,45 @@
         render();
         toast('Quét hoàn tất. Tìm thấy ' + adminProjects.length + ' dự án.');
       }
+      else if (action === 'admin-cloud-sync') {
+        toast('Đang đồng bộ dự án từ Cloud Firebase và thư mục chia sẻ…');
+        await scanAdminProjects(false);
+        render();
+        toast('Đồng bộ hoàn tất! Tìm thấy ' + adminProjects.length + ' dự án.');
+      }
+      else if (action === 'admin-toggle-autosync') {
+        adminAutoSyncEnabled = !adminAutoSyncEnabled;
+        if (adminAutoSyncEnabled) {
+          startAdminAutoScan();
+          toast('✓ Đã bật tự động đồng bộ dự án mỗi 15 giây.');
+        } else {
+          stopAdminAutoScan();
+          toast('Đã tạm dừng tự động đồng bộ dự án.');
+        }
+        render();
+      }
+      else if (action === 'admin-import-project') {
+        if (!adminSelectedProject || !adminSelectedProject.project) {
+          toast('Không tìm thấy dữ liệu dự án để nạp.', true);
+          return;
+        }
+        const projData = adminSelectedProject.project;
+        const pCode = projData.code || adminSelectedProject.projectCode;
+        if (!pCode) {
+          toast('Dự án thiếu mã.', true);
+          return;
+        }
+        const targetId = projData.id || ('proj_' + pCode);
+        projData.id = targetId;
+        projData.updatedAt = new Date().toISOString();
+        projects.set(targetId, projData);
+        activeId = targetId;
+        save(projData, true);
+        updateProjectPicker();
+        adminSelectedProject = null;
+        await navigate('overview');
+        toast(`✓ Đã nạp thành công dự án [${pCode}] vào danh sách làm việc của máy này!`);
+      }
       else if (action === 'admin-pick-root') {
         const r = await api('admin:pick-root');
         if (!r.cancelled) {
@@ -3207,7 +3628,18 @@
       // Wizard actions
       else if (action === 'wizard-next') {
         if (wizardStep === 0) {
-          const v = formData('wizard-form');
+          const form = E('wizard-form');
+          const fd = new FormData(form);
+          const v = Object.fromEntries(fd.entries());
+          const scopeType = fd.get('perm_scope_type') || 'all';
+          if (scopeType === 'all') {
+            wizard.allowedUsers = ['all'];
+          } else {
+            const selected = fd.getAll('allowed_users').filter(Boolean);
+            wizard.allowedUsers = selected.length ? selected : ['all'];
+          }
+          const cur = getCurrentUser();
+          wizard.createdBy = cur?.username || 'kha';
           Object.assign(wizard, v);
           const errors = C.validateProject(D, wizard);
           if (errors.length) { E('wizard-error').textContent = errors.join(' '); return; }
@@ -3359,6 +3791,68 @@
       else if (action === 'export-issues') await download(C.csv([['ID', 'Title', 'Details / Actions', 'Priority', 'Owner', 'Due', 'Status'], ...p.issues.map(i => [i.id, i.title, i.description, i.severity, i.owner, i.due, i.status])]), p.code + '_Issue_Register.csv', 'text/csv;charset=utf-8');
       else if (action === 'export-ct') await download(C.csv([['Station / Robot', 'Model', 'Target (s)', 'Qty / Cycle', 'Unit', 'Measure 1 (s)', 'Measure 2 (s)', 'Measure 3 (s)', 'Measure 4 (s)', 'Measure 5 (s)', 'Average (s)', 'Min (s)', 'Max (s)', 'Cycles/min', 'Units/min', 'Units/hour', 'Delta (s)', 'Note'], ...p.ct.map(c => { const s = C.ctStats(c); return [c.station, c.model, c.target, c.quantity, c.unit, ...c.measurements, s.average, s.min, s.max, s.cyclesMin, s.unitsMin, s.unitsHour, s.delta, c.note]; })]), p.code + '_Cycle_Time.csv', 'text/csv;charset=utf-8');
       else if (action === 'export-progress') await download(C.csv([['Stage', 'Title', 'In Scope', 'Status', 'Confirmed', 'Total Checks', 'Owner', 'Due', 'Note'], ...D.roadmap.stages.map(s => { const st = p.stages[s.id], checks = C.relevantChecks(s, p); return [s.order, s.title, C.applies(s, p) ? 'Yes' : 'No', C.statuses[st.status], checks.filter(c => st.checks[c.id]).length, checks.length, st.owner, st.due, st.note]; })]), p.code + '_Roadmap.csv', 'text/csv;charset=utf-8');
+      else if (action === 'manage-permissions') {
+        await openPermissionsModal(p);
+      }
+      else if (action === 'admin-perm-project') {
+        const pCode = link.dataset.code;
+        let targetProj = state.projects.find(x => x.code === pCode);
+        if (!targetProj) {
+          const adm = adminProjects.find(x => x.projectCode === pCode);
+          if (adm && adm.project) {
+            targetProj = C.makeProject(D, adm.project);
+          }
+        }
+        if (targetProj) {
+          await openPermissionsModal(targetProj);
+        } else {
+          toast('Không tìm thấy dự án để phân quyền.', true);
+        }
+      }
+      else if (action === 'perm-select-all') {
+        const form = E('perm-form') || E('wizard-form');
+        if (form) form.querySelectorAll('input[name="allowed_users"]').forEach(cb => { cb.checked = true; });
+      }
+      else if (action === 'perm-unselect-all') {
+        const form = E('perm-form') || E('wizard-form');
+        if (form) form.querySelectorAll('input[name="allowed_users"]').forEach(cb => { cb.checked = false; });
+      }
+      else if (action === 'save-permissions') {
+        const form = E('perm-form');
+        if (!form) return;
+        const fd = new FormData(form);
+        const scopeType = fd.get('perm_scope_type') || 'all';
+        let allowed = ['all'];
+        if (scopeType === 'custom') {
+          allowed = fd.getAll('allowed_users').filter(Boolean);
+          if (!allowed.length) {
+            toast('Vui lòng chọn ít nhất 1 nhân viên hoặc chọn Tất cả nhân viên.', true);
+            return;
+          }
+        }
+
+        const target = permModalTargetProject || project();
+        if (!target) return;
+        target.allowedUsers = allowed;
+        target.updatedAt = new Date().toISOString();
+
+        save(target, true);
+
+        api('project:set-permissions', {
+          projectCode: target.code,
+          allowedUsers: allowed
+        }).catch(() => {});
+
+        api('publish:push', {
+          projectId: connections.get(target.id)?.key || target.id,
+          project: target,
+          cleanCheck: false
+        }).catch(() => {});
+
+        closeModal();
+        render();
+        toast(`✓ Đã cập nhật quyền xem cho dự án [${target.code}]. Máy nhân viên sẽ tự cập nhật!`);
+      }
       else if (action === 'edit-project') {
         modalContext = { kind: 'project' };
         modal('Sửa thông tin dự án', `<form id="project-form"><div class="form-grid">${inputField('Tên dự án', 'name', p.name, 'maxlength="100"')}${inputField('Khách hàng', 'customer', p.customer, 'maxlength="200"')}${inputField('Quản lý dự án', 'manager', p.manager, 'maxlength="200"')}${inputField('Người lập', 'author', p.author, 'maxlength="200"')}${inputField('Kỹ sư PLC', 'plcEngineer', p.plcEngineer, 'maxlength="200"')}${inputField('Kỹ sư Robot', 'robotEngineer', p.robotEngineer, 'maxlength="200"')}${inputField('Revision', 'revision', p.revision, 'maxlength="30"')}${inputField('Ngày bắt đầu', 'startDate', p.startDate, 'type="date"')}${inputField('Ngày kết thúc dự kiến', 'dueDate', p.dueDate, 'type="date"')}</div></form><p class="count-label">File trong 00_THONG_TIN_DU_AN tự cập nhật khi lưu. Đổi tên hồ sơ không đổi tên thư mục đã tạo.</p>`, btn('Hủy', 'close-modal') + btn('Lưu thông tin', 'save-project-info', 'save', 'primary'));
@@ -3600,12 +4094,27 @@
   document.addEventListener('change', event => {
     const t = event.target, p = project();
     if (t.id === 'project-picker') {
+      const target = state.projects.find(x => x.id === t.value);
+      if (target && !canUserAccessProject(target)) {
+        toast('Bạn không có quyền truy cập dự án này. Vui lòng liên hệ Sếp Kha để được cấp quyền xem.', true);
+        return;
+      }
       state.selected = t.value || null;
       save(null, false);
       navigate('dashboard');
       refreshPublishStatus();
       const selP = project();
       if (selP) autoSyncProjectFolder(selP);
+    }
+    else if (t.name === 'perm_scope_type') {
+      const wizardPermUsers = E('wizard-perm-users');
+      if (wizardPermUsers) {
+        wizardPermUsers.style.display = t.value === 'custom' ? 'block' : 'none';
+      }
+      const modalPermUsers = E('perm-users-container');
+      if (modalPermUsers) {
+        modalPermUsers.style.display = t.value === 'custom' ? 'block' : 'none';
+      }
     }
     else if (t.name === 'preset' && view === 'create' && t.closest('#wizard-form')) {
       wizard.preset = t.value;

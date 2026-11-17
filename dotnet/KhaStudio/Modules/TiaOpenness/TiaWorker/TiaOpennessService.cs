@@ -545,6 +545,32 @@ public sealed class TiaOpennessService : IDisposable
                                                    state.Equals("Information", StringComparison.OrdinalIgnoreCase) ||
                                                    state.Equals("Warning", StringComparison.OrdinalIgnoreCase));
 
+                var detailsList = new List<string>();
+                void CollectMessages(object msgObj)
+                {
+                    if (msgObj == null) return;
+                    var desc = msgObj.GetType().GetProperty("Description")?.GetValue(msgObj)?.ToString() ?? "";
+                    var path = msgObj.GetType().GetProperty("Path")?.GetValue(msgObj)?.ToString() ?? "";
+                    if (!string.IsNullOrWhiteSpace(desc))
+                    {
+                        detailsList.Add($"[{path}] {desc}");
+                    }
+                    var childMsgsProp = msgObj.GetType().GetProperty("Messages");
+                    if (childMsgsProp?.GetValue(msgObj) is System.Collections.IEnumerable children)
+                    {
+                        foreach (var c in children) CollectMessages(c);
+                    }
+                }
+                try
+                {
+                    var msgsProp = res.GetType().GetProperty("Messages");
+                    if (msgsProp?.GetValue(res) is System.Collections.IEnumerable msgs)
+                    {
+                        foreach (var m in msgs) CollectMessages(m);
+                    }
+                }
+                catch { }
+
                 string msg = $"Biên dịch {state}: {errorCount} lỗi, {warningCount} cảnh báo.";
 
                 return new TiaCompileResult
@@ -553,7 +579,8 @@ public sealed class TiaOpennessService : IDisposable
                     ErrorCount = errorCount,
                     WarningCount = warningCount,
                     State = state,
-                    Message = msg
+                    Message = msg,
+                    Details = detailsList
                 };
             }
             catch (Exception ex)
@@ -780,6 +807,65 @@ public sealed class TiaOpennessService : IDisposable
     /// <summary>
     /// Nhập khối chương trình từ file XML SimaticML vào PLC.
     /// </summary>
+    
+    /// <summary>
+    /// Xóa một khối chương trình khỏi PLC.
+    /// </summary>
+    public async Task<TiaActionResult> DeleteBlockAsync(string? deviceName, string blockName)
+    {
+        return await _dispatcher.InvokeAsync(() =>
+        {
+            if (_currentProject == null) return TiaActionResult.Fail("Chưa có dự án nào đang mở trong TIA Portal.");
+            if (string.IsNullOrWhiteSpace(blockName)) return TiaActionResult.Fail("Tên khối không được để trống.");
+
+            try
+            {
+                var devices = GetAllDevices();
+                object? targetBlock = null;
+                string actualDeviceName = "";
+
+                foreach (var dev in devices)
+                {
+                    var devName = dev.GetType().GetProperty("Name")?.GetValue(dev)?.ToString() ?? "";
+                    if (string.IsNullOrEmpty(deviceName) || string.Equals(devName, deviceName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var sw = GetPlcSoftwareFromDevice(dev);
+                        if (sw == null) continue;
+
+                        var blockGroup = sw.GetType().GetProperty("BlockGroup")?.GetValue(sw);
+                        if (blockGroup == null) continue;
+
+                        targetBlock = FindBlockInGroup(blockGroup, blockName);
+                        if (targetBlock != null)
+                        {
+                            actualDeviceName = devName;
+                            break;
+                        }
+                    }
+                }
+
+                if (targetBlock == null)
+                {
+                    return TiaActionResult.Fail($"Không tìm thấy khối '{blockName}' trên PLC.");
+                }
+
+                var delMethod = targetBlock.GetType().GetMethod("Delete", Type.EmptyTypes);
+                if (delMethod == null)
+                {
+                    return TiaActionResult.Fail($"Khối '{blockName}' không hỗ trợ thao tác Delete().");
+                }
+
+                delMethod.Invoke(targetBlock, null);
+                return TiaActionResult.Ok($"Đã xóa thành công khối '{blockName}' khỏi PLC '{actualDeviceName}'.");
+            }
+            catch (Exception ex)
+            {
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                return TiaActionResult.Fail($"Lỗi khi xóa khối '{blockName}': {msg}");
+            }
+        });
+    }
+
     public async Task<TiaActionResult> ImportBlockXmlAsync(string? deviceName, string xmlFilePath, string? targetGroup = null)
     {
         return await _dispatcher.InvokeAsync(() =>
@@ -1308,9 +1394,28 @@ public sealed class TiaOpennessService : IDisposable
         var projectsProp = _currentTiaPortal.GetType().GetProperty("Projects");
         var projects = projectsProp?.GetValue(_currentTiaPortal);
 
-        if (projects is System.Collections.IList list && list.Count > 0)
+        if (projects != null)
         {
-            return list[0];
+            try
+            {
+                var countProp = projects.GetType().GetProperty("Count");
+                int count = (int)(countProp?.GetValue(projects) ?? 0);
+                if (count > 0)
+                {
+                    var itemProp = projects.GetType().GetProperty("Item");
+                    var firstProj = itemProp?.GetValue(projects, new object[] { 0 });
+                    if (firstProj != null) return firstProj;
+                }
+            }
+            catch { }
+        }
+
+        if (projects is System.Collections.IEnumerable enumerable)
+        {
+            foreach (var p in enumerable)
+            {
+                if (p != null) return p;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(projectPathIfOpenNeeded) && File.Exists(projectPathIfOpenNeeded))

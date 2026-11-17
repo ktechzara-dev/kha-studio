@@ -337,6 +337,14 @@ public class LanWebServer
                         }
                     }
                 }
+
+                // 5. Kéo các dự án APM từ Firebase Cloud về lưu vào thư mục Admin và projects
+                try
+                {
+                    var adminRoot = ApmBridgeHandler.GetAdminRoot();
+                    await ApmBridgeHandler.SyncApmProjectsFromFirebaseAsync(adminRoot, ct);
+                }
+                catch { }
             }
             catch { }
 
