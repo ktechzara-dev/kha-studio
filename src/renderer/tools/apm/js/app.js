@@ -733,7 +733,7 @@
         </div>
         <div class="update-banner-content">
           <div class="update-banner-title">
-            🔔 Tài khoản <span class="update-author-pill">${esc(pendingRemoteUpdate.updatedBy)}</span> vừa cập nhật hồ sơ dự án <strong>${esc(pendingRemoteUpdate.code)}</strong> trên OneDrive
+            Tài khoản <span class="update-author-pill">${esc(pendingRemoteUpdate.updatedBy)}</span> vừa cập nhật hồ sơ dự án <strong>${esc(pendingRemoteUpdate.code)}</strong> trên OneDrive
           </div>
           <div class="update-banner-details">
             <div class="update-diff-header">Các mục đã được sửa đổi:</div>
@@ -1367,7 +1367,7 @@
     const prog = C.progress(D, p);
 
     return pageTitle('Lộ trình dự án', `${p.code} · ${prog.done}/${prog.total} giai đoạn hoàn tất`, btn('Xuất báo cáo tiến độ', 'export-progress', 'download') + btn('In', 'print', 'print'))
-      + `<div class="roadmap-layout"><section class="panel sticky-panel"><div class="panel-head"><h2>12 giai đoạn</h2><span class="badge blue">${prog.percent}%</span></div><div class="panel-body" style="padding:12px"><div class="stage-list">${D.roadmap.stages.map(x => `<button class="stage-item ${selectedStage === x.id ? 'selected' : ''} ${C.applies(x, p) ? p.stages[x.id].status : 'inactive'}" data-action="stage" data-id="${x.id}"><span class="stage-number">${p.stages[x.id].status === 'completed' && C.applies(x, p) ? icon('check') : String(x.order).padStart(2, '0')}</span><span><strong>${esc(x.title)}</strong><small>${C.applies(x, p) ? esc(C.statuses[p.stages[x.id].status]) : 'Ngoài phạm vi'}</small></span></button>`).join('')}</div></div></section><section class="panel stage-detail"><div class="eyebrow">GIAI ĐOẠN ${String(s.order).padStart(2, '0')} / ${esc(s.lane)}</div><h2>${esc(s.title)}</h2>${active ? badge(st.status) : '<span class="badge gray">Ngoài phạm vi dự án</span>'}<p class="subtext">${esc(s.purpose)}</p>${!active ? notice('Bạn có thể tra cứu giai đoạn này. Checklist và tiến độ chỉ lưu cho phần việc thuộc phạm vi dự án.') : ''}<div class="stage-meta"><label class="field">Trạng thái<select id="stage-status" ${!active ? 'disabled' : ''}>${Object.entries(C.statuses).map(([k, v]) => option(k, v, st.status)).join('')}</select></label><label class="field">Người phụ trách<input id="stage-owner" maxlength="200" value="${esc(st.owner)}" ${!active ? 'disabled' : ''}></label><label class="field">Hạn hoàn thành<input id="stage-due" type="date" value="${esc(st.due)}" ${!active ? 'disabled' : ''}></label></div><div class="detail-section"><h3>DÙNG KHI NÀO</h3><p>${esc(s.when)}</p></div><div class="detail-section"><h3>ĐẦU VÀO CẦN CÓ</h3><ul>${s.entry.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><h3>VIỆC CẦN LÀM</h3><ul>${s.actions.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><div class="result-header"><h3>CHECKLIST CHUYỂN BƯỚC</h3><span class="count-label">${C.relevantChecks(s, p).filter(c => st.checks[c.id]).length}/${C.relevantChecks(s, p).length} xác nhận</span></div><div class="checklist">${C.relevantChecks(s, p).map(c => `<label class="check-label"><input type="checkbox" data-check="${c.id}" ${st.checks[c.id] ? 'checked' : ''} ${!active ? 'disabled' : ''}><span>${esc(c.text)}</span></label>`).join('')}</div></div><div class="detail-section"><label class="field">Ghi chú / lý do không áp dụng<textarea id="stage-note" maxlength="8000" ${!active ? 'disabled' : ''} placeholder="Ghi tình trạng, đầu vào còn thiếu hoặc lý do không áp dụng…">${esc(st.note)}</textarea></label><p class="count-label">Ghi chú, checklist và người phụ trách tự lưu khi thay đổi.</p></div><div class="detail-section"><div class="folder-header-bar"><div><h3>NƠI LƯU HỒ SƠ</h3><div class="project-folder-badge">${p.rootPath ? `<span class="badge blue" title="Thư mục đã liên kết trên đĩa: ${esc(p.rootPath)}">📁 Thư mục: <b>${esc(p.rootPath)}</b> ${p.jsonFile ? `<small class="mono">(${esc(p.jsonFile)})</small>` : ''}</span>` : `<span class="badge gray">📁 Chưa liên kết thư mục đĩa cho dự án này</span>`}</div></div><div class="btnrow">${btn(p.rootPath ? 'Đổi thư mục' : 'Chọn thư mục dự án', 'pick-project-folder', 'folder', 'small primary')}${p.rootPath ? btn('Mở thư mục gốc', 'open-root-folder', null, 'small') : ''}${btn('Đồng bộ từ đĩa / OneDrive', 'sync-from-disk', 'refresh', 'small')}</div></div><div class="folder-links-list">${outputPaths.map(path => { const fullPath = p.rootPath ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + path.replace(/\//g, '\\')) : path; return `<div class="folder-link" title="${esc(fullPath)}">${icon('folder')}<div class="folder-info"><code class="folder-code" data-action="open-subfolder" data-path="${esc(path)}" title="Bấm để mở thư mục trên máy">${esc(path)}</code>${p.rootPath ? `<small class="folder-realpath mono">${esc(fullPath)}</small>` : ''}</div><div class="folder-actions">${btn('Mở thư mục', 'open-subfolder', 'folder', 'small primary', `data-path="${esc(path)}"`)}${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(fullPath)}"`)}</div></div>`; }).join('') || '<p class="muted">Bộ môn lưu hồ sơ chưa có trong cấu hình.</p>'}</div></div>${templates.length ? `<div class="detail-section"><h3>BIỂU MẪU LIÊN QUAN</h3><div class="btnrow">${templates.map(t => btn(templateNames[t.id] || t.id, 'download-template', 'file', 'small', `data-id="${t.id}"`)).join('')}</div>${s.id === 'sat' ? '<p class="count-label">Mẫu FAT/SAT dùng chung. Lưu bản SAT đã điền vào 015_COMMISSIONING/06_SAT.</p>' : ''}</div>` : ''}${renderStageDocsReports(s, p)}</section></div>`;
+      + `<div class="roadmap-layout"><section class="panel sticky-panel"><div class="panel-head"><h2>12 giai đoạn</h2><span class="badge blue">${prog.percent}%</span></div><div class="panel-body" style="padding:12px"><div class="stage-list">${D.roadmap.stages.map(x => `<button class="stage-item ${selectedStage === x.id ? 'selected' : ''} ${C.applies(x, p) ? p.stages[x.id].status : 'inactive'}" data-action="stage" data-id="${x.id}"><span class="stage-number">${p.stages[x.id].status === 'completed' && C.applies(x, p) ? icon('check') : String(x.order).padStart(2, '0')}</span><span><strong>${esc(x.title)}</strong><small>${C.applies(x, p) ? esc(C.statuses[p.stages[x.id].status]) : 'Ngoài phạm vi'}</small></span></button>`).join('')}</div></div></section><section class="panel stage-detail"><div class="eyebrow">GIAI ĐOẠN ${String(s.order).padStart(2, '0')} / ${esc(s.lane)}</div><h2>${esc(s.title)}</h2>${active ? badge(st.status) : '<span class="badge gray">Ngoài phạm vi dự án</span>'}<p class="subtext">${esc(s.purpose)}</p>${!active ? notice('Bạn có thể tra cứu giai đoạn này. Checklist và tiến độ chỉ lưu cho phần việc thuộc phạm vi dự án.') : ''}<div class="stage-meta"><label class="field">Trạng thái<select id="stage-status" ${!active ? 'disabled' : ''}>${Object.entries(C.statuses).map(([k, v]) => option(k, v, st.status)).join('')}</select></label><label class="field">Người phụ trách<input id="stage-owner" maxlength="200" value="${esc(st.owner)}" ${!active ? 'disabled' : ''}></label><label class="field">Hạn hoàn thành<input id="stage-due" type="date" value="${esc(st.due)}" ${!active ? 'disabled' : ''}></label></div><div class="detail-section"><h3>DÙNG KHI NÀO</h3><p>${esc(s.when)}</p></div><div class="detail-section"><h3>ĐẦU VÀO CẦN CÓ</h3><ul>${s.entry.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><h3>VIỆC CẦN LÀM</h3><ul>${s.actions.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><div class="result-header"><h3>CHECKLIST CHUYỂN BƯỚC</h3><span class="count-label">${C.relevantChecks(s, p).filter(c => st.checks[c.id]).length}/${C.relevantChecks(s, p).length} xác nhận</span></div><div class="checklist">${C.relevantChecks(s, p).map(c => `<label class="check-label"><input type="checkbox" data-check="${c.id}" ${st.checks[c.id] ? 'checked' : ''} ${!active ? 'disabled' : ''}><span>${esc(c.text)}</span></label>`).join('')}</div></div><div class="detail-section"><label class="field">Ghi chú / lý do không áp dụng<textarea id="stage-note" maxlength="8000" ${!active ? 'disabled' : ''} placeholder="Ghi tình trạng, đầu vào còn thiếu hoặc lý do không áp dụng…">${esc(st.note)}</textarea></label><p class="count-label">Ghi chú, checklist và người phụ trách tự lưu khi thay đổi.</p></div><div class="detail-section"><div class="folder-header-bar"><div><h3>NƠI LƯU HỒ SƠ</h3><div class="project-folder-badge">${p.rootPath ? `<span class="badge blue" title="Thư mục đã liên kết trên đĩa: ${esc(p.rootPath)}">Thư mục: <b>${esc(p.rootPath)}</b> ${p.jsonFile ? `<small class="mono">(${esc(p.jsonFile)})</small>` : ''}</span>` : `<span class="badge gray">Chưa liên kết thư mục đĩa cho dự án này</span>`}</div></div><div class="btnrow">${btn(p.rootPath ? 'Đổi thư mục' : 'Chọn thư mục dự án', 'pick-project-folder', 'folder', 'small primary')}${p.rootPath ? btn('Mở thư mục gốc', 'open-root-folder', null, 'small') : ''}${btn('Đồng bộ từ đĩa / OneDrive', 'sync-from-disk', 'refresh', 'small')}</div></div><div class="folder-links-list">${outputPaths.map(path => { const fullPath = p.rootPath ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + path.replace(/\//g, '\\')) : path; return `<div class="folder-link" title="${esc(fullPath)}">${icon('folder')}<div class="folder-info"><code class="folder-code" data-action="open-subfolder" data-path="${esc(path)}" title="Bấm để mở thư mục trên máy">${esc(path)}</code>${p.rootPath ? `<small class="folder-realpath mono">${esc(fullPath)}</small>` : ''}</div><div class="folder-actions">${btn('Mở thư mục', 'open-subfolder', 'folder', 'small primary', `data-path="${esc(path)}"`)}${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(fullPath)}"`)}</div></div>`; }).join('') || '<p class="muted">Bộ môn lưu hồ sơ chưa có trong cấu hình.</p>'}</div></div>${templates.length ? `<div class="detail-section"><h3>BIỂU MẪU LIÊN QUAN</h3><div class="btnrow">${templates.map(t => btn(templateNames[t.id] || t.id, 'download-template', 'file', 'small', `data-id="${t.id}"`)).join('')}</div>${s.id === 'sat' ? '<p class="count-label">Mẫu FAT/SAT dùng chung. Lưu bản SAT đã điền vào 015_COMMISSIONING/06_SAT.</p>' : ''}</div>` : ''}${renderStageDocsReports(s, p)}</section></div>`;
   }
 
   function getModuleFolderTree(m, allFolders, p, q) {
@@ -1461,16 +1461,8 @@
 
     if (!moduleTrees.length) {
       mainContentHtml = '<div class="panel empty">Không tìm thấy thư mục phù hợp với từ khóa tìm kiếm. Thử từ khóa khác hoặc chọn Tất cả bộ môn.</div>';
-    } else if (folderViewMode === 'cards') {
-      const flatRows = D.roadmap.folders.filter(f => modules.includes(f.module) && (folderModule === 'all' || f.module === folderModule) && (!q || [f.path, f.suffix, f.label, f.purpose, f.when].join(' ').toLocaleLowerCase('vi').includes(q)));
-      mainContentHtml = flatRows.map(f => {
-        const m = D.catalog.modules.find(m => m.id === f.module), group = D.catalog.softwareGroups.find(g => g.module === f.module);
-        const path = f.path || m.folder + '/[Hãng]/' + (group?.perDevice ? '[ID thiết bị]/' : '') + f.suffix;
-        return `<article class="folder-card"><div class="folder-title"><h3>${esc(f.label || f.suffix || m.name)}</h3><span class="chip">${esc(m.name)}</span></div><code>${esc(path)}</code><p><b>Dùng khi:</b> ${esc(f.when)}</p><p><b>Mục đích:</b> ${esc(f.purpose)}</p><div class="btnrow" style="margin-top:12px">${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(path)}"`)}${p && connections.has(p.id) && f.path && p.modules.includes(m.id) ? btn('Mở trong dự án', 'open-path', 'folder', 'small', `data-path="${esc(f.path)}"`) : ''}</div></article>`;
-      }).join('');
     } else {
-      // HIERARCHICAL TREE VIEW (CÂY THƯ MỤC CHUYÊN NGHIỆP)
-      mainContentHtml = `<div class="folder-tree-list">${moduleTrees.map(t => {
+      mainContentHtml = `<div class="folder-tree-container">${moduleTrees.map(t => {
         const isCollapsed = !isSearching && folderModule === 'all' && collapsedTreeModules.has(t.module.id);
         const m = t.module;
         const root = t.root;
@@ -1478,58 +1470,48 @@
         const children = t.children;
 
         return `
-          <div class="folder-tree-module ${isCollapsed ? 'collapsed' : 'expanded'}" data-module="${m.id}">
-            <!-- THƯ MỤC GỐC BỘ MÔN (ROOT FOLDER) -->
-            <div class="tree-root-header" data-action="toggle-folder-tree" data-module="${m.id}" title="Bấm để ${isCollapsed ? 'mở rộng' : 'thu gọn'} cây thư mục">
-              <div class="tree-toggle-arrow">${isCollapsed ? '▶' : '▼'}</div>
-              <div class="tree-root-icon">📁</div>
-              <div class="tree-root-info">
-                <div class="tree-root-title-row">
-                  <h3 class="tree-root-name">${esc(root.label || m.name)}</h3>
-                  <span class="chip module-chip">${esc(m.name)}</span>
-                  <span class="badge blue tree-root-badge">Thư mục gốc</span>
-                  <span class="tree-count-badge">${children.length} thư mục con</span>
-                </div>
-                <code class="tree-root-code">${esc(rootPath)}</code>
+          <div class="tree-module-block ${isCollapsed ? 'collapsed' : 'expanded'}" data-module="${m.id}">
+            <!-- Header bộ môn (Thư mục gốc) -->
+            <div class="tree-module-header" data-action="toggle-folder-tree" data-module="${m.id}" title="Bấm để ${isCollapsed ? 'mở rộng' : 'thu gọn'} cây thư mục">
+              <div class="tree-module-title">
+                <span class="tree-arrow">${isCollapsed ? '▸' : '▾'}</span>
+                <span class="tree-root-code">${esc(rootPath)}</span>
+                <span class="tree-sep">—</span>
+                <span class="tree-root-name">${esc(m.name)}</span>
+                <span class="tree-count-tag">${children.length} mục con</span>
               </div>
-              <div class="tree-root-actions" onclick="event.stopPropagation()">
-                ${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(rootPath)}"`)}
-                ${p && connections.has(p.id) && p.modules.includes(m.id) ? btn('Mở trong dự án', 'open-path', 'folder', 'small primary', `data-path="${esc(rootPath)}"`) : ''}
+              <div class="tree-head-actions" onclick="event.stopPropagation()">
+                ${p && connections.has(p.id) && p.modules.includes(m.id) ? `<button class="tree-btn" data-action="open-path" data-path="${esc(rootPath)}" title="Mở thư mục trên máy">Mở thư mục</button>` : ''}
+                <button class="tree-btn" data-action="copy-path" data-path="${esc(rootPath)}" title="Sao chép đường dẫn">Sao chép</button>
               </div>
             </div>
 
-            <!-- MÔ TẢ & THỜI ĐIỂM SỬ DỤNG GỐC -->
-            ${root.when || root.purpose ? `
-              <div class="tree-root-desc">
-                ${root.when ? `<div class="tree-desc-item"><strong>🕒 Dùng khi:</strong> ${esc(root.when)}</div>` : ''}
-                ${root.purpose ? `<div class="tree-desc-item"><strong>🎯 Mục đích:</strong> ${esc(root.purpose)}</div>` : ''}
+            <!-- Mô tả mục đích bộ môn (nếu mở rộng) -->
+            ${(root.purpose || root.when) && !isCollapsed ? `
+              <div class="tree-module-desc">
+                ${root.purpose ? `<div>${esc(root.purpose)}</div>` : ''}
+                ${root.when ? `<div class="tree-sub-when">${esc(root.when)}</div>` : ''}
               </div>
             ` : ''}
 
-            <!-- CÁC THƯ MỤC CON PHÂN CẤP (SUBFOLDERS TREE) -->
+            <!-- Danh sách hàng các thư mục con phân cấp (Tree rows) -->
             ${!isCollapsed && children.length > 0 ? `
-              <div class="tree-branch-container">
-                ${children.map(child => `
-                  <div class="tree-node-item">
-                    <div class="tree-node-card">
-                      <div class="tree-node-header">
-                        <div class="tree-node-title">
-                          <span class="subfolder-icon">📂</span>
-                          <strong class="subfolder-name">${esc(child.label || child.suffix)}</strong>
-                          <code class="subfolder-code">${esc(child.path)}</code>
-                        </div>
-                        <div class="tree-node-actions">
-                          ${btn('Sao chép', 'copy-path', 'copy', 'small', `data-path="${esc(child.path)}"`)}
-                          ${p && connections.has(p.id) && p.modules.includes(m.id) ? btn('Mở thư mục', 'open-path', 'folder', 'small', `data-path="${esc(child.path)}"`) : ''}
-                        </div>
-                      </div>
-                      <div class="tree-node-body">
-                        <p class="tree-meta-row"><b>Dùng khi:</b> ${esc(child.when || 'Theo tiến trình dự án.')}</p>
-                        <p class="tree-meta-row"><b>Mục đích:</b> ${esc(child.purpose || 'Lưu trữ tài liệu và hồ sơ kỹ thuật.')}</p>
+              <div class="tree-rows-list">
+                ${children.map((child, idx) => {
+                  const isLast = idx === children.length - 1;
+                  const branchSym = isLast ? '└─' : '├─';
+                  return `
+                    <div class="tree-row">
+                      <span class="tree-branch-symbol">${branchSym}</span>
+                      <span class="tree-col-name" title="${esc(child.path)}">${esc(child.label || child.suffix)}</span>
+                      <span class="tree-col-purpose" title="${esc(child.purpose || child.when || '')}">${esc(child.purpose || child.when || 'Lưu trữ hồ sơ kỹ thuật')}</span>
+                      <div class="tree-row-actions">
+                        ${p && connections.has(p.id) && p.modules.includes(m.id) ? `<button class="tree-btn" data-action="open-path" data-path="${esc(child.path)}" title="Mở trên ổ đĩa">Mở</button>` : ''}
+                        <button class="tree-btn" data-action="copy-path" data-path="${esc(child.path)}" title="Sao chép đường dẫn">Sao chép</button>
                       </div>
                     </div>
-                  </div>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             ` : ''}
           </div>
@@ -1541,17 +1523,13 @@
       + `<div class="toolbar">
           <div class="searchbox">
             ${icon('search')}
-            <input id="folder-search" placeholder="Tìm IO, backup, tool, calibration, FAT, SAT…" value="${esc(filter)}" aria-label="Tìm thư mục">
+            <input id="folder-search" placeholder="Tìm tên thư mục, IO, backup, FAT, SAT…" value="${esc(filter)}" aria-label="Tìm thư mục">
           </div>
           ${p ? `<label class="software-chip"><input id="folder-only-project" type="checkbox" ${folderOnlyProject ? 'checked' : ''}>Chỉ bộ môn dự án</label>` : ''}
           
           <div class="folder-tree-controls">
-            ${btn('Mở rộng tất cả', 'expand-all-folders', 'plus', 'small')}
-            ${btn('Thu gọn tất cả', 'collapse-all-folders', 'minus', 'small')}
-            <div class="view-switch-grp">
-              <button class="${folderViewMode === 'tree' ? 'active-view' : ''}" data-action="toggle-folder-view" data-mode="tree" title="Xem dạng cây phân cấp">🌲 Cây thư mục</button>
-              <button class="${folderViewMode === 'cards' ? 'active-view' : ''}" data-action="toggle-folder-view" data-mode="cards" title="Xem dạng thẻ phẳng">🗂️ Dạng thẻ</button>
-            </div>
+            ${btn('Mở rộng tất cả', 'expand-all-folders', null, 'small')}
+            ${btn('Thu gọn tất cả', 'collapse-all-folders', null, 'small')}
           </div>
           
           <span class="count-label">${totalItems}/247 mục hướng dẫn</span>
