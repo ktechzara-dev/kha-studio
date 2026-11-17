@@ -562,11 +562,16 @@
         const remote = res.project;
         const conn = connections.get(p.id) || {};
         
+        const remoteStagesJson = JSON.stringify(remote.stages || {});
+        const localStagesJson = JSON.stringify(p.stages || {});
+        const isStagesDiff = remoteStagesJson !== localStagesJson;
+        const isDevicesDiff = (remote.devices?.length || 0) !== (p.devices?.length || 0);
+        const isIssuesDiff = (remote.issues?.length || 0) !== (p.issues?.length || 0);
         const currentHash = conn.hash || '';
         const newHash = res.hash || '';
         const hasHashChanged = Boolean(newHash && currentHash && newHash !== currentHash);
         const hasTimeChanged = Boolean(remote.updatedAt && p.updatedAt && remote.updatedAt !== p.updatedAt);
-        const hasDiff = hasHashChanged || hasTimeChanged || (!currentHash && newHash);
+        const hasDiff = isStagesDiff || isDevicesDiff || isIssuesDiff || hasHashChanged || hasTimeChanged || (!currentHash && Boolean(newHash));
 
         if (hasDiff || !silent) {
           if (remote.name) p.name = remote.name;
@@ -3474,7 +3479,7 @@
           toast('Bạn không có quyền truy cập dự án này. Vui lòng liên hệ Sếp Kha để được cấp quyền xem.', true);
           return;
         }
-        state.selected = id; save(null, false); navigate('dashboard'); const selP = project(); if (selP) autoSyncProjectFolder(selP);
+        state.selected = id; save(null, false); navigate('dashboard'); const selP = project(); if (selP) { autoSyncProjectFolder(selP); syncProjectFromDisk(selP, true); }
       }
       else if (action === 'stage') { selectedStage = id; navigate('roadmap'); }
       else if (action.startsWith('go-')) navigate(action.slice(3));
@@ -4260,7 +4265,10 @@
       navigate('dashboard');
       refreshPublishStatus();
       const selP = project();
-      if (selP) autoSyncProjectFolder(selP);
+      if (selP) {
+        autoSyncProjectFolder(selP);
+        syncProjectFromDisk(selP, true);
+      }
     }
     else if (t.name === 'perm_scope_type') {
       const wizardPermUsers = E('wizard-perm-users');
@@ -4462,6 +4470,10 @@
       checkCoachMark();
       await refreshPublishStatus();
       startLiveDiskSync();
+      const currentP = project();
+      if (currentP) {
+        syncProjectFromDisk(currentP, true);
+      }
       await api('ui-ready').catch(() => {});
     }).catch(e => {
       startLiveDiskSync();

@@ -1383,6 +1383,21 @@ public static class ApmBridgeHandler
                                         nativeRoots[pId] = disc.RootPath;
                                     }
                                 }
+
+                                // Đồng bộ ngay dữ liệu tiến độ, checklist, thiết bị từ file đĩa vào matchedItem
+                                if (disc.RawProjectNode is JsonObject rawObj)
+                                {
+                                    if (rawObj["stages"] != null) matchedItem["stages"] = rawObj["stages"]?.DeepClone();
+                                    if (rawObj["devices"] != null) matchedItem["devices"] = rawObj["devices"]?.DeepClone();
+                                    if (rawObj["issues"] != null) matchedItem["issues"] = rawObj["issues"]?.DeepClone();
+                                    if (rawObj["ct"] != null) matchedItem["ct"] = rawObj["ct"]?.DeepClone();
+                                    if (rawObj["documents"] != null) matchedItem["documents"] = rawObj["documents"]?.DeepClone();
+                                    if (rawObj["customer"] != null) matchedItem["customer"] = rawObj["customer"]?.ToString();
+                                    if (rawObj["manager"] != null) matchedItem["manager"] = rawObj["manager"]?.ToString();
+                                    if (rawObj["plcEngineer"] != null) matchedItem["plcEngineer"] = rawObj["plcEngineer"]?.ToString();
+                                    if (rawObj["robotEngineer"] != null) matchedItem["robotEngineer"] = rawObj["robotEngineer"]?.ToString();
+                                    if (rawObj["updatedAt"] != null) matchedItem["updatedAt"] = rawObj["updatedAt"]?.ToString();
+                                }
                             }
                             else
                             {
