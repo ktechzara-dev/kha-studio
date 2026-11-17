@@ -120,6 +120,7 @@
     chevronDown: '<polyline points="6 9 12 15 18 9"/>',
     chevronRight: '<polyline points="9 18 15 12 9 6"/>',
     folder: '<path d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7z"/>',
+    folderOpen: '<path d="M2 10h20M4 10V6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2M4 10l1.6 9.3A2 2 0 0 0 7.57 21h8.86a2 2 0 0 0 1.97-1.7L20 10"/>',
     roadmap: '<circle cx="5" cy="5" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><path d="M7 5h4a4 4 0 0 1 0 8H7a3 3 0 0 0 0 6h10M19 10V5"/>',
     file: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6zM14 3v6h6M8 13h8M8 17h5"/>',
     device: '<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
@@ -1474,23 +1475,25 @@
             <!-- Header bộ môn (Thư mục gốc) -->
             <div class="tree-module-header" data-action="toggle-folder-tree" data-module="${m.id}" title="Bấm để ${isCollapsed ? 'mở rộng' : 'thu gọn'} cây thư mục">
               <div class="tree-module-title">
-                <span class="tree-arrow">${isCollapsed ? '▸' : '▾'}</span>
+                <span class="tree-arrow">${isCollapsed ? icon('chevronRight') : icon('chevronDown')}</span>
+                <span class="tree-root-folder-icon">${icon('folder')}</span>
                 <span class="tree-root-code">${esc(rootPath)}</span>
-                <span class="tree-sep">—</span>
                 <span class="tree-root-name">${esc(m.name)}</span>
                 <span class="tree-count-tag">${children.length} mục con</span>
               </div>
               <div class="tree-head-actions" onclick="event.stopPropagation()">
-                ${p && connections.has(p.id) && p.modules.includes(m.id) ? `<button class="tree-btn" data-action="open-path" data-path="${esc(rootPath)}" title="Mở thư mục trên máy">Mở thư mục</button>` : ''}
-                <button class="tree-btn" data-action="copy-path" data-path="${esc(rootPath)}" title="Sao chép đường dẫn">Sao chép</button>
+                ${p && connections.has(p.id) && p.modules.includes(m.id) ? `<button class="tree-btn primary" data-action="open-path" data-path="${esc(rootPath)}" title="Mở thư mục trên máy">${icon('folderOpen')}<span>Mở</span></button>` : ''}
+                <button class="tree-btn" data-action="copy-path" data-path="${esc(rootPath)}" title="Sao chép đường dẫn">${icon('copy')}<span>Sao chép</span></button>
               </div>
             </div>
 
             <!-- Mô tả mục đích bộ môn (nếu mở rộng) -->
             ${(root.purpose || root.when) && !isCollapsed ? `
               <div class="tree-module-desc">
-                ${root.purpose ? `<div>${esc(root.purpose)}</div>` : ''}
-                ${root.when ? `<div class="tree-sub-when">${esc(root.when)}</div>` : ''}
+                <div class="tree-desc-content">
+                  ${root.purpose ? `<span class="tree-desc-purpose"><b>Mục đích:</b> ${esc(root.purpose)}</span>` : ''}
+                  ${root.when ? `<span class="tree-desc-when"><b>Thời điểm:</b> ${esc(root.when)}</span>` : ''}
+                </div>
               </div>
             ` : ''}
 
@@ -1498,16 +1501,19 @@
             ${!isCollapsed && children.length > 0 ? `
               <div class="tree-rows-list">
                 ${children.map((child, idx) => {
-                  const isLast = idx === children.length - 1;
-                  const branchSym = isLast ? '└─' : '├─';
                   return `
                     <div class="tree-row">
-                      <span class="tree-branch-symbol">${branchSym}</span>
-                      <span class="tree-col-name" title="${esc(child.path)}">${esc(child.label || child.suffix)}</span>
-                      <span class="tree-col-purpose" title="${esc(child.purpose || child.when || '')}">${esc(child.purpose || child.when || 'Lưu trữ hồ sơ kỹ thuật')}</span>
+                      <div class="tree-col-left">
+                        <span class="tree-item-icon">${icon('folder')}</span>
+                        <span class="tree-col-name" title="${esc(child.path)}">${esc(child.label || child.suffix)}</span>
+                      </div>
+                      <div class="tree-col-purpose" title="${esc(child.purpose || '')}${child.when ? ' — Dùng khi: ' + esc(child.when) : ''}">
+                        <span class="tree-purpose-text">${esc(child.purpose || child.when || 'Lưu trữ hồ sơ kỹ thuật')}</span>
+                        ${child.when && child.purpose ? `<span class="tree-tag-when">${esc(child.when)}</span>` : ''}
+                      </div>
                       <div class="tree-row-actions">
-                        ${p && connections.has(p.id) && p.modules.includes(m.id) ? `<button class="tree-btn" data-action="open-path" data-path="${esc(child.path)}" title="Mở trên ổ đĩa">Mở</button>` : ''}
-                        <button class="tree-btn" data-action="copy-path" data-path="${esc(child.path)}" title="Sao chép đường dẫn">Sao chép</button>
+                        ${p && connections.has(p.id) && p.modules.includes(m.id) ? `<button class="tree-btn" data-action="open-path" data-path="${esc(child.path)}" title="Mở trên ổ đĩa">${icon('folderOpen')}<span>Mở</span></button>` : ''}
+                        <button class="tree-btn" data-action="copy-path" data-path="${esc(child.path)}" title="Sao chép đường dẫn">${icon('copy')}<span>Sao chép</span></button>
                       </div>
                     </div>
                   `;
@@ -1528,8 +1534,8 @@
           ${p ? `<label class="software-chip"><input id="folder-only-project" type="checkbox" ${folderOnlyProject ? 'checked' : ''}>Chỉ bộ môn dự án</label>` : ''}
           
           <div class="folder-tree-controls">
-            ${btn('Mở rộng tất cả', 'expand-all-folders', null, 'small')}
-            ${btn('Thu gọn tất cả', 'collapse-all-folders', null, 'small')}
+            <button class="btn small" data-action="expand-all-folders" title="Mở rộng tất cả">${icon('chevronDown')}<span>Mở rộng</span></button>
+            <button class="btn small" data-action="collapse-all-folders" title="Thu gọn tất cả">${icon('chevronRight')}<span>Thu gọn</span></button>
           </div>
           
           <span class="count-label">${totalItems}/247 mục hướng dẫn</span>
