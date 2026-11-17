@@ -547,70 +547,187 @@
   }
 
   // ==========================================
-  // LIVE ONEDRIVE / DISK SYNC SYSTEM
+  // LIVE ONEDRIVE / DISK SYNC SYSTEM (CONFIRMATION PROMPT)
   // ==========================================
-  let isSyncingFromDisk = false;
-  async function syncProjectFromDisk(p, silent = false) {
-    if (isSyncingFromDisk) return;
+  let isCheckingDisk = false;
+  let pendingRemoteUpdate = null;
+  let dismissedRemoteHash = '';
+
+  async function checkDiskChanges(p) {
+    if (isCheckingDisk) return;
     if (!p) p = project();
     if (!p || p.demo) return;
 
-    isSyncingFromDisk = true;
+    isCheckingDisk = true;
     try {
       const res = await api('reload-project-disk', { code: p.code, rootPath: p.rootPath || '' });
       if (res && res.ok && res.project) {
         const remote = res.project;
         const conn = connections.get(p.id) || {};
-        
+        const currentHash = conn.hash || '';
+        const newHash = res.hash || '';
+
+        // Nếu bản cập nhật này đã bấm "Để sau" rồi thì không hỏi lại
+        if (newHash && newHash === dismissedRemoteHash) {
+          return;
+        }
+
         const remoteStagesJson = JSON.stringify(remote.stages || {});
         const localStagesJson = JSON.stringify(p.stages || {});
         const isStagesDiff = remoteStagesJson !== localStagesJson;
         const isDevicesDiff = (remote.devices?.length || 0) !== (p.devices?.length || 0);
         const isIssuesDiff = (remote.issues?.length || 0) !== (p.issues?.length || 0);
-        const currentHash = conn.hash || '';
-        const newHash = res.hash || '';
         const hasHashChanged = Boolean(newHash && currentHash && newHash !== currentHash);
-        const hasTimeChanged = Boolean(remote.updatedAt && p.updatedAt && remote.updatedAt !== p.updatedAt);
-        const hasDiff = isStagesDiff || isDevicesDiff || isIssuesDiff || hasHashChanged || hasTimeChanged || (!currentHash && Boolean(newHash));
+        const hasDiff = isStagesDiff || isDevicesDiff || isIssuesDiff || hasHashChanged;
 
-        if (hasDiff || !silent) {
-          if (remote.name) p.name = remote.name;
-          if (remote.customer) p.customer = remote.customer;
-          if (remote.stages && Array.isArray(remote.stages)) p.stages = remote.stages;
-          if (remote.devices && Array.isArray(remote.devices)) p.devices = remote.devices;
-          if (remote.issues && Array.isArray(remote.issues)) p.issues = remote.issues;
-          if (remote.ct && Array.isArray(remote.ct)) p.ct = remote.ct;
-          if (remote.documents && Array.isArray(remote.documents)) p.documents = remote.documents;
-          if (remote.scopes && Array.isArray(remote.scopes)) p.scopes = remote.scopes;
-          if (remote.updatedAt) p.updatedAt = remote.updatedAt;
-          if (res.path && !p.rootPath) p.rootPath = res.path;
-          if (res.jsonFile && !p.jsonFile) p.jsonFile = res.jsonFile;
-
-          connections.set(p.id, {
-            key: p.id,
-            path: p.rootPath || res.path || '',
-            jsonFile: p.jsonFile || res.jsonFile || '',
+        if (hasDiff) {
+          pendingRemoteUpdate = {
+            project: remote,
             hash: newHash,
-            conflict: false,
-            saving: false
-          });
-
-          saveLocal();
-          render();
-
-          if (hasDiff) {
-            toast('⚡ [OneDrive] Đã cập nhật thay đổi mới nhất từ máy khác!');
-          } else if (!silent) {
-            toast('✓ Dữ liệu dự án đang là mới nhất từ thư mục OneDrive / ổ đĩa.');
+            updatedBy: res.updatedBy || remote.updatedBy || remote.author || 'Nhân viên',
+            updatedAt: res.lastModified || remote.updatedAt,
+            code: p.code
+          };
+          renderRemoteUpdatePrompt();
+        } else {
+          if (pendingRemoteUpdate && pendingRemoteUpdate.code === p.code) {
+            pendingRemoteUpdate = null;
+            renderRemoteUpdatePrompt();
           }
         }
-      } else if (!silent) {
-        toast(res?.message || 'Không thể đồng bộ từ đĩa.', true);
+      }
+    } catch (_) {
+    } finally {
+      isCheckingDisk = false;
+    }
+  }
+
+  function renderRemoteUpdatePrompt() {
+    const container = document.getElementById('remote-update-container');
+    if (!container) return;
+    if (!pendingRemoteUpdate || !state.selected) {
+      container.innerHTML = '';
+      return;
+    }
+    const p = project();
+    if (!p || p.code !== pendingRemoteUpdate.code) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="remote-update-banner" id="remote-update-banner">
+        <div class="update-banner-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+        </div>
+        <div class="update-banner-content">
+          <div class="update-banner-title">
+            🔔 Tài khoản <strong>${esc(pendingRemoteUpdate.updatedBy)}</strong> vừa cập nhật dự án <strong>${esc(pendingRemoteUpdate.code)}</strong> trên OneDrive
+          </div>
+          <div class="update-banner-sub">
+            File hồ sơ đã được đồng bộ mới về máy. Bạn có muốn cập nhật lại dữ liệu giao diện không?
+          </div>
+        </div>
+        <div class="update-banner-actions">
+          <button class="btn small primary" data-action="confirm-remote-update">✓ Cập nhật dữ liệu</button>
+          <button class="btn small" data-action="dismiss-remote-update">✕ Để sau</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function applyRemoteUpdate() {
+    if (!pendingRemoteUpdate || !pendingRemoteUpdate.project) return;
+    const p = project();
+    if (!p) return;
+
+    const remote = pendingRemoteUpdate.project;
+    const newHash = pendingRemoteUpdate.hash || '';
+    const updatedBy = pendingRemoteUpdate.updatedBy || 'Nhân viên';
+
+    if (remote.name) p.name = remote.name;
+    if (remote.customer) p.customer = remote.customer;
+    if (remote.stages && Array.isArray(remote.stages)) p.stages = remote.stages;
+    if (remote.devices && Array.isArray(remote.devices)) p.devices = remote.devices;
+    if (remote.issues && Array.isArray(remote.issues)) p.issues = remote.issues;
+    if (remote.ct && Array.isArray(remote.ct)) p.ct = remote.ct;
+    if (remote.documents && Array.isArray(remote.documents)) p.documents = remote.documents;
+    if (remote.scopes && Array.isArray(remote.scopes)) p.scopes = remote.scopes;
+    if (remote.updatedAt) p.updatedAt = remote.updatedAt;
+
+    connections.set(p.id, {
+      key: p.id,
+      path: p.rootPath || remote.rootPath || '',
+      jsonFile: p.jsonFile || remote.jsonFile || '',
+      hash: newHash,
+      conflict: false,
+      saving: false
+    });
+
+    dismissedRemoteHash = newHash;
+    pendingRemoteUpdate = null;
+    renderRemoteUpdatePrompt();
+
+    saveLocal();
+    render();
+    toast(`✓ Đã cập nhật thành công dữ liệu mới nhất từ ${updatedBy}!`);
+  }
+
+  function dismissRemoteUpdate() {
+    if (pendingRemoteUpdate) {
+      dismissedRemoteHash = pendingRemoteUpdate.hash || 'dismissed';
+    }
+    pendingRemoteUpdate = null;
+    renderRemoteUpdatePrompt();
+  }
+
+  async function syncProjectFromDisk(p, silent = false) {
+    if (silent) {
+      return checkDiskChanges(p);
+    }
+    // Khi người dùng chủ động bấm nút "Đồng bộ từ đĩa / OneDrive"
+    if (!p) p = project();
+    if (!p) return;
+    toast('Đang nạp lại dữ liệu dự án từ thư mục OneDrive / đĩa…');
+    try {
+      const res = await api('reload-project-disk', { code: p.code, rootPath: p.rootPath || '' });
+      if (res && res.ok && res.project) {
+        const remote = res.project;
+        if (remote.name) p.name = remote.name;
+        if (remote.customer) p.customer = remote.customer;
+        if (remote.stages && Array.isArray(remote.stages)) p.stages = remote.stages;
+        if (remote.devices && Array.isArray(remote.devices)) p.devices = remote.devices;
+        if (remote.issues && Array.isArray(remote.issues)) p.issues = remote.issues;
+        if (remote.ct && Array.isArray(remote.ct)) p.ct = remote.ct;
+        if (remote.documents && Array.isArray(remote.documents)) p.documents = remote.documents;
+        if (remote.scopes && Array.isArray(remote.scopes)) p.scopes = remote.scopes;
+        if (remote.updatedAt) p.updatedAt = remote.updatedAt;
+        if (res.path && !p.rootPath) p.rootPath = res.path;
+        if (res.jsonFile && !p.jsonFile) p.jsonFile = res.jsonFile;
+
+        connections.set(p.id, {
+          key: p.id,
+          path: p.rootPath || res.path || '',
+          jsonFile: p.jsonFile || res.jsonFile || '',
+          hash: res.hash || '',
+          conflict: false,
+          saving: false
+        });
+
+        dismissedRemoteHash = res.hash || '';
+        pendingRemoteUpdate = null;
+        renderRemoteUpdatePrompt();
+
+        saveLocal();
+        render();
+        toast(`✓ Đã nạp thành công dữ liệu mới nhất từ ${res.updatedBy || 'thư mục OneDrive'}!`);
+      } else {
+        toast(res?.message || 'Không tìm thấy dữ liệu cập nhật trên đĩa.', true);
       }
     } catch (err) {
-      if (!silent) toast('Lỗi đồng bộ từ đĩa: ' + err.message, true);
-    } finally {
-      isSyncingFromDisk = false;
+      toast('Lỗi đồng bộ: ' + err.message, true);
     }
   }
 
@@ -621,16 +738,16 @@
       if (document.visibilityState === 'visible' && state.selected) {
         const p = project();
         if (p && !p.demo && !saveTimers.has(p.id)) {
-          syncProjectFromDisk(p, true);
+          checkDiskChanges(p);
         }
       }
-    }, 5000);
+    }, 15000);
   }
 
   window.addEventListener('focus', () => {
     const p = project();
     if (p && !p.demo && !saveTimers.has(p.id)) {
-      syncProjectFromDisk(p, true);
+      checkDiskChanges(p);
     }
   });
 
@@ -638,7 +755,7 @@
     if (document.visibilityState === 'visible') {
       const p = project();
       if (p && !p.demo && !saveTimers.has(p.id)) {
-        syncProjectFromDisk(p, true);
+        checkDiskChanges(p);
       }
     }
   });
@@ -964,6 +1081,7 @@
       admin: renderAdmin
     }[view];
     E('content').innerHTML = content();
+    renderRemoteUpdatePrompt();
   }
 
   async function navigate(next) {
@@ -3626,6 +3744,8 @@
         const p = id ? state.projects.find(x => x.id === id) : project();
         await syncProjectFromDisk(p, false);
       }
+      else if (action === 'confirm-remote-update') applyRemoteUpdate();
+      else if (action === 'dismiss-remote-update') dismissRemoteUpdate();
 
       // Phase P3: Admin actions
       else if (action === 'go-admin') await navigate('admin');

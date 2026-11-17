@@ -602,3 +602,50 @@ td small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px
   .ct-table th, .ct-table td { font-size: 10px; padding: 5px; }
   .table-scroll { overflow: visible; }
 }
+
+/* Remote OneDrive Update Confirmation Banner */
+.remote-update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #0f172a;
+  border-bottom: 2px solid #2563eb;
+  padding: 10px 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  animation: bannerSlideDown 0.25s ease-out;
+  z-index: 50;
+}
+@keyframes bannerSlideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.update-banner-icon {
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.update-banner-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.update-banner-title {
+  color: #f1f5f9;
+  font-size: 13.5px;
+}
+.update-banner-title strong {
+  color: #38bdf8;
+}
+.update-banner-sub {
+  color: #94a3b8;
+  font-size: 12px;
+}
+.update-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}

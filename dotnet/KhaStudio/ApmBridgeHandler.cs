@@ -1609,6 +1609,24 @@ public static class ApmBridgeHandler
                         using var sha = SHA256.Create();
                         var hash = Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(rawText))).ToLowerInvariant();
 
+                        var updatedBy = "Nhân viên";
+                        if (chosenProject["updatedBy"] != null && !string.IsNullOrWhiteSpace(chosenProject["updatedBy"]?.ToString()))
+                        {
+                            updatedBy = chosenProject["updatedBy"]!.ToString();
+                        }
+                        else if (chosenProject["author"] != null && !string.IsNullOrWhiteSpace(chosenProject["author"]?.ToString()))
+                        {
+                            updatedBy = chosenProject["author"]!.ToString();
+                        }
+                        else if (!string.IsNullOrWhiteSpace(pRoot))
+                        {
+                            var match = System.Text.RegularExpressions.Regex.Match(pRoot, @"([^\\\/]+)'s files", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            if (match.Success)
+                            {
+                                updatedBy = match.Groups[1].Value.Trim();
+                            }
+                        }
+
                         return new
                         {
                             ok = true,
@@ -1616,6 +1634,7 @@ public static class ApmBridgeHandler
                             path = pRoot,
                             jsonFile = Path.GetFileName(targetFile),
                             hash = hash,
+                            updatedBy = updatedBy,
                             lastModified = (diskLastModified ?? fbPublishedAt ?? DateTime.UtcNow).ToString("o")
                         };
                     }
