@@ -116,6 +116,9 @@
   const ICONS = {
     dashboard: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    minus: '<path d="M5 12h14"/>',
+    chevronDown: '<polyline points="6 9 12 15 18 9"/>',
+    chevronRight: '<polyline points="9 18 15 12 9 6"/>',
     folder: '<path d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7z"/>',
     roadmap: '<circle cx="5" cy="5" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><path d="M7 5h4a4 4 0 0 1 0 8H7a3 3 0 0 0 0 6h10M19 10V5"/>',
     file: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6zM14 3v6h6M8 13h8M8 17h5"/>',
@@ -477,9 +480,10 @@
       }
     }
     const cleanSub = (subPath || '').replace(/\//g, '\\');
+    const safeSub = cleanSub.includes('[') ? cleanSub.split('[')[0].replace(/[\\\/]+$/, '') : cleanSub;
     const fullPath = p.rootPath 
-      ? (cleanSub ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + cleanSub) : p.rootPath)
-      : cleanSub;
+      ? (safeSub ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + safeSub) : p.rootPath)
+      : safeSub;
 
     sendNativeMessage('project.open_folder', { code: p.code, path: fullPath });
     try {
@@ -552,6 +556,105 @@
   let isCheckingDisk = false;
   let pendingRemoteUpdate = null;
   let dismissedRemoteHash = '';
+  let folderViewMode = 'tree'; // 'tree' or 'cards'
+  const collapsedTreeModules = new Set();
+
+  function getProjectDiffDetails(localP, remoteP) {
+    const changes = [];
+    if (!localP || !remoteP) return changes;
+
+    // 1. Tiến độ giai đoạn (stages)
+    if (remoteP.stages && localP.stages) {
+      const stageMap = {};
+      if (D && D.roadmap && Array.isArray(D.roadmap.stages)) {
+        D.roadmap.stages.forEach(s => { stageMap[s.id] = s; });
+      }
+
+      const changedStages = [];
+      for (const [sId, rSt] of Object.entries(remoteP.stages)) {
+        const lSt = localP.stages[sId] || {};
+        const stageMeta = stageMap[sId];
+        const stageTitle = stageMeta ? stageMeta.title : sId;
+        const orderNum = stageMeta ? String(stageMeta.order).padStart(2, '0') : '';
+        const diffs = [];
+
+        if (rSt.status && rSt.status !== lSt.status) {
+          const toText = C.statuses[rSt.status] || rSt.status;
+          diffs.push(`➔ ${toText}`);
+        }
+        const rChecks = Object.values(rSt.checks || {}).filter(Boolean).length;
+        const lChecks = Object.values(lSt.checks || {}).filter(Boolean).length;
+        if (rChecks !== lChecks) {
+          diffs.push(`Checklist ${rChecks} mục`);
+        }
+        if (rSt.note && rSt.note.trim() !== (lSt.note || '').trim()) {
+          diffs.push(`Ghi chú mới`);
+        }
+        if (rSt.owner && rSt.owner !== lSt.owner) {
+          diffs.push(`Phụ trách: ${rSt.owner}`);
+        }
+        if (diffs.length > 0) {
+          changedStages.push(`${orderNum ? orderNum + '. ' : ''}${stageTitle} (${diffs.join(', ')})`);
+        }
+      }
+      if (changedStages.length > 0) {
+        changes.push({
+          type: 'stages',
+          title: 'Tiến độ giai đoạn',
+          items: changedStages
+        });
+      }
+    }
+
+    // 2. Thiết bị & mạng (devices)
+    const rDevs = Array.isArray(remoteP.devices) ? remoteP.devices : [];
+    const lDevs = Array.isArray(localP.devices) ? localP.devices : [];
+    if (rDevs.length !== lDevs.length || JSON.stringify(rDevs) !== JSON.stringify(lDevs)) {
+      const diff = rDevs.length - lDevs.length;
+      let desc = '';
+      if (diff > 0) desc = `Thêm ${diff} thiết bị mới (Tổng: ${rDevs.length})`;
+      else if (diff < 0) desc = `Đã xóa ${Math.abs(diff)} thiết bị (Còn: ${rDevs.length})`;
+      else desc = `Cập nhật cấu hình / IP thiết bị`;
+      changes.push({ type: 'devices', title: 'Thiết bị & mạng', items: [desc] });
+    }
+
+    // 3. Theo dõi Issue
+    const rIssues = Array.isArray(remoteP.issues) ? remoteP.issues : [];
+    const lIssues = Array.isArray(localP.issues) ? localP.issues : [];
+    if (rIssues.length !== lIssues.length || JSON.stringify(rIssues) !== JSON.stringify(lIssues)) {
+      const diff = rIssues.length - lIssues.length;
+      let desc = '';
+      if (diff > 0) desc = `Thêm ${diff} Issue mới (Tổng: ${rIssues.length})`;
+      else if (diff < 0) desc = `Đã đóng/xóa ${Math.abs(diff)} Issue`;
+      else desc = `Cập nhật nội dung / trạng thái Issue`;
+      changes.push({ type: 'issues', title: 'Theo dõi Issue', items: [desc] });
+    }
+
+    // 4. Thông tin dự án chung (Metadata)
+    const metaDiffs = [];
+    if (remoteP.name && remoteP.name !== localP.name) metaDiffs.push(`Tên dự án: "${remoteP.name}"`);
+    if (remoteP.customer && remoteP.customer !== localP.customer) metaDiffs.push(`Khách hàng: "${remoteP.customer}"`);
+    if (remoteP.manager && remoteP.manager !== localP.manager) metaDiffs.push(`PM: "${remoteP.manager}"`);
+    if (metaDiffs.length > 0) {
+      changes.push({ type: 'meta', title: 'Thông tin chung', items: metaDiffs });
+    }
+
+    // 5. Hồ sơ & tài liệu
+    const rDocs = Array.isArray(remoteP.documents) ? remoteP.documents : [];
+    const lDocs = Array.isArray(localP.documents) ? localP.documents : [];
+    if (rDocs.length !== lDocs.length) {
+      changes.push({ type: 'docs', title: 'Tài liệu & hồ sơ', items: [`Danh sách ${rDocs.length} tệp tài liệu`] });
+    }
+
+    // 6. Cycle Time
+    const rCt = Array.isArray(remoteP.ct) ? remoteP.ct : [];
+    const lCt = Array.isArray(localP.ct) ? localP.ct : [];
+    if (rCt.length !== lCt.length || JSON.stringify(rCt) !== JSON.stringify(lCt)) {
+      changes.push({ type: 'ct', title: 'Đo Cycle Time', items: [`Bảng đo Cycle Time (${rCt.length} bản ghi)`] });
+    }
+
+    return changes;
+  }
 
   async function checkDiskChanges(p) {
     if (isCheckingDisk) return;
@@ -581,12 +684,14 @@
         const hasDiff = isStagesDiff || isDevicesDiff || isIssuesDiff || hasHashChanged;
 
         if (hasDiff) {
+          const changes = getProjectDiffDetails(p, remote);
           pendingRemoteUpdate = {
             project: remote,
             hash: newHash,
             updatedBy: res.updatedBy || remote.updatedBy || remote.author || 'Nhân viên',
             updatedAt: res.lastModified || remote.updatedAt,
-            code: p.code
+            code: p.code,
+            changes: changes
           };
           renderRemoteUpdatePrompt();
         } else {
@@ -615,24 +720,45 @@
       return;
     }
 
+    const changes = pendingRemoteUpdate.changes || [];
+
     container.innerHTML = `
       <div class="remote-update-banner" id="remote-update-banner">
-        <div class="update-banner-icon">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-          </svg>
+        <div class="update-banner-icon-col">
+          <div class="update-banner-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+          </div>
         </div>
         <div class="update-banner-content">
           <div class="update-banner-title">
-            🔔 Tài khoản <strong>${esc(pendingRemoteUpdate.updatedBy)}</strong> vừa cập nhật dự án <strong>${esc(pendingRemoteUpdate.code)}</strong> trên OneDrive
+            🔔 Tài khoản <span class="update-author-pill">${esc(pendingRemoteUpdate.updatedBy)}</span> vừa cập nhật hồ sơ dự án <strong>${esc(pendingRemoteUpdate.code)}</strong> trên OneDrive
           </div>
-          <div class="update-banner-sub">
-            File hồ sơ đã được đồng bộ mới về máy. Bạn có muốn cập nhật lại dữ liệu giao diện không?
+          <div class="update-banner-details">
+            <div class="update-diff-header">Các mục đã được sửa đổi:</div>
+            ${changes.length > 0 ? `
+              <div class="update-diff-list">
+                ${changes.map(c => `
+                  <div class="update-diff-item">
+                    <span class="update-diff-badge badge-${c.type}">${esc(c.title)}</span>
+                    <span class="update-diff-text">${esc(c.items.join(' · '))}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `
+              <div class="update-diff-item">
+                <span class="update-diff-text">Tệp dữ liệu dự án trên OneDrive được cập nhật phiên bản mới.</span>
+              </div>
+            `}
           </div>
         </div>
         <div class="update-banner-actions">
-          <button class="btn small primary" data-action="confirm-remote-update">✓ Cập nhật dữ liệu</button>
-          <button class="btn small" data-action="dismiss-remote-update">✕ Để sau</button>
+          <button class="btn small primary update-confirm-btn" data-action="confirm-remote-update">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Cập nhật dữ liệu
+          </button>
+          <button class="btn small update-dismiss-btn" data-action="dismiss-remote-update">✕ Để sau</button>
         </div>
       </div>
     `;
@@ -1244,16 +1370,201 @@
       + `<div class="roadmap-layout"><section class="panel sticky-panel"><div class="panel-head"><h2>12 giai đoạn</h2><span class="badge blue">${prog.percent}%</span></div><div class="panel-body" style="padding:12px"><div class="stage-list">${D.roadmap.stages.map(x => `<button class="stage-item ${selectedStage === x.id ? 'selected' : ''} ${C.applies(x, p) ? p.stages[x.id].status : 'inactive'}" data-action="stage" data-id="${x.id}"><span class="stage-number">${p.stages[x.id].status === 'completed' && C.applies(x, p) ? icon('check') : String(x.order).padStart(2, '0')}</span><span><strong>${esc(x.title)}</strong><small>${C.applies(x, p) ? esc(C.statuses[p.stages[x.id].status]) : 'Ngoài phạm vi'}</small></span></button>`).join('')}</div></div></section><section class="panel stage-detail"><div class="eyebrow">GIAI ĐOẠN ${String(s.order).padStart(2, '0')} / ${esc(s.lane)}</div><h2>${esc(s.title)}</h2>${active ? badge(st.status) : '<span class="badge gray">Ngoài phạm vi dự án</span>'}<p class="subtext">${esc(s.purpose)}</p>${!active ? notice('Bạn có thể tra cứu giai đoạn này. Checklist và tiến độ chỉ lưu cho phần việc thuộc phạm vi dự án.') : ''}<div class="stage-meta"><label class="field">Trạng thái<select id="stage-status" ${!active ? 'disabled' : ''}>${Object.entries(C.statuses).map(([k, v]) => option(k, v, st.status)).join('')}</select></label><label class="field">Người phụ trách<input id="stage-owner" maxlength="200" value="${esc(st.owner)}" ${!active ? 'disabled' : ''}></label><label class="field">Hạn hoàn thành<input id="stage-due" type="date" value="${esc(st.due)}" ${!active ? 'disabled' : ''}></label></div><div class="detail-section"><h3>DÙNG KHI NÀO</h3><p>${esc(s.when)}</p></div><div class="detail-section"><h3>ĐẦU VÀO CẦN CÓ</h3><ul>${s.entry.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><h3>VIỆC CẦN LÀM</h3><ul>${s.actions.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div><div class="detail-section"><div class="result-header"><h3>CHECKLIST CHUYỂN BƯỚC</h3><span class="count-label">${C.relevantChecks(s, p).filter(c => st.checks[c.id]).length}/${C.relevantChecks(s, p).length} xác nhận</span></div><div class="checklist">${C.relevantChecks(s, p).map(c => `<label class="check-label"><input type="checkbox" data-check="${c.id}" ${st.checks[c.id] ? 'checked' : ''} ${!active ? 'disabled' : ''}><span>${esc(c.text)}</span></label>`).join('')}</div></div><div class="detail-section"><label class="field">Ghi chú / lý do không áp dụng<textarea id="stage-note" maxlength="8000" ${!active ? 'disabled' : ''} placeholder="Ghi tình trạng, đầu vào còn thiếu hoặc lý do không áp dụng…">${esc(st.note)}</textarea></label><p class="count-label">Ghi chú, checklist và người phụ trách tự lưu khi thay đổi.</p></div><div class="detail-section"><div class="folder-header-bar"><div><h3>NƠI LƯU HỒ SƠ</h3><div class="project-folder-badge">${p.rootPath ? `<span class="badge blue" title="Thư mục đã liên kết trên đĩa: ${esc(p.rootPath)}">📁 Thư mục: <b>${esc(p.rootPath)}</b> ${p.jsonFile ? `<small class="mono">(${esc(p.jsonFile)})</small>` : ''}</span>` : `<span class="badge gray">📁 Chưa liên kết thư mục đĩa cho dự án này</span>`}</div></div><div class="btnrow">${btn(p.rootPath ? 'Đổi thư mục' : 'Chọn thư mục dự án', 'pick-project-folder', 'folder', 'small primary')}${p.rootPath ? btn('Mở thư mục gốc', 'open-root-folder', null, 'small') : ''}${btn('Đồng bộ từ đĩa / OneDrive', 'sync-from-disk', 'refresh', 'small')}</div></div><div class="folder-links-list">${outputPaths.map(path => { const fullPath = p.rootPath ? (p.rootPath.replace(/[\\\/]+$/, '') + '\\' + path.replace(/\//g, '\\')) : path; return `<div class="folder-link" title="${esc(fullPath)}">${icon('folder')}<div class="folder-info"><code class="folder-code" data-action="open-subfolder" data-path="${esc(path)}" title="Bấm để mở thư mục trên máy">${esc(path)}</code>${p.rootPath ? `<small class="folder-realpath mono">${esc(fullPath)}</small>` : ''}</div><div class="folder-actions">${btn('Mở thư mục', 'open-subfolder', 'folder', 'small primary', `data-path="${esc(path)}"`)}${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(fullPath)}"`)}</div></div>`; }).join('') || '<p class="muted">Bộ môn lưu hồ sơ chưa có trong cấu hình.</p>'}</div></div>${templates.length ? `<div class="detail-section"><h3>BIỂU MẪU LIÊN QUAN</h3><div class="btnrow">${templates.map(t => btn(templateNames[t.id] || t.id, 'download-template', 'file', 'small', `data-id="${t.id}"`)).join('')}</div>${s.id === 'sat' ? '<p class="count-label">Mẫu FAT/SAT dùng chung. Lưu bản SAT đã điền vào 015_COMMISSIONING/06_SAT.</p>' : ''}</div>` : ''}${renderStageDocsReports(s, p)}</section></div>`;
   }
 
+  function getModuleFolderTree(m, allFolders, p, q) {
+    const mFolders = allFolders.filter(f => f.module === m.id);
+    const group = D.catalog.softwareGroups.find(g => g.module === m.id);
+
+    let rootItem = mFolders.find(f => f.path === m.folder || (!f.path.includes('/') && !f.suffix));
+    if (!rootItem) {
+      rootItem = {
+        module: m.id,
+        path: m.folder,
+        label: m.name,
+        purpose: m.description || 'Thư mục gốc lưu hồ sơ bộ môn.',
+        when: 'Xuyên suốt toàn bộ tiến trình dự án.'
+      };
+    }
+    const rootPath = rootItem.path || m.folder;
+
+    const rawChildren = mFolders.filter(f => f !== rootItem);
+    const children = rawChildren.map(f => {
+      const relPath = f.path || (m.folder + '/[Hãng]/' + (group?.perDevice ? '[ID thiết bị]/' : '') + f.suffix);
+      let label = f.label || f.suffix || '';
+      if (!label && f.path) {
+        const parts = f.path.split('/');
+        label = parts[parts.length - 1];
+      }
+      return {
+        raw: f,
+        label: label,
+        suffix: f.suffix,
+        path: relPath,
+        when: f.when || '',
+        purpose: f.purpose || ''
+      };
+    });
+
+    if (q) {
+      const rootSearchStr = [rootPath, rootItem.label, rootItem.purpose, rootItem.when, m.name].join(' ').toLocaleLowerCase('vi');
+      const rootMatches = rootSearchStr.includes(q);
+      const matchedChildren = children.filter(c => {
+        const childSearchStr = [c.path, c.label, c.suffix, c.purpose, c.when].join(' ').toLocaleLowerCase('vi');
+        return childSearchStr.includes(q);
+      });
+
+      if (!rootMatches && matchedChildren.length === 0) {
+        return null;
+      }
+      return {
+        module: m,
+        root: rootItem,
+        rootPath: rootPath,
+        children: rootMatches && matchedChildren.length === 0 ? children : matchedChildren,
+        totalChildren: children.length,
+        isSearchMatch: true
+      };
+    }
+
+    return {
+      module: m,
+      root: rootItem,
+      rootPath: rootPath,
+      children: children,
+      totalChildren: children.length,
+      isSearchMatch: false
+    };
+  }
+
   function renderFolders() {
     const p = project(), modules = folderOnlyProject && p ? p.modules : D.catalog.modules.map(m => m.id);
     const q = filter.toLocaleLowerCase('vi');
-    const rows = D.roadmap.folders.filter(f => modules.includes(f.module) && (folderModule === 'all' || f.module === folderModule) && (!q || [f.path, f.suffix, f.label, f.purpose, f.when].join(' ').toLocaleLowerCase('vi').includes(q)));
+    const isSearching = Boolean(q);
+
+    const targetModules = D.catalog.modules.filter(m => modules.includes(m.id) && (folderModule === 'all' || m.id === folderModule));
+    const moduleTrees = [];
+    let totalItems = 0;
+
+    targetModules.forEach(m => {
+      const tree = getModuleFolderTree(m, D.roadmap.folders, p, q);
+      if (tree) {
+        moduleTrees.push(tree);
+        totalItems += 1 + tree.children.length;
+      }
+    });
+
+    const moduleNavButtons = D.catalog.modules.filter(m => modules.includes(m.id)).map(m => {
+      const count = D.roadmap.folders.filter(f => f.module === m.id).length;
+      return `<button data-action="folder-module" data-id="${m.id}" class="${folderModule === m.id ? 'active' : ''}">${esc(m.name)}<span>${count}</span></button>`;
+    }).join('');
+
+    let mainContentHtml = '';
+
+    if (!moduleTrees.length) {
+      mainContentHtml = '<div class="panel empty">Không tìm thấy thư mục phù hợp với từ khóa tìm kiếm. Thử từ khóa khác hoặc chọn Tất cả bộ môn.</div>';
+    } else if (folderViewMode === 'cards') {
+      const flatRows = D.roadmap.folders.filter(f => modules.includes(f.module) && (folderModule === 'all' || f.module === folderModule) && (!q || [f.path, f.suffix, f.label, f.purpose, f.when].join(' ').toLocaleLowerCase('vi').includes(q)));
+      mainContentHtml = flatRows.map(f => {
+        const m = D.catalog.modules.find(m => m.id === f.module), group = D.catalog.softwareGroups.find(g => g.module === f.module);
+        const path = f.path || m.folder + '/[Hãng]/' + (group?.perDevice ? '[ID thiết bị]/' : '') + f.suffix;
+        return `<article class="folder-card"><div class="folder-title"><h3>${esc(f.label || f.suffix || m.name)}</h3><span class="chip">${esc(m.name)}</span></div><code>${esc(path)}</code><p><b>Dùng khi:</b> ${esc(f.when)}</p><p><b>Mục đích:</b> ${esc(f.purpose)}</p><div class="btnrow" style="margin-top:12px">${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(path)}"`)}${p && connections.has(p.id) && f.path && p.modules.includes(m.id) ? btn('Mở trong dự án', 'open-path', 'folder', 'small', `data-path="${esc(f.path)}"`) : ''}</div></article>`;
+      }).join('');
+    } else {
+      // HIERARCHICAL TREE VIEW (CÂY THƯ MỤC CHUYÊN NGHIỆP)
+      mainContentHtml = `<div class="folder-tree-list">${moduleTrees.map(t => {
+        const isCollapsed = !isSearching && folderModule === 'all' && collapsedTreeModules.has(t.module.id);
+        const m = t.module;
+        const root = t.root;
+        const rootPath = t.rootPath;
+        const children = t.children;
+
+        return `
+          <div class="folder-tree-module ${isCollapsed ? 'collapsed' : 'expanded'}" data-module="${m.id}">
+            <!-- THƯ MỤC GỐC BỘ MÔN (ROOT FOLDER) -->
+            <div class="tree-root-header" data-action="toggle-folder-tree" data-module="${m.id}" title="Bấm để ${isCollapsed ? 'mở rộng' : 'thu gọn'} cây thư mục">
+              <div class="tree-toggle-arrow">${isCollapsed ? '▶' : '▼'}</div>
+              <div class="tree-root-icon">📁</div>
+              <div class="tree-root-info">
+                <div class="tree-root-title-row">
+                  <h3 class="tree-root-name">${esc(root.label || m.name)}</h3>
+                  <span class="chip module-chip">${esc(m.name)}</span>
+                  <span class="badge blue tree-root-badge">Thư mục gốc</span>
+                  <span class="tree-count-badge">${children.length} thư mục con</span>
+                </div>
+                <code class="tree-root-code">${esc(rootPath)}</code>
+              </div>
+              <div class="tree-root-actions" onclick="event.stopPropagation()">
+                ${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(rootPath)}"`)}
+                ${p && connections.has(p.id) && p.modules.includes(m.id) ? btn('Mở trong dự án', 'open-path', 'folder', 'small primary', `data-path="${esc(rootPath)}"`) : ''}
+              </div>
+            </div>
+
+            <!-- MÔ TẢ & THỜI ĐIỂM SỬ DỤNG GỐC -->
+            ${root.when || root.purpose ? `
+              <div class="tree-root-desc">
+                ${root.when ? `<div class="tree-desc-item"><strong>🕒 Dùng khi:</strong> ${esc(root.when)}</div>` : ''}
+                ${root.purpose ? `<div class="tree-desc-item"><strong>🎯 Mục đích:</strong> ${esc(root.purpose)}</div>` : ''}
+              </div>
+            ` : ''}
+
+            <!-- CÁC THƯ MỤC CON PHÂN CẤP (SUBFOLDERS TREE) -->
+            ${!isCollapsed && children.length > 0 ? `
+              <div class="tree-branch-container">
+                ${children.map(child => `
+                  <div class="tree-node-item">
+                    <div class="tree-node-card">
+                      <div class="tree-node-header">
+                        <div class="tree-node-title">
+                          <span class="subfolder-icon">📂</span>
+                          <strong class="subfolder-name">${esc(child.label || child.suffix)}</strong>
+                          <code class="subfolder-code">${esc(child.path)}</code>
+                        </div>
+                        <div class="tree-node-actions">
+                          ${btn('Sao chép', 'copy-path', 'copy', 'small', `data-path="${esc(child.path)}"`)}
+                          ${p && connections.has(p.id) && p.modules.includes(m.id) ? btn('Mở thư mục', 'open-path', 'folder', 'small', `data-path="${esc(child.path)}"`) : ''}
+                        </div>
+                      </div>
+                      <div class="tree-node-body">
+                        <p class="tree-meta-row"><b>Dùng khi:</b> ${esc(child.when || 'Theo tiến trình dự án.')}</p>
+                        <p class="tree-meta-row"><b>Mục đích:</b> ${esc(child.purpose || 'Lưu trữ tài liệu và hồ sơ kỹ thuật.')}</p>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}</div>`;
+    }
+
     return pageTitle('Cấu trúc & hướng dẫn thư mục', 'Tra đúng nơi lưu hồ sơ, mục đích và thời điểm sử dụng theo bộ môn.')
-      + `<div class="toolbar"><div class="searchbox">${icon('search')}<input id="folder-search" placeholder="Tìm IO, backup, tool, calibration, FAT, SAT…" value="${esc(filter)}" aria-label="Tìm thư mục"></div>${p ? `<label class="software-chip"><input id="folder-only-project" type="checkbox" ${folderOnlyProject ? 'checked' : ''}>Chỉ bộ môn dự án</label>` : ''}<span class="count-label">${rows.length}/247 mục hướng dẫn</span></div><div class="dictionary-layout"><aside class="panel module-nav sticky-panel"><button data-action="folder-module" data-id="all" class="${folderModule === 'all' ? 'active' : ''}">Tất cả bộ môn<span>247</span></button>${D.catalog.modules.filter(m => modules.includes(m.id)).map(m => `<button data-action="folder-module" data-id="${m.id}" class="${folderModule === m.id ? 'active' : ''}">${esc(m.name)}<span>${D.roadmap.folders.filter(f => f.module === m.id).length}</span></button>`).join('')}</aside><div>${rows.length ? rows.map(f => {
-      const m = D.catalog.modules.find(m => m.id === f.module), group = D.catalog.softwareGroups.find(g => g.module === f.module);
-      const path = f.path || m.folder + '/[Hãng]/' + (group?.perDevice ? '[ID thiết bị]/' : '') + f.suffix;
-      return `<article class="folder-card"><div class="folder-title"><h3>${esc(f.label || f.suffix || m.name)}</h3><span class="chip">${esc(m.name)}</span></div><code>${esc(path)}</code><p><b>Dùng khi:</b> ${esc(f.when)}</p><p><b>Mục đích:</b> ${esc(f.purpose)}</p><div class="btnrow" style="margin-top:12px">${btn('Sao chép đường dẫn', 'copy-path', 'copy', 'small', `data-path="${esc(path)}"`)}${p && connections.has(p.id) && f.path && p.modules.includes(m.id) ? btn('Mở trong dự án', 'open-path', 'folder', 'small', `data-path="${esc(f.path)}"`) : ''}</div></article>`;
-    }).join('') : '<div class="panel empty">Không tìm thấy mục phù hợp. Thử từ khóa khác hoặc chọn Tất cả bộ môn.</div>'}</div></div>`;
+      + `<div class="toolbar">
+          <div class="searchbox">
+            ${icon('search')}
+            <input id="folder-search" placeholder="Tìm IO, backup, tool, calibration, FAT, SAT…" value="${esc(filter)}" aria-label="Tìm thư mục">
+          </div>
+          ${p ? `<label class="software-chip"><input id="folder-only-project" type="checkbox" ${folderOnlyProject ? 'checked' : ''}>Chỉ bộ môn dự án</label>` : ''}
+          
+          <div class="folder-tree-controls">
+            ${btn('Mở rộng tất cả', 'expand-all-folders', 'plus', 'small')}
+            ${btn('Thu gọn tất cả', 'collapse-all-folders', 'minus', 'small')}
+            <div class="view-switch-grp">
+              <button class="${folderViewMode === 'tree' ? 'active-view' : ''}" data-action="toggle-folder-view" data-mode="tree" title="Xem dạng cây phân cấp">🌲 Cây thư mục</button>
+              <button class="${folderViewMode === 'cards' ? 'active-view' : ''}" data-action="toggle-folder-view" data-mode="cards" title="Xem dạng thẻ phẳng">🗂️ Dạng thẻ</button>
+            </div>
+          </div>
+          
+          <span class="count-label">${totalItems}/247 mục hướng dẫn</span>
+        </div>
+        <div class="dictionary-layout">
+          <aside class="panel module-nav sticky-panel">
+            <button data-action="folder-module" data-id="all" class="${folderModule === 'all' ? 'active' : ''}">Tất cả bộ môn<span>247</span></button>
+            ${moduleNavButtons}
+          </aside>
+          <div>
+            ${mainContentHtml}
+          </div>
+        </div>`;
   }
 
   function renderTemplates() {
@@ -3967,7 +4278,36 @@
           await download(f.data, p.code + '_THONG_TIN_DU_AN.html', 'text/html;charset=utf-8');
         }
       }
-      else if (action === 'folder-module') { folderModule = id; render(); }
+      else if (action === 'folder-module') {
+        folderModule = id;
+        if (id !== 'all') {
+          collapsedTreeModules.delete(id);
+        }
+        render();
+      }
+      else if (action === 'toggle-folder-tree') {
+        const modId = link.dataset.module;
+        if (modId) {
+          if (collapsedTreeModules.has(modId)) {
+            collapsedTreeModules.delete(modId);
+          } else {
+            collapsedTreeModules.add(modId);
+          }
+          render();
+        }
+      }
+      else if (action === 'expand-all-folders') {
+        collapsedTreeModules.clear();
+        render();
+      }
+      else if (action === 'collapse-all-folders') {
+        D.catalog.modules.forEach(m => collapsedTreeModules.add(m.id));
+        render();
+      }
+      else if (action === 'toggle-folder-view') {
+        folderViewMode = link.dataset.mode || 'tree';
+        render();
+      }
       else if (action === 'template-type') { templateType = id; render(); }
       else if (action === 'download-template') {
         const t = D.templates.templates.find(t => t.id === id);
